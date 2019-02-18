@@ -30,3 +30,10 @@
 *.exe
 *.out
 *.app
+/winp/.vs/winp/v15
+/winp/winp/x64/Debug
+/winp/x64/Debug
+*.vcxproj
+/winp/winp/winp.vcxproj.filters
+/winp/winp/winp.vcxproj.user
+/winp/winp.sln
