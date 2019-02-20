@@ -3,11 +3,13 @@
 #include "../thread/thread_object.h"
 
 namespace winp::app{
-	class main_object;
-
 	class object{
 	public:
-		static main_object *get_main();
+		object();
+
+		virtual ~object();
+
+		virtual void traverse_threads(const std::function<void(thread::object &)> &callback);
 
 	protected:
 		friend class thread::object;
@@ -17,7 +19,7 @@ namespace winp::app{
 		virtual void remove_thread_(DWORD id);
 
 		std::unordered_map<DWORD, thread::object *> threads_;
-		static main_object *main_;
+		std::mutex lock_;
 	};
 
 	class main_object : public object{

@@ -3,20 +3,41 @@
 winp::thread::queue::queue(object &thread)
 	: thread_(thread){}
 
+void winp::thread::queue::add_id_to_black_list(unsigned __int64 id){
+	if (thread_.is_thread_context())
+		black_list_[id] = '\0';
+	else
+		throw utility::error_code::outside_thread_context;
+}
+
+void winp::thread::queue::remove_id_from_black_list(unsigned __int64 id){
+	if (thread_.is_thread_context())
+		black_list_.erase(id);
+	else
+		throw utility::error_code::outside_thread_context;
+}
+
+bool winp::thread::queue::id_is_black_listed(unsigned __int64 id) const{
+	if (!thread_.is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return (black_list_.empty() || black_list_.find(id) != black_list_.end());
+}
+
 void winp::thread::queue::post_task(const callback_type &task, int priority, unsigned __int64 id){
 	add_([&]{
 		is_executing_ = true;
-		if (!is_black_listed_(id) && task != nullptr)
+		if (!id_is_black_listed(id) && task != nullptr)
 			task();
 
 		is_executing_ = false;
 	}, priority);
 }
 
-void winp::thread::queue::execute_task(const callback_type &task, int priority, unsigned __int64 id){
-	if (thread_.is_thread_context()){
+void winp::thread::queue::execute_task(const callback_type &task, int priority, unsigned __int64 id, bool always_queue){
+	if (!always_queue && thread_.is_thread_context()){
 		is_executing_ = true;
 		task();
+
 		is_executing_ = false;
 		return;
 	}
@@ -24,7 +45,7 @@ void winp::thread::queue::execute_task(const callback_type &task, int priority, 
 	std::promise<void> promise;
 	add_([&]{
 		is_executing_ = true;
-		if (!is_black_listed_(id) && task != nullptr)
+		if (!id_is_black_listed(id) && task != nullptr)
 			task();
 
 		is_executing_ = false;
@@ -42,16 +63,8 @@ winp::thread::object &winp::thread::queue::get_thread(){
 	return thread_;
 }
 
-void winp::thread::queue::add_to_black_list_(unsigned __int64 id){
-	black_list_[id] = '\0';
-}
-
-void winp::thread::queue::remove_from_black_list_(unsigned __int64 id){
-	black_list_.erase(id);
-}
-
-bool winp::thread::queue::is_black_listed_(unsigned __int64 id) const{
-	return (black_list_.empty() || black_list_.find(id) != black_list_.end());
+const winp::thread::object &winp::thread::queue::get_thread() const{
+	return thread_;
 }
 
 void winp::thread::queue::add_(const callback_type &task, int priority){

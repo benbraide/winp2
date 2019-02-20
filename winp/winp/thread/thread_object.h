@@ -5,6 +5,7 @@
 #include "../utility/random_number_generator.h"
 
 #include "thread_queue.h"
+#include "thread_item.h"
 
 namespace winp::app{
 	class object;
@@ -25,7 +26,11 @@ namespace winp::thread{
 
 		app::object &get_app();
 
+		const app::object &get_app() const;
+
 		queue &get_queue();
+
+		const queue &get_queue() const;
 
 		std::thread::id get_id() const;
 
@@ -69,7 +74,12 @@ namespace winp::thread{
 		}
 
 	private:
+		friend class item;
 		friend class app::object;
+
+		void add_item_(item &item);
+
+		void remove_item_(unsigned __int64 id);
 
 		app::object &app_;
 		queue queue_;
@@ -77,6 +87,7 @@ namespace winp::thread{
 		std::thread::id id_;
 		DWORD local_id_;
 
+		std::unordered_map<unsigned __int64, item *> items_;
 		utility::random_integral_number_generator random_generator_;
 	};
 }

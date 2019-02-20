@@ -1,7 +1,7 @@
-#include "../app/app_object.h"
+#include "../app/app_collection.h"
 
 winp::thread::object::object()
-	: object(*app::object::get_main()){}
+	: object(*app::collection::get_main()){}
 
 winp::thread::object::object(app::object &app)
 	: app_(app), queue_(*this), id_(std::this_thread::get_id()), local_id_(GetCurrentThreadId()){
@@ -49,7 +49,15 @@ winp::app::object &winp::thread::object::get_app(){
 	return app_;
 }
 
+const winp::app::object &winp::thread::object::get_app() const{
+	return app_;
+}
+
 winp::thread::queue &winp::thread::object::get_queue(){
+	return queue_;
+}
+
+const winp::thread::queue &winp::thread::object::get_queue() const{
 	return queue_;
 }
 
@@ -63,4 +71,19 @@ DWORD winp::thread::object::get_local_id() const{
 
 bool winp::thread::object::is_thread_context() const{
 	return (GetCurrentThreadId() == local_id_);
+}
+
+void winp::thread::object::add_item_(item &item){
+	if (&item.thread_ == this && is_thread_context())
+		items_[item.id_] = &item;
+	else
+		throw utility::error_code::outside_thread_context;
+}
+
+void winp::thread::object::remove_item_(unsigned __int64 id){
+	if (!is_thread_context())
+		throw utility::error_code::outside_thread_context;
+
+	if (!items_.empty())//Inside thread context
+		items_.erase(id);
 }

@@ -27,14 +27,20 @@ namespace winp::thread{
 			greater,
 		};
 
+		void add_id_to_black_list(unsigned __int64 id);
+
+		void remove_id_from_black_list(unsigned __int64 id);
+
+		bool id_is_black_listed(unsigned __int64 id) const;
+
 		void post_task(const callback_type &task, int priority, unsigned __int64 id);
 
-		void execute_task(const callback_type &task, int priority, unsigned __int64 id);
+		void execute_task(const callback_type &task, int priority, unsigned __int64 id, bool always_queue = false);
 
 		template <typename function_type>
-		auto compute_task(const function_type &task, int priority, unsigned __int64 id){
+		auto compute_task(const function_type &task, int priority, unsigned __int64 id, bool always_queue = false){
 			using return_type = decltype(task());
-			if (is_thread_context()){
+			if (!always_queue && is_thread_context()){
 				is_executing_ = true;
 				auto result = task();
 
@@ -45,7 +51,7 @@ namespace winp::thread{
 			std::promise<return_type> promise;
 			add_([&]{
 				is_executing_ = true;
-				if (!is_black_listed_(id))
+				if (!id_is_black_listed(id))
 					promise.set_value(task());
 				else
 					promise.set_value(return_type());
@@ -60,6 +66,8 @@ namespace winp::thread{
 
 		object &get_thread();
 
+		const object &get_thread() const;
+
 		static const int default_task_priority			= 0;
 		static const int urgent_task_priority			= std::numeric_limits<int>::max();
 		static const int elective_task_priority			= std::numeric_limits<int>::min();
@@ -70,12 +78,6 @@ namespace winp::thread{
 		friend class object;
 
 		explicit queue(object &thread);
-
-		void add_to_black_list_(unsigned __int64 id);
-
-		void remove_from_black_list_(unsigned __int64 id);
-
-		bool is_black_listed_(unsigned __int64 id) const;
 
 		void add_(const callback_type &task, int priority);
 
