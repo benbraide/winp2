@@ -4,6 +4,7 @@
 #include <functional>
 
 #include "../utility/windows.h"
+#include "../utility/error_code.h"
 
 namespace winp::thread{
 	class object;
@@ -15,6 +16,10 @@ namespace winp::thread{
 		explicit item(object &thread);
 
 		virtual ~item();
+
+		item(const item &) = delete;
+
+		item &operator =(const item &) = delete;
 
 		virtual void destruct();
 
