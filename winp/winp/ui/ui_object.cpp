@@ -21,7 +21,7 @@ winp::ui::object::~object(){
 }
 
 void winp::ui::object::create(const std::function<void(object &, utility::error_code)> &callback){
-	execute_or_post_task_([&]{
+	execute_or_post_task_inside_thread_context([&]{
 		try{
 			create_();
 			if (callback != nullptr)
@@ -37,7 +37,7 @@ void winp::ui::object::create(const std::function<void(object &, utility::error_
 }
 
 void winp::ui::object::destroy(const std::function<void(object &, utility::error_code)> &callback){
-	execute_or_post_task_([&]{
+	execute_or_post_task_inside_thread_context([&]{
 		try{
 			destroy_();
 			if (callback != nullptr)
@@ -53,14 +53,9 @@ void winp::ui::object::destroy(const std::function<void(object &, utility::error
 }
 
 bool winp::ui::object::is_created(const std::function<void(bool)> &callback) const{
-	if (callback == nullptr)//Block
-		return thread_.get_queue().compute_task([&]{ return is_created_(); }, thread::queue::urgent_task_priority, id_);
-
-	thread_.get_queue().post_task([&]{
-		callback(is_created_());
-	}, thread::queue::urgent_task_priority, id_);
-
-	return false;
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, is_created_());
+	}, (callback != nullptr), false);
 }
 
 void winp::ui::object::set_parent(tree *value, const std::function<void(object &, utility::error_code)> &callback){
@@ -68,7 +63,7 @@ void winp::ui::object::set_parent(tree *value, const std::function<void(object &
 }
 
 void winp::ui::object::set_parent(tree *value, std::size_t index, const std::function<void(object &, utility::error_code)> &callback){
-	execute_or_post_task_([&]{
+	execute_or_post_task_inside_thread_context([&]{
 		try{
 			set_parent_(value, index);
 			if (callback != nullptr)
@@ -84,29 +79,19 @@ void winp::ui::object::set_parent(tree *value, std::size_t index, const std::fun
 }
 
 winp::ui::tree *winp::ui::object::get_parent(const std::function<void(tree *)> &callback) const{
-	if (callback == nullptr)//Block
-		return thread_.get_queue().compute_task([&]{ return get_parent_(); }, thread::queue::urgent_task_priority, id_);
-
-	thread_.get_queue().post_task([&]{
-		callback(get_parent_());
-	}, thread::queue::urgent_task_priority, id_);
-
-	return nullptr;
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, get_parent_());
+	}, (callback != nullptr), nullptr);
 }
 
 bool winp::ui::object::is_ancestor(const tree &target, const std::function<void(bool)> &callback) const{
-	if (callback == nullptr)//Block
-		return thread_.get_queue().compute_task([&]{ return is_ancestor_(target); }, thread::queue::urgent_task_priority, id_);
-
-	thread_.get_queue().post_task([&]{
-		callback(is_ancestor_(target));
-	}, thread::queue::urgent_task_priority, id_);
-
-	return false;
+	return compute_or_post_task_inside_thread_context([=, &target]{
+		return pass_return_value_to_callback(callback, is_ancestor_(target));
+	}, (callback != nullptr), false);
 }
 
 void winp::ui::object::set_index(std::size_t value, const std::function<void(object &, utility::error_code)> &callback){
-	execute_or_post_task_([&]{
+	execute_or_post_task_inside_thread_context([&]{
 		try{
 			set_index_(value);
 			if (callback != nullptr)
@@ -122,24 +107,19 @@ void winp::ui::object::set_index(std::size_t value, const std::function<void(obj
 }
 
 std::size_t winp::ui::object::get_index(const std::function<void(std::size_t)> &callback) const{
-	if (callback == nullptr)//Block
-		return thread_.get_queue().compute_task([&]{ return get_index_(); }, thread::queue::urgent_task_priority, id_);
-
-	thread_.get_queue().post_task([&]{
-		callback(get_index_());
-	}, thread::queue::urgent_task_priority, id_);
-
-	return static_cast<std::size_t>(-1);
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, get_index_());
+	}, (callback != nullptr), static_cast<std::size_t>(-1));
 }
 
 void winp::ui::object::traverse_ancestors(const std::function<void(tree &)> &callback, bool block) const{
-	execute_or_post_task_([&]{
+	execute_or_post_task_inside_thread_context([&]{
 		traverse_ancestors_(callback);
 	}, !block);
 }
 
 void winp::ui::object::traverse_siblings(const std::function<void(object &)> &callback, bool block) const{
-	execute_or_post_task_([&]{
+	execute_or_post_task_inside_thread_context([&]{
 		traverse_siblings_(callback);
 	}, !block);
 }
@@ -196,15 +176,4 @@ void winp::ui::object::traverse_siblings_(const std::function<void(object &)> &c
 		if (sibling != this)
 			callback(*sibling);
 	}
-}
-
-void winp::ui::object::execute_or_post_task_(const std::function<void()> &task, bool post) const{
-	execute_or_post_task_(task, post, thread::queue::urgent_task_priority);
-}
-
-void winp::ui::object::execute_or_post_task_(const std::function<void()> &task, bool post, int priority) const{
-	if (post)
-		thread_.get_queue().post_task(task, priority, id_);
-	else//Execute
-		thread_.get_queue().execute_task(task, priority, id_);
 }

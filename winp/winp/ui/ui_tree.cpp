@@ -15,7 +15,7 @@ void winp::ui::tree::add_child(object &child, const std::function<void(tree &, u
 }
 
 void winp::ui::tree::insert_child(object &child, std::size_t index, const std::function<void(tree &, utility::error_code)> &callback){
-	execute_or_post_task_([&]{
+	execute_or_post_task_inside_thread_context([&]{
 		try{
 			insert_child_(child, index);
 			if (callback != nullptr)
@@ -31,7 +31,7 @@ void winp::ui::tree::insert_child(object &child, std::size_t index, const std::f
 }
 
 void winp::ui::tree::remove_child(object &child, const std::function<void(tree &, utility::error_code)> &callback){
-	execute_or_post_task_([&]{
+	execute_or_post_task_inside_thread_context([&]{
 		try{
 			erase_child_(child.get_index_());
 			if (callback != nullptr)
@@ -47,7 +47,7 @@ void winp::ui::tree::remove_child(object &child, const std::function<void(tree &
 }
 
 void winp::ui::tree::erase_child(std::size_t index, const std::function<void(tree &, utility::error_code)> &callback){
-	execute_or_post_task_([&]{
+	execute_or_post_task_inside_thread_context([&]{
 		try{
 			erase_child_(index);
 			if (callback != nullptr)
@@ -63,29 +63,19 @@ void winp::ui::tree::erase_child(std::size_t index, const std::function<void(tre
 }
 
 std::size_t winp::ui::tree::find_child(const object &child, const std::function<void(std::size_t)> &callback) const{
-	if (callback == nullptr)//Block
-		return thread_.get_queue().compute_task([&]{ return find_child_(child); }, thread::queue::urgent_task_priority, id_);
-
-	thread_.get_queue().post_task([&]{
-		callback(find_child_(child));
-	}, thread::queue::urgent_task_priority, id_);
-
-	return static_cast<std::size_t>(-1);
+	return compute_or_post_task_inside_thread_context([=, &child]{
+		return pass_return_value_to_callback(callback, find_child_(child));
+	}, (callback != nullptr), static_cast<std::size_t>(-1));
 }
 
 winp::ui::object *winp::ui::tree::get_child_at(std::size_t index, const std::function<void(object *)> &callback) const{
-	if (callback == nullptr)//Block
-		return thread_.get_queue().compute_task([&]{ return get_child_at_(index); }, thread::queue::urgent_task_priority, id_);
-
-	thread_.get_queue().post_task([&]{
-		callback(get_child_at_(index));
-	}, thread::queue::urgent_task_priority, id_);
-
-	return nullptr;
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, get_child_at_(index));
+	}, (callback != nullptr), nullptr);
 }
 
 void winp::ui::tree::traverse_children(const std::function<void(object &)> &callback, bool block) const{
-	execute_or_post_task_([&]{
+	execute_or_post_task_inside_thread_context([&]{
 		traverse_children_(callback);
 	}, !block);
 }

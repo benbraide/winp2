@@ -33,12 +33,12 @@ namespace winp::thread{
 
 		bool id_is_black_listed(unsigned __int64 id) const;
 
-		void post_task(const callback_type &task, int priority, unsigned __int64 id);
+		void post_task(const callback_type &task, int priority, unsigned __int64 id) const;
 
-		void execute_task(const callback_type &task, int priority, unsigned __int64 id, bool always_queue = false);
+		void execute_task(const callback_type &task, int priority, unsigned __int64 id, bool always_queue = false) const;
 
 		template <typename function_type>
-		auto compute_task(const function_type &task, int priority, unsigned __int64 id, bool always_queue = false){
+		auto compute_task(const function_type &task, int priority, unsigned __int64 id, bool always_queue = false) const{
 			using return_type = decltype(task());
 			if (!always_queue && is_thread_context()){
 				is_executing_ = true;
@@ -79,7 +79,7 @@ namespace winp::thread{
 
 		explicit queue(object &thread);
 
-		void add_(const callback_type &task, int priority);
+		void add_(const callback_type &task, int priority) const;
 
 		bool run_next_();
 
@@ -98,10 +98,10 @@ namespace winp::thread{
 		void get_all_(int priority, std::list<callback_type> &tasks);
 
 		object &thread_;
-		std::mutex lock_;
+		mutable std::mutex lock_;
 
-		bool is_executing_ = false;
-		std::map<int, std::list<callback_type>, compare_type> tasks_;
+		mutable bool is_executing_ = false;
+		mutable std::map<int, std::list<callback_type>, compare_type> tasks_;
 		std::unordered_map<unsigned __int64, char> black_list_;
 	};
 }

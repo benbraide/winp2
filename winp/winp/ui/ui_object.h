@@ -64,10 +64,6 @@ namespace winp::ui{
 
 		virtual void traverse_siblings_(const std::function<void(object &)> &callback) const;
 
-		void execute_or_post_task_(const std::function<void()> &task, bool post) const;
-
-		void execute_or_post_task_(const std::function<void()> &task, bool post, int priority) const;
-
 		tree *parent_ = nullptr;
 		std::size_t index_ = static_cast<std::size_t>(-1);
 	};

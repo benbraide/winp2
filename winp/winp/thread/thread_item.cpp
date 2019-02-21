@@ -31,6 +31,14 @@ winp::thread::object &winp::thread::item::get_thread(){
 	return thread_;
 }
 
+const winp::thread::queue &winp::thread::item::get_thread_queue() const{
+	return thread_.get_queue();
+}
+
+winp::thread::queue &winp::thread::item::get_thread_queue(){
+	return thread_.get_queue();
+}
+
 unsigned __int64 winp::thread::item::get_id() const{
 	return id_;
 }
@@ -47,12 +55,23 @@ bool winp::thread::item::is_cross_thread() const{
 	return (local_scope_thread_id_ != thread_.local_id_);
 }
 
-void winp::thread::item::execute_task_inside_thread_context(const std::function<void()> &task){
+void winp::thread::item::execute_task_inside_thread_context(const std::function<void()> &task) const{
 	execute_task_inside_thread_context(task, queue::urgent_task_priority);
 }
 
-void winp::thread::item::execute_task_inside_thread_context(const std::function<void()> &task, int priority){
+void winp::thread::item::execute_task_inside_thread_context(const std::function<void()> &task, int priority) const{
 	thread_.get_queue().execute_task(task, priority, id_);
+}
+
+void winp::thread::item::execute_or_post_task_inside_thread_context(const std::function<void()> &task, bool post) const{
+	execute_or_post_task_inside_thread_context(task, post, thread::queue::urgent_task_priority);
+}
+
+void winp::thread::item::execute_or_post_task_inside_thread_context(const std::function<void()> &task, bool post, int priority) const{
+	if (post)
+		thread_.get_queue().post_task(task, priority, id_);
+	else//Execute
+		thread_.get_queue().execute_task(task, priority, id_);
 }
 
 void winp::thread::item::destruct_(){
@@ -61,4 +80,34 @@ void winp::thread::item::destruct_(){
 
 	thread_.get_queue().add_id_to_black_list(id_);
 	thread_.remove_item_(id_);
+}
+
+winp::thread::synchronized_item::~synchronized_item() = default;
+
+void winp::thread::synchronized_item::synchronized_item_execute_task_inside_thread_context(const std::function<void()> &task) const{
+	if (auto item_self = dynamic_cast<const item *>(this); item_self != nullptr)
+		item_self->execute_task_inside_thread_context(task);
+	else//This is not an instance of thread::item
+		task();
+}
+
+void winp::thread::synchronized_item::synchronized_item_execute_task_inside_thread_context(const std::function<void()> &task, int priority) const{
+	if (auto item_self = dynamic_cast<const item *>(this); item_self != nullptr)
+		item_self->execute_task_inside_thread_context(task, priority);
+	else//This is not an instance of thread::item
+		task();
+}
+
+void winp::thread::synchronized_item::synchronized_item_execute_or_post_task_inside_thread_context(const std::function<void()> &task, bool post) const{
+	if (auto item_self = dynamic_cast<const item *>(this); item_self != nullptr)
+		item_self->execute_or_post_task_inside_thread_context(task, post);
+	else//This is not an instance of thread::item
+		task();
+}
+
+void winp::thread::synchronized_item::synchronized_item_execute_or_post_task_inside_thread_context(const std::function<void()> &task, bool post, int priority) const{
+	if (auto item_self = dynamic_cast<const item *>(this); item_self != nullptr)
+		item_self->execute_or_post_task_inside_thread_context(task, post, priority);
+	else//This is not an instance of thread::item
+		task();
 }

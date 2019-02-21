@@ -23,7 +23,7 @@ bool winp::thread::queue::id_is_black_listed(unsigned __int64 id) const{
 	return (black_list_.empty() || black_list_.find(id) != black_list_.end());
 }
 
-void winp::thread::queue::post_task(const callback_type &task, int priority, unsigned __int64 id){
+void winp::thread::queue::post_task(const callback_type &task, int priority, unsigned __int64 id) const{
 	add_([&]{
 		is_executing_ = true;
 		if (!id_is_black_listed(id) && task != nullptr)
@@ -33,7 +33,7 @@ void winp::thread::queue::post_task(const callback_type &task, int priority, uns
 	}, priority);
 }
 
-void winp::thread::queue::execute_task(const callback_type &task, int priority, unsigned __int64 id, bool always_queue){
+void winp::thread::queue::execute_task(const callback_type &task, int priority, unsigned __int64 id, bool always_queue) const{
 	if (!always_queue && thread_.is_thread_context()){
 		is_executing_ = true;
 		task();
@@ -67,7 +67,7 @@ const winp::thread::object &winp::thread::queue::get_thread() const{
 	return thread_;
 }
 
-void winp::thread::queue::add_(const callback_type &task, int priority){
+void winp::thread::queue::add_(const callback_type &task, int priority) const{
 	std::lock_guard<std::mutex> guard(lock_);
 	tasks_[priority].push_back(task);
 	thread_.post_message(WM_NULL);//Release loop if idle
