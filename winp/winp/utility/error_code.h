@@ -8,5 +8,6 @@ namespace winp::utility{
 		thread_context_mismatch,
 		thread_get_message_failure,
 		index_out_of_range,
+		event_cannot_be_bound,
 	};
 }

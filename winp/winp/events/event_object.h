@@ -1,6 +1,10 @@
 #pragma once
 
-#include "../thread/thread_item.h"
+#include "../thread/thread_queue.h"
+
+namespace winp::thread{
+	class item;
+}
 
 namespace winp::events{
 	class object{

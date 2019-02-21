@@ -29,5 +29,8 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 	winp::app::main_object main_app;
 	winp::ui::object uio;
 	uio.get_parent();
+	uio.bind_event([](winp::events::object &){});
+	uio.bind_event([](const winp::events::object &){});
+	uio.bind_event<winp::events::object>([]{});
 	return 0;
 }

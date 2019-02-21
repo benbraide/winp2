@@ -38,7 +38,7 @@ namespace winp::utility{
 
 		template <typename target_type>
 		operator target_type(){
-			return operator()();
+			return operator()<target_type>();
 		}
 	};
 

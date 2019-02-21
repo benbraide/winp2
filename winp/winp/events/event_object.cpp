@@ -1,6 +1,5 @@
 #include "../app/app_collection.h"
-
-#include "event_object.h"
+#include "../thread/thread_item.h"
 
 winp::events::object::object(thread::item &target, const std::function<void(object &)> &default_handler)
 	: object(target, target, default_handler){}

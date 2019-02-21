@@ -74,12 +74,20 @@ void winp::thread::item::execute_or_post_task_inside_thread_context(const std::f
 		thread_.get_queue().execute_task(task, priority, id_);
 }
 
+void winp::thread::item::unbind_event(unsigned __int64 id){
+	events_manager_.unbind_(id);
+}
+
 void winp::thread::item::destruct_(){
 	if (!thread_.is_thread_context())
 		throw utility::error_code::outside_thread_context;
 
 	thread_.get_queue().add_id_to_black_list(id_);
 	thread_.remove_item_(id_);
+}
+
+bool winp::thread::item::is_bindable_event_(const std::type_info &event_type) const{
+	return false;
 }
 
 winp::thread::synchronized_item::~synchronized_item() = default;

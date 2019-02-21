@@ -5,8 +5,9 @@
 
 #include "../utility/windows.h"
 #include "../utility/error_code.h"
+#include "../utility/traits.h"
 
-#include "thread_queue.h"
+#include "../events/event_manager.h"
 
 namespace winp::thread{
 	class object;
@@ -63,6 +64,22 @@ namespace winp::thread{
 			return default_value;
 		}
 
+		template <typename handler_type>
+		unsigned __int64 bind_event(const handler_type &handler){
+			if (!is_bindable_event_(typeid(typename utility::object_to_function_traits::traits<handler_type>::template args<0>::type)))
+				throw utility::error_code::event_cannot_be_bound;
+			return events_manager_.bind_(utility::object_to_function_traits::get(handler));
+		}
+
+		template <typename event_type>
+		unsigned __int64 bind_event(const std::function<void()> &handler){
+			return bind_event([handler](event_type &){
+				handler();
+			});
+		}
+
+		virtual void unbind_event(unsigned __int64 id);
+
 		template <typename value_type, typename function_type>
 		static value_type pass_return_value_to_callback(const function_type &callback, value_type &&value){
 			if (callback)
@@ -82,6 +99,8 @@ namespace winp::thread{
 
 		virtual void destruct_();
 
+		virtual bool is_bindable_event_(const std::type_info &event_type) const;
+
 		object &thread_;
 		unsigned __int64 id_;
 
@@ -89,6 +108,7 @@ namespace winp::thread{
 		DWORD local_scope_thread_id_;
 
 		bool destructed_ = false;
+		events::manager<item> events_manager_;
 	};
 
 	class synchronized_item{
