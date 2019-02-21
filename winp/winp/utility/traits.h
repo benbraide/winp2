@@ -21,63 +21,77 @@ namespace winp::utility{
 	struct function_traits;
 
 	template<typename return_type, typename... args_types>
-	struct function_traits<return_type(args_types...)> : function_traits_base<return_type, args_types...>{};
+	struct function_traits<return_type(args_types...)> : function_traits_base<return_type, args_types...>{
+		static const bool is_raw = true;
+		static const bool is_static = true;
+		static const bool is_constant = false;
+	};
 
 	template<typename return_type, typename... args_types>
-	struct function_traits<return_type(*)(args_types...)> : function_traits_base<return_type, args_types...>{};
+	struct function_traits<return_type(*)(args_types...)> : function_traits_base<return_type, args_types...>{
+		static const bool is_raw = true;
+		static const bool is_static = true;
+		static const bool is_constant = false;
+	};
 
 	template<typename class_type, typename return_type, typename... args_types>
-	struct function_traits<return_type(class_type::*)(args_types...)> : function_traits_base<return_type, args_types...>{};
+	struct function_traits<return_type(class_type::*)(args_types...)> : function_traits_base<return_type, args_types...>{
+		static const bool is_raw = true;
+		static const bool is_static = false;
+		static const bool is_constant = false;
+	};
 
 	template<typename class_type, typename return_type, typename... args_types>
-	struct function_traits<return_type(class_type::*)(args_types...) const> : function_traits_base<return_type, args_types...>{};
+	struct function_traits<return_type(class_type::*)(args_types...) const> : function_traits_base<return_type, args_types...>{
+		static const bool is_raw = true;
+		static const bool is_static = false;
+		static const bool is_constant = true;
+	};
 
 	template<typename return_type, typename... args_types>
-	struct function_traits<std::function<return_type(args_types...)>> : function_traits_base<return_type, args_types...>{};
+	struct function_traits<std::function<return_type(args_types...)>> : function_traits_base<return_type, args_types...>{
+		static const bool is_raw = false;
+		static const bool is_static = false;
+		static const bool is_constant = false;
+	};
 
 	template<typename function_object_type>
-	struct function_or_function_object_traits : function_traits<decltype(&function_object_type::operator ())>{};
+	struct function_or_function_object_traits : function_traits<decltype(&function_object_type::operator ())>{
+		static const bool is_functor = true;
+	};
 
 	template<typename return_type, typename... args_types>
-	struct function_or_function_object_traits<return_type(args_types...)> : function_traits<return_type(args_types...)>{};
+	struct function_or_function_object_traits<return_type(args_types...)> : function_traits<return_type(args_types...)>{
+		static const bool is_functor = false;
+	};
 
 	template<typename return_type, typename... args_types>
-	struct function_or_function_object_traits<return_type(*)(args_types...)> : function_traits<return_type(*)(args_types...)>{};
+	struct function_or_function_object_traits<return_type(*)(args_types...)> : function_traits<return_type(*)(args_types...)>{
+		static const bool is_functor = false;
+	};
 
 	template<typename class_type, typename return_type, typename... args_types>
-	struct function_or_function_object_traits<return_type(class_type::*)(args_types...)> : function_traits<return_type(class_type::*)(args_types...)>{};
+	struct function_or_function_object_traits<return_type(class_type::*)(args_types...)> : function_traits<return_type(class_type::*)(args_types...)>{
+		static const bool is_functor = false;
+	};
 
 	template<typename class_type, typename return_type, typename... args_types>
-	struct function_or_function_object_traits<return_type(class_type::*)(args_types...) const> : function_traits<return_type(class_type::*)(args_types...) const>{};
+	struct function_or_function_object_traits<return_type(class_type::*)(args_types...) const> : function_traits<return_type(class_type::*)(args_types...) const>{
+		static const bool is_functor = false;
+	};
 
 	template<typename return_type, typename... args_types>
-	struct function_or_function_object_traits<std::function<return_type(args_types...)>> : function_traits<std::function<return_type(args_types...)>>{};
+	struct function_or_function_object_traits<std::function<return_type(args_types...)>> : function_traits<std::function<return_type(args_types...)>>{
+		static const bool is_functor = true;
+	};
 
-	template<typename function_object_type>
 	struct object_to_function_traits{
-		using traits = function_traits<decltype(&function_object_type::operator ())>;
+		template <typename object_type>
+		using traits = function_or_function_object_traits<object_type>;
 
-		static typename traits::function_type get(const function_object_type &function){
-			return function;
-		}
-	};
-
-	template<typename return_type, typename... args_types>
-	struct object_to_function_traits<return_type(args_types...)>{
-		using traits = function_traits<return_type(*)(args_types...)>;
-
-		template <typename function_type>
-		static typename traits::function_type get(function_type function){
-			return function;
-		}
-	};
-
-	template<typename return_type, typename... args_types>
-	struct object_to_function_traits<return_type(*)(args_types...)>{
-		using traits = function_traits<return_type(*)(args_types...)>;
-
-		static typename traits::function_type get(return_type(*function)(args_types...)){
-			return function;
+		template <typename object_type>
+		static typename traits<object_type>::function_type get(const object_type &object){
+			return object;
 		}
 	};
 }

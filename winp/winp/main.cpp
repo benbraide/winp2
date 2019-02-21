@@ -15,10 +15,11 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 
 	auto f = []{};
 
-	auto ctf1 = winp::utility::object_to_function_traits<decltype(f)>::get(f);
-	auto ctf2 = winp::utility::object_to_function_traits<s>::get(si);
-	auto ctf3 = winp::utility::object_to_function_traits<decltype(gf)>::get(gf);
-	auto ctf4 = winp::utility::object_to_function_traits<decltype(&wWinMain)>::get(&wWinMain);
+	auto ctf1 = winp::utility::object_to_function_traits::get(f);
+	auto ctf2 = winp::utility::object_to_function_traits::get(si);
+	auto ctf3 = winp::utility::object_to_function_traits::get(gf);
+	auto ctf4 = winp::utility::object_to_function_traits::get(wWinMain);
+	auto ctf5 = winp::utility::object_to_function_traits::get(&wWinMain);
 	
 	winp::utility::function_or_function_object_traits<decltype(f)> ffo1;
 	winp::utility::function_or_function_object_traits<s> ffo2;
