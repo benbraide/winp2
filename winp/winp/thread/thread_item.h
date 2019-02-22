@@ -9,6 +9,10 @@
 
 #include "../events/event_manager.h"
 
+namespace winp::ui{
+	class object;
+}
+
 namespace winp::thread{
 	class object;
 
@@ -66,8 +70,6 @@ namespace winp::thread{
 
 		template <typename handler_type>
 		unsigned __int64 bind_event(const handler_type &handler){
-			if (!is_bindable_event_(typeid(typename utility::object_to_function_traits::traits<handler_type>::template args<0>::type)))
-				throw utility::error_code::event_cannot_be_bound;
 			return events_manager_.bind_(utility::object_to_function_traits::get(handler));
 		}
 
@@ -99,7 +101,16 @@ namespace winp::thread{
 
 		virtual void destruct_();
 
-		virtual bool is_bindable_event_(const std::type_info &event_type) const;
+		template <typename event_type>
+		void trigger_event_with_ref_(event_type &e) const{
+			events_manager_.trigger_(e);
+		}
+
+		template <typename event_type, typename... args_types>
+		void trigger_event_(const std::function<void(events::object &)> &default_handler, args_types &&... args) const{
+			event_type e(std::forward<args_types>(args)..., *const_cast<item *>(this), default_handler);
+			trigger_event_with_ref_(e);
+		}
 
 		object &thread_;
 		unsigned __int64 id_;

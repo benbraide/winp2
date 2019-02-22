@@ -28,7 +28,7 @@ namespace winp::utility{
 		};
 
 		using set_range_list_type = std::vector<set_range>;
-		using char_set_type = random_string_generator_char_set;
+		using char_set_type = unsigned int;
 
 		template <typename... args_types>
 		explicit basic_random_string_generator(args_types &&... args)
@@ -103,20 +103,20 @@ namespace winp::utility{
 
 		template <typename char_type>
 		static void resolve_char_set(char_set_type char_set, set_range_list_type &out){
-			if (char_set == char_set_type::nil){//Include all
+			if (char_set == random_string_generator_char_set::nil){//Include all
 				out.push_back(set_range{ 0, static_cast<int>(std::numeric_limits<char_type>::max()) });
 				return;
 			}
 
-			if ((char_set & char_set_type::invert) == char_set_type::invert)
+			if ((char_set & random_string_generator_char_set::invert) == random_string_generator_char_set::invert)
 				char_set = ~char_set;//Exclude specified
 
-			if ((char_set & char_set_type::alpha) == char_set_type::alpha){//Alphabet range
-				if ((char_set, (char_set_type::uppercase | char_set_type::lowercase)) != 0u){
-					if ((char_set & char_set_type::uppercase) == char_set_type::uppercase)//Uppercase range
+			if ((char_set & random_string_generator_char_set::alpha) == random_string_generator_char_set::alpha){//Alphabet range
+				if ((char_set, (random_string_generator_char_set::uppercase | random_string_generator_char_set::lowercase)) != 0u){
+					if ((char_set & random_string_generator_char_set::uppercase) == random_string_generator_char_set::uppercase)//Uppercase range
 						out.push_back(set_range{ 0x0041, 0x005A });
 
-					if ((char_set & char_set_type::lowercase) == char_set_type::lowercase)//Lowercase range
+					if ((char_set & random_string_generator_char_set::lowercase) == random_string_generator_char_set::lowercase)//Lowercase range
 						out.push_back(set_range{ 0x0061, 0x007A });
 				}
 				else{//Full alphabet range
@@ -125,14 +125,14 @@ namespace winp::utility{
 				}
 			}
 
-			if ((char_set & char_set_type::digits) == char_set_type::digits){//Digits range
-				if ((char_set & char_set_type::hex) == char_set_type::hex){//Hexadecimal range
+			if ((char_set & random_string_generator_char_set::digits) == random_string_generator_char_set::digits){//Digits range
+				if ((char_set & random_string_generator_char_set::hex) == random_string_generator_char_set::hex){//Hexadecimal range
 					out.push_back(set_range{ 0x0030, 0x0039 });
-					if ((char_set, (char_set_type::uppercase | char_set_type::lowercase)) != 0u){
-						if ((char_set & char_set_type::uppercase) == char_set_type::uppercase)//Uppercase range
+					if ((char_set, (random_string_generator_char_set::uppercase | random_string_generator_char_set::lowercase)) != 0u){
+						if ((char_set & random_string_generator_char_set::uppercase) == random_string_generator_char_set::uppercase)//Uppercase range
 							out.push_back(set_range{ 0x0041, 0x0046 });
 
-						if ((char_set, char_set_type::lowercase) == char_set_type::lowercase)//Lowercase range
+						if ((char_set, random_string_generator_char_set::lowercase) == random_string_generator_char_set::lowercase)//Lowercase range
 							out.push_back(set_range{ 0x0061, 0x0066 });
 					}
 					else{//Full hex range
@@ -140,7 +140,7 @@ namespace winp::utility{
 						out.push_back(set_range{ 0x0061, 0x0066 });
 					}
 				}
-				else if ((char_set, char_set_type::oct) == char_set_type::oct)//Octal range
+				else if ((char_set, random_string_generator_char_set::oct) == random_string_generator_char_set::oct)//Octal range
 					out.push_back(set_range{ 0x0030, 0x0039 });
 				else//Full digit range
 					out.push_back(set_range{ 0x0030, 0x0037 });

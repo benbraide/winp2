@@ -9,7 +9,7 @@
 namespace winp::events{
 	class handler_base{
 	public:
-		virtual void call(void *object) const = 0;
+		virtual void call(object &object) const = 0;
 	};
 
 	template <class object_type>
@@ -21,8 +21,8 @@ namespace winp::events{
 		explicit handler(const callback_type &callback)
 			: callback_(callback){}
 
-		virtual void call(void *object) const override{
-			callback_(*static_cast<std::remove_cv_t<std::remove_reference_t<m_object_type>> *>(object));
+		virtual void call(object &object) const override{
+			callback_(dynamic_cast<std::remove_cv_t<std::remove_reference_t<m_object_type>> &>(object));
 		}
 
 	private:
@@ -97,7 +97,7 @@ namespace winp::events{
 
 			if (auto it = handlers_.find(&typeid(object_type)); it != handlers_.end()){
 				for (auto &handler_info : it->second){
-					handler_info.handler->call(&e);
+					handler_info.handler->call(e);
 					if ((e.get_states() & object::state_propagation_stopped) != 0u)
 						break;//Propagation stopped
 				}

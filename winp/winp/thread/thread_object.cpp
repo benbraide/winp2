@@ -1,11 +1,12 @@
 #include "../app/app_collection.h"
 
 winp::thread::object::object()
-	: object(*app::collection::get_main()){}
+	: object(*((app::collection::get_main() == nullptr) ? app::collection::get_current_thread_app() : app::collection::get_main())){}
 
 winp::thread::object::object(app::object &app)
 	: app_(app), queue_(*this), id_(std::this_thread::get_id()), local_id_(GetCurrentThreadId()){
 	app_.add_thread_(*this);
+	message_hwnd_ = CreateWindowExW(0, app_.get_class_name().data(), L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, GetModuleHandleW(nullptr), nullptr);
 }
 
 winp::thread::object::~object(){
@@ -33,6 +34,9 @@ int winp::thread::object::run(){
 
 		if (msg.message == WM_QUIT)
 			return static_cast<int>(msg.wParam);
+
+		if (msg.hwnd == message_hwnd_)
+			handle_message_(msg);
 	}
 
 	return 0;
@@ -86,4 +90,8 @@ void winp::thread::object::remove_item_(unsigned __int64 id){
 
 	if (!items_.empty())//Inside thread context
 		items_.erase(id);
+}
+
+void winp::thread::object::handle_message_(MSG &msg){
+
 }

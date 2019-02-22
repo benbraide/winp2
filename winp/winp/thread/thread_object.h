@@ -43,6 +43,11 @@ namespace winp::thread{
 			return (PostThreadMessageW(local_id_, msg, (WPARAM)wparam, (LPARAM)lparam) != FALSE);
 		}
 
+		template <typename result_type = LRESULT, typename wparam_type = WPARAM, typename lparam_type = LPARAM>
+		result_type send_message(UINT msg, wparam_type wparam = wparam_type(0), lparam_type lparam = lparam_type(0)) const{
+			return (result_type)SendMessageW(message_hwnd_, msg, (WPARAM)wparam, (LPARAM)lparam);
+		}
+
 		template <typename target_type>
 		target_type generate_random_integer(target_type from, target_type to){
 			if (is_thread_context())
@@ -81,12 +86,15 @@ namespace winp::thread{
 
 		void remove_item_(unsigned __int64 id);
 
+		void handle_message_(MSG &msg);
+
 		app::object &app_;
 		queue queue_;
 
 		std::thread::id id_;
 		DWORD local_id_;
 
+		HWND message_hwnd_ = nullptr;
 		std::unordered_map<unsigned __int64, item *> items_;
 		utility::random_integral_number_generator random_generator_;
 	};

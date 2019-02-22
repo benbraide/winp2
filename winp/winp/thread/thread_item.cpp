@@ -86,10 +86,6 @@ void winp::thread::item::destruct_(){
 	thread_.remove_item_(id_);
 }
 
-bool winp::thread::item::is_bindable_event_(const std::type_info &event_type) const{
-	return false;
-}
-
 winp::thread::synchronized_item::~synchronized_item() = default;
 
 void winp::thread::synchronized_item::synchronized_item_execute_task_inside_thread_context(const std::function<void()> &task) const{
