@@ -2,6 +2,7 @@
 
 #include <any>
 
+#include "../utility/traits.h"
 #include "../utility/random_number_generator.h"
 
 #include "event_object.h"
@@ -29,9 +30,11 @@ namespace winp::events{
 		callback_type callback_;
 	};
 
-	template <class owner>
+	template <class owner_type>
 	class manager{
 	public:
+		using m_owner_type = owner_type;
+
 		struct handler_info{
 			unsigned __int64 id;
 			std::shared_ptr<handler_base> handler;
@@ -40,13 +43,44 @@ namespace winp::events{
 		using list_type = std::list<handler_info>;
 		using map_type = std::unordered_map<const std::type_info *, list_type>;
 
+		explicit manager(m_owner_type &owner)
+			: owner_(owner){}
+
 		~manager(){
 			count_ = 0u;
 		}
 
-	private:
-		friend owner;
+		const m_owner_type &get_owner() const{
+			return owner_;
+		}
 
+		m_owner_type &get_owner(){
+			return owner_;
+		}
+		
+		template <typename handler_type>
+		unsigned __int64 bind(const handler_type &handler){
+			return owner_.compute_task_inside_thread_context([&]{
+				return bind_(utility::object_to_function_traits::get(handler));
+			});
+		}
+		
+		template <typename object_type>
+		unsigned __int64 bind(const std::function<void()> &handler){
+			return bind([handler](object_type &){
+				handler();
+			});
+		}
+
+		void unbind(unsigned __int64 id){
+			owner_.execute_task_inside_thread_context([&]{
+				unbind_(id);
+			});
+		}
+
+	private:
+		friend owner_type;
+		
 		template <typename object_type>
 		unsigned __int64 bind_(const std::function<void(object_type &)> &handler){
 			unsigned __int64 id = random_generator_;
@@ -71,14 +105,10 @@ namespace winp::events{
 			return id;
 		}
 
-		template <typename object_type>
-		unsigned __int64 bind_(const std::function<void()> &handler){
-			return bind_([handler](object_type &){
-				handler();
-			});
-		}
-
 		void unbind_(unsigned __int64 id){
+			if (count_ == 0u)
+				return;
+
 			for (auto &info : handlers_){
 				for (auto it = info.second.begin(); it != info.second.end(); ++it){
 					if (it->id == id){//Handler found
@@ -90,12 +120,11 @@ namespace winp::events{
 			}
 		}
 
-		template <typename object_type>
-		void trigger_(object_type &e) const{
+		void trigger_(object &e) const{
 			if (count_ == 0u)
 				return;
 
-			if (auto it = handlers_.find(&typeid(object_type)); it != handlers_.end()){
+			if (auto it = handlers_.find(&typeid(e)); it != handlers_.end()){
 				for (auto &handler_info : it->second){
 					handler_info.handler->call(e);
 					if ((e.get_states() & object::state_propagation_stopped) != 0u)
@@ -104,8 +133,65 @@ namespace winp::events{
 			}
 		}
 
+		m_owner_type &owner_;
 		map_type handlers_;
 		std::size_t count_ = 0u;
 		utility::random_integral_number_generator random_generator_;
+	};
+
+	template <class owner_type>
+	class single_manager{
+	public:
+		using m_owner_type = owner_type;
+		using map_type = std::unordered_map<const std::type_info *, std::shared_ptr<handler_base>>;
+
+		explicit single_manager(m_owner_type &owner)
+			: owner_(owner){}
+
+		template <typename handler_type>
+		void bind(const handler_type &handler){
+			owner_.execute_task_inside_thread_context([&]{
+				return bind_(utility::object_to_function_traits::get(handler));
+			});
+		}
+
+		template <typename object_type>
+		void bind(const std::function<void()> &handler){
+			bind([handler](object_type &){
+				handler();
+			});
+		}
+
+		template <typename object_type>
+		void unbind(){
+			owner_.execute_task_inside_thread_context([this]{
+				if (!handlers_.empty())
+					handlers_.erase(&typeid(object_type));
+			});
+		}
+
+	private:
+		friend owner_type;
+
+		template <typename object_type>
+		void bind_(const std::function<void(object_type &)> &handler){
+			handlers_[&typeid(object_type)] = std::make_shared<events::handler<object_type &>>(handler);
+		}
+		
+		template <typename object_type>
+		void bind_(const std::function<void(const object_type &)> &handler){
+			handlers_[&typeid(object_type)] = std::make_shared<events::handler<const object_type &>>(handler);
+		}
+
+		void trigger_(object &e) const{
+			if (handlers_.empty())
+				return;
+
+			if (auto it = handlers_.find(&typeid(e)); it != handlers_.end())
+				it->second->call(e);
+		}
+
+		m_owner_type &owner_;
+		map_type handlers_;
 	};
 }

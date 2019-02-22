@@ -74,8 +74,16 @@ void winp::thread::item::execute_or_post_task_inside_thread_context(const std::f
 		thread_.get_queue().execute_task(task, priority, id_);
 }
 
+const winp::events::manager<winp::thread::item> &winp::thread::item::events() const{
+	return events_manager_;
+}
+
+winp::events::manager<winp::thread::item> &winp::thread::item::events(){
+	return events_manager_;
+}
+
 void winp::thread::item::unbind_event(unsigned __int64 id){
-	events_manager_.unbind_(id);
+	events_manager_.unbind(id);
 }
 
 void winp::thread::item::destruct_(){
@@ -84,6 +92,12 @@ void winp::thread::item::destruct_(){
 
 	thread_.get_queue().add_id_to_black_list(id_);
 	thread_.remove_item_(id_);
+}
+
+void winp::thread::item::trigger_event_(events::object &e, bool trigger_handler) const{
+	events_manager_.trigger_(e);
+	if (trigger_handler && (e.get_states() & events::object::state_default_prevented) == 0u)
+		event_handlers_.trigger_(e);
 }
 
 winp::thread::synchronized_item::~synchronized_item() = default;

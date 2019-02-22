@@ -5,7 +5,6 @@
 
 #include "../utility/windows.h"
 #include "../utility/error_code.h"
-#include "../utility/traits.h"
 
 #include "../events/event_manager.h"
 
@@ -68,16 +67,18 @@ namespace winp::thread{
 			return default_value;
 		}
 
+		virtual const events::manager<item> &events() const;
+
+		virtual events::manager<item> &events();
+
 		template <typename handler_type>
 		unsigned __int64 bind_event(const handler_type &handler){
-			return events_manager_.bind_(utility::object_to_function_traits::get(handler));
+			return events_manager_.bind(handler);
 		}
 
 		template <typename event_type>
 		unsigned __int64 bind_event(const std::function<void()> &handler){
-			return bind_event([handler](event_type &){
-				handler();
-			});
+			return events_manager_.bind<event_type>(handler);
 		}
 
 		virtual void unbind_event(unsigned __int64 id);
@@ -98,18 +99,15 @@ namespace winp::thread{
 
 	protected:
 		friend class object;
+		friend class events::object;
 
 		virtual void destruct_();
 
-		template <typename event_type>
-		void trigger_event_with_ref_(event_type &e) const{
-			events_manager_.trigger_(e);
-		}
+		virtual void trigger_event_(events::object &e, bool trigger_handler) const;
 
-		template <typename event_type, typename... args_types>
-		void trigger_event_(const std::function<void(events::object &)> &default_handler, args_types &&... args) const{
-			event_type e(std::forward<args_types>(args)..., *const_cast<item *>(this), default_handler);
-			trigger_event_with_ref_(e);
+		template <typename handler_type>
+		void add_handler_(const handler_type &handler){
+			event_handlers_.bind(handler);
 		}
 
 		object &thread_;
@@ -119,7 +117,8 @@ namespace winp::thread{
 		DWORD local_scope_thread_id_;
 
 		bool destructed_ = false;
-		events::manager<item> events_manager_;
+		events::manager<item> events_manager_{ *this };
+		events::single_manager<item> event_handlers_{ *this };
 	};
 
 	class synchronized_item{

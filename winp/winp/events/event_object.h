@@ -15,6 +15,10 @@ namespace winp::events{
 
 		virtual ~object();
 
+		object(const object &) = delete;
+
+		object &operator =(const object &) = delete;
+
 		virtual thread::object &get_thread();
 
 		virtual thread::item &get_target();
@@ -23,7 +27,7 @@ namespace winp::events{
 
 		virtual void prevent_default();
 
-		virtual void do_default();
+		virtual bool do_default();
 
 		virtual void stop_propagation();
 
@@ -35,6 +39,7 @@ namespace winp::events{
 		static constexpr unsigned int state_default_prevented			= (1 << 0x0000);
 		static constexpr unsigned int state_propagation_stopped			= (1 << 0x0001);
 		static constexpr unsigned int state_default_done				= (1 << 0x0002);
+		static constexpr unsigned int state_result_set					= (1 << 0x0003);
 
 	protected:
 		thread::item &target_;
@@ -47,60 +52,62 @@ namespace winp::events{
 	class object_with_message : public object{
 	public:
 		template <typename... args_types>
-		explicit object_with_message(MSG &message, args_types &&... args)
-			: object(std::forward<args_types>(args)...), message_(message){}
+		explicit object_with_message(MSG &message, WNDPROC default_callback, args_types &&... args)
+			: object_with_message(message, message, default_callback, args...){}
+
+		template <typename... args_types>
+		explicit object_with_message(MSG &message, MSG &original_message, WNDPROC default_callback, args_types &&... args)
+			: object(std::forward<args_types>(args)...), message_(message), original_message_(original_message_), default_callback_(default_callback){}
 
 		virtual ~object_with_message();
 
-		virtual MSG &get_message();
+		virtual bool do_default() override;
 
-	protected:
-		MSG &message_;
-	};
-
-	template <class base_type, class value_type>
-	class object_with_value : public base_type{
-	public:
-		using m_base_type = base_type;
-		using m_value_type = value_type;
-
-		template <typename... args_types>
-		explicit object_with_value(const m_value_type &value, args_types &&... args)
-			: base_type(std::forward<args_types>(args)...), value_(value){}
-
-		template <typename... args_types>
-		explicit object_with_value(args_types &&... args)
-			: base_type(std::forward<args_types>(args)...){}
-
-		virtual object_with_value &operator =(const value_type &value){
-			if (!m_base_type::is_thread_context())
+		template <typename value_type>
+		object_with_message &operator =(const value_type &value){
+			if (!is_thread_context())
 				throw utility::error_code::outside_thread_context;
 
-			m_base_type::states_ |= state_result_set;
+			states_ |= state_result_set;
 			value_ = value;
 
 			return *this;
 		}
 
-		virtual object_with_value &operator %=(const value_type &value){
-			if (!m_base_type::is_thread_context())
+		template <typename value_type>
+		object_with_message &operator %=(const value_type &value){
+			if (!is_thread_context())
 				throw utility::error_code::outside_thread_context;
 
-			if ((m_base_type::states_ & state_result_set) == 0u){
-				m_base_type::states_ |= state_result_set;
+			if ((states_ & state_result_set) == 0u){
+				states_ |= state_result_set;
 				value_ = value;
 			}
 
 			return *this;
 		}
 
-		virtual const m_value_type &get_value() const{
-			return value_;
+		template <typename target_type = LRESULT>
+		target_type get_value() const{
+			return (target_type)value_;
 		}
 
-		static constexpr unsigned int state_result_set					= (1 << 0x0002);
+		virtual const MSG &get_message() const;
+
+		virtual MSG &get_message();
 
 	protected:
-		m_value_type value_ = m_value_type();
+		MSG &message_;
+		MSG &original_message_;
+
+		WNDPROC default_callback_;
+		LRESULT value_ = 0;
+	};
+
+	class unhandled_event : public object_with_message{
+	public:
+		template <typename... args_types>
+		explicit unhandled_event(args_types &&... args)
+			: object_with_message(std::forward<args_types>(args)...){}
 	};
 }

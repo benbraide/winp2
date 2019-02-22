@@ -9,9 +9,20 @@ void gf(int &i){
 int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_show){
 	auto i = 0;
 
-	struct s{
+	class s{
+	public:
+		virtual ~s() = default;
+
 		void operator ()(bool){}
 	} si;
+
+	class sc : public s{
+	public:
+		virtual ~sc() = default;
+	} sci;
+
+	auto &scis = sci;
+	auto eti = (typeid(scis) == typeid(sci));
 
 	auto f = []{};
 
@@ -32,5 +43,6 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 	uio.bind_event([](winp::events::object &){});
 	uio.bind_event([](const winp::events::object &){});
 	uio.bind_event<winp::events::object>([]{});
+	uio.events().bind([](winp::events::object &){});
 	return 0;
 }
