@@ -2,43 +2,20 @@
 
 winp::ui::visible_surface::~visible_surface() = default;
 
-void winp::ui::visible_surface::show(const std::function<void(visible_surface, utility::error_code)> &callback){
-	synchronized_item_execute_or_post_task_inside_thread_context([&]{
-		try{
-			show_();
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::visible_surface::show(const std::function<void(visible_surface, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, show_());
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
-void winp::ui::visible_surface::hide(const std::function<void(visible_surface, utility::error_code)> &callback){
-	synchronized_item_execute_or_post_task_inside_thread_context([&]{
-		try{
-			hide_();
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::visible_surface::hide(const std::function<void(visible_surface, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, hide_());
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
-void winp::ui::visible_surface::set_visibility(bool is_visible, const std::function<void(visible_surface, utility::error_code)> &callback){
-	if (is_visible)
-		show(callback);
-	else
-		hide(callback);
+winp::utility::error_code winp::ui::visible_surface::set_visibility(bool is_visible, const std::function<void(visible_surface, utility::error_code)> &callback){
+	return (is_visible ? show(callback) : hide(callback));
 }
 
 bool winp::ui::visible_surface::is_visible(const std::function<void(bool)> &callback) const{
@@ -47,20 +24,10 @@ bool winp::ui::visible_surface::is_visible(const std::function<void(bool)> &call
 	}, (callback != nullptr), false);
 }
 
-void winp::ui::visible_surface::set_background_transparency(bool is_transparent, const std::function<void(visible_surface, utility::error_code)> &callback){
-	synchronized_item_execute_or_post_task_inside_thread_context([&]{
-		try{
-			set_background_transparency_(is_transparent);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::visible_surface::set_background_transparency(bool is_transparent, const std::function<void(visible_surface, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, set_background_transparency_(is_transparent));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
 bool winp::ui::visible_surface::is_transparent_background(const std::function<void(bool)> &callback) const{
@@ -69,20 +36,10 @@ bool winp::ui::visible_surface::is_transparent_background(const std::function<vo
 	}, (callback != nullptr), false);
 }
 
-void winp::ui::visible_surface::set_background_color(const D2D1::ColorF &value, const std::function<void(visible_surface, utility::error_code)> &callback){
-	synchronized_item_execute_or_post_task_inside_thread_context([&]{
-		try{
-			set_background_color_(value);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::visible_surface::set_background_color(const D2D1::ColorF &value, const std::function<void(visible_surface, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, set_background_color_(value));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
 const D2D1::ColorF &winp::ui::visible_surface::get_background_color(const std::function<void(const D2D1::ColorF &)> &callback) const{
@@ -121,22 +78,29 @@ bool winp::ui::visible_surface::compare_colors(const D2D1::ColorF &first, const 
 	return (convert_colorf_to_colorref(first) == convert_colorf_to_colorref(second));
 }
 
-void winp::ui::visible_surface::show_(){}
+winp::utility::error_code winp::ui::visible_surface::show_(){
+	return utility::error_code::not_supported;
+}
 
-void winp::ui::visible_surface::hide_(){}
+winp::utility::error_code winp::ui::visible_surface::hide_(){
+	return utility::error_code::not_supported;
+}
 
 bool winp::ui::visible_surface::is_visible_() const{
 	return false;
 }
 
-void winp::ui::visible_surface::set_background_transparency_(bool is_transparent){}
+winp::utility::error_code winp::ui::visible_surface::set_background_transparency_(bool is_transparent){
+	return utility::error_code::not_supported;
+}
 
 bool winp::ui::visible_surface::is_transparent_background_() const{
 	return false;
 }
 
-void winp::ui::visible_surface::set_background_color_(const D2D1::ColorF &value){
+winp::utility::error_code winp::ui::visible_surface::set_background_color_(const D2D1::ColorF &value){
 	background_color_ = value;
+	return utility::error_code::nil;
 }
 
 const D2D1::ColorF &winp::ui::visible_surface::get_background_color_() const{

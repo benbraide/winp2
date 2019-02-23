@@ -12,56 +12,26 @@ winp::ui::tree::~tree(){
 	destruct();
 }
 
-void winp::ui::tree::add_child(object &child, const std::function<void(tree &, utility::error_code)> &callback){
-	insert_child(child, static_cast<std::size_t>(-1), callback);
+winp::utility::error_code winp::ui::tree::add_child(object &child, const std::function<void(tree &, utility::error_code)> &callback){
+	return insert_child(child, static_cast<std::size_t>(-1), callback);
 }
 
-void winp::ui::tree::insert_child(object &child, std::size_t index, const std::function<void(tree &, utility::error_code)> &callback){
-	execute_or_post_task_inside_thread_context([&]{
-		try{
-			insert_child_(child, index);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::tree::insert_child(object &child, std::size_t index, const std::function<void(tree &, utility::error_code)> &callback){
+	return compute_or_post_task_inside_thread_context([=, &child]{
+		return pass_return_value_to_callback(callback, *this, insert_child_(child, index));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
-void winp::ui::tree::remove_child(object &child, const std::function<void(tree &, utility::error_code)> &callback){
-	execute_or_post_task_inside_thread_context([&]{
-		try{
-			erase_child_(child.get_index_());
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::tree::remove_child(object &child, const std::function<void(tree &, utility::error_code)> &callback){
+	return compute_or_post_task_inside_thread_context([=, &child]{
+		return pass_return_value_to_callback(callback, *this, erase_child_(child.get_index_()));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
-void winp::ui::tree::erase_child(std::size_t index, const std::function<void(tree &, utility::error_code)> &callback){
-	execute_or_post_task_inside_thread_context([&]{
-		try{
-			erase_child_(index);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::tree::erase_child(std::size_t index, const std::function<void(tree &, utility::error_code)> &callback){
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, *this, erase_child_(index));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
 std::size_t winp::ui::tree::find_child(const object &child, const std::function<void(std::size_t)> &callback) const{
@@ -82,27 +52,31 @@ void winp::ui::tree::traverse_children(const std::function<void(object &)> &call
 	}, !block);
 }
 
-void winp::ui::tree::destruct_(){
-	while (!children_.empty())//Erase all children
-		erase_child_(0);
-	object::destruct_();
+winp::utility::error_code winp::ui::tree::destruct_(){
+	while (!children_.empty()){//Erase all children
+		if (auto error_code = erase_child_(0); error_code != utility::error_code::nil)
+			return error_code;
+	}
+
+	return object::destruct_();
 }
 
-void winp::ui::tree::insert_child_(object &child, std::size_t index){
+winp::utility::error_code winp::ui::tree::insert_child_(object &child, std::size_t index){
 	if (index != static_cast<std::size_t>(-1) && children_.size() <= index)
-		throw utility::error_code::index_out_of_range;
+		return utility::error_code::index_out_of_range;
 
 	if (&child.thread_ != &thread_)
-		throw utility::error_code::thread_context_mismatch;
+		return utility::error_code::thread_context_mismatch;
 
 	if (child.parent_ == this)
-		throw utility::error_code::duplicate_entry;
+		return utility::error_code::duplicate_entry;
 
-	if (child.parent_ != nullptr)//Remove previous parent
-		child.parent_->erase_child_(child.get_index_());
+	utility::error_code error_code;
+	if (child.parent_ != nullptr && (error_code = child.parent_->erase_child_(child.get_index_())) != utility::error_code::nil)//Remove previous parent
+		return error_code;
 
 	if ((trigger_event_<events::children_change>(events::children_change::action_type::insert, child, index, true).first & events::object::state_default_prevented) != 0u)
-		throw utility::error_code::action_prevented;
+		return utility::error_code::action_prevented;
 
 	child.set_parent_value_(this);
 	if (index < children_.size())
@@ -111,36 +85,40 @@ void winp::ui::tree::insert_child_(object &child, std::size_t index){
 		children_.push_back(&child);
 
 	trigger_event_<events::children_change>(events::children_change::action_type::insert, child, index, false);
+	return utility::error_code::nil;
 }
 
-void winp::ui::tree::erase_child_(std::size_t index){
+winp::utility::error_code winp::ui::tree::erase_child_(std::size_t index){
 	if (index >= children_.size())
-		throw utility::error_code::index_out_of_range;
+		return utility::error_code::index_out_of_range;
 
 	auto it = std::next(children_.begin(), index);
 	auto &child = **it;
 
 	if ((trigger_event_<events::children_change>(events::children_change::action_type::remove, child, index, true).first & events::object::state_default_prevented) != 0u)
-		throw utility::error_code::action_prevented;
+		return utility::error_code::action_prevented;
 
-	child.set_parent_value_(nullptr);
+	if (auto error_code = child.set_parent_value_(nullptr); error_code != utility::error_code::nil)
+		return error_code;
+
 	children_.erase(it);
-
 	trigger_event_<events::children_change>(events::children_change::action_type::remove, child, index, false);
+
+	return utility::error_code::nil;
 }
 
-void winp::ui::tree::change_child_index_(std::size_t old_index, std::size_t new_index){
+winp::utility::error_code winp::ui::tree::change_child_index_(std::size_t old_index, std::size_t new_index){
 	if (children_.size() <= old_index || (new_index != static_cast<std::size_t>(-1) && children_.size() <= new_index))
-		throw utility::error_code::index_out_of_range;
+		return utility::error_code::index_out_of_range;
 
 	if (old_index == new_index || (new_index == static_cast<std::size_t>(-1) && (children_.size() - 1u) == old_index))
-		return;//No changes
+		return utility::error_code::nil;//No changes
 
 	auto it = std::next(children_.begin(), old_index);
 	auto child = *it;
 
 	if ((trigger_event_<events::children_change>(events::children_change::action_type::index, *child, new_index, true).first & events::object::state_default_prevented) != 0u)
-		throw utility::error_code::action_prevented;
+		return utility::error_code::action_prevented;
 
 	children_.erase(it);
 	if (new_index < children_.size())
@@ -149,6 +127,7 @@ void winp::ui::tree::change_child_index_(std::size_t old_index, std::size_t new_
 		children_.push_back(child);
 
 	trigger_event_<events::children_change>(events::children_change::action_type::index, *child, new_index, false);
+	return utility::error_code::nil;
 }
 
 std::size_t winp::ui::tree::find_child_(const object &child) const{

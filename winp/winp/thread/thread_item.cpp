@@ -15,25 +15,18 @@ winp::thread::item::~item(){
 	destruct();
 }
 
-void winp::thread::item::destruct(const std::function<void(item &, utility::error_code)> &callback){
-	execute_or_post_task_inside_thread_context([&]{
-		try{
-			if (!is_destructed_){
-				is_destructed_ = true;
-				destruct_();
-				trigger_event_<events::destruct>();
-			}
+winp::utility::error_code winp::thread::item::destruct(const std::function<void(item &, utility::error_code)> &callback){
+	return compute_or_post_task_inside_thread_context([=]{
+		if (is_destructed_)
+			return utility::error_code::nil;
 
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+		is_destructed_ = true;
+		auto error_code = destruct_();
+		if (error_code == utility::error_code::nil)
+			trigger_event_<events::destruct>();
+
+		return pass_return_value_to_callback(callback, *this, error_code);
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
 bool winp::thread::item::is_destructed(const std::function<void(bool)> &callback) const{
@@ -105,12 +98,14 @@ void winp::thread::item::unbind_event(unsigned __int64 id){
 	events_manager_.unbind(id);
 }
 
-void winp::thread::item::destruct_(){
+winp::utility::error_code winp::thread::item::destruct_(){
 	if (!thread_.is_thread_context())
-		throw utility::error_code::outside_thread_context;
+		return utility::error_code::outside_thread_context;
 
 	thread_.get_queue().add_id_to_black_list(id_);
 	thread_.remove_item_(id_);
+
+	return utility::error_code::nil;
 }
 
 void winp::thread::item::trigger_event_handler_(events::object &e) const{

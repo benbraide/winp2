@@ -14,21 +14,21 @@ namespace winp::ui{
 
 		virtual ~surface();
 
-		virtual void set_size(const SIZE &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_size(const SIZE &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual void set_size(int width, int height, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_size(int width, int height, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual void set_width(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_width(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual void set_height(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_height(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual void offset_size(const SIZE &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code offset_size(const SIZE &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual void offset_size(int width, int height, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code offset_size(int width, int height, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual void offset_width(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code offset_width(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual void offset_height(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code offset_height(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
 		virtual const SIZE &get_size(const std::function<void(const SIZE &)> &callback = nullptr) const;
 
@@ -36,21 +36,21 @@ namespace winp::ui{
 
 		virtual int get_height(const std::function<void(int)> &callback = nullptr) const;
 
-		virtual void set_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual void set_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual void set_x_position(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_x_position(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual void set_y_position(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_y_position(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual void offset_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code offset_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual void offset_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code offset_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual void offset_x_position(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code offset_x_position(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual void offset_y_position(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code offset_y_position(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
 		virtual const POINT &get_position(const std::function<void(const POINT &)> &callback = nullptr) const;
 
@@ -58,9 +58,9 @@ namespace winp::ui{
 
 		virtual int get_y_position(const std::function<void(int)> &callback = nullptr) const;
 
-		virtual void set_absolute_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_absolute_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual void set_absolute_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_absolute_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
 		virtual POINT get_absolute_position(const std::function<void(const POINT &)> &callback = nullptr) const;
 
@@ -68,11 +68,11 @@ namespace winp::ui{
 
 		virtual int get_absolute_y_position(const std::function<void(int)> &callback = nullptr) const;
 
-		virtual void set_dimension(const RECT &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_dimension(const RECT &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual void set_dimension(const POINT &position, const SIZE &size, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_dimension(const POINT &position, const SIZE &size, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual void set_dimension(int x, int y, int width, int height, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_dimension(int x, int y, int width, int height, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
 		virtual RECT get_dimension(const std::function<void(const RECT &)> &callback = nullptr) const;
 
@@ -107,39 +107,39 @@ namespace winp::ui{
 		virtual hit_target absolute_hit_test(int x, int y, const std::function<void(hit_target)> &callback = nullptr) const;
 
 	protected:
-		virtual void set_size_(int width, int height);
+		virtual utility::error_code set_size_(int width, int height);
 
-		virtual void set_width_(int value);
+		virtual utility::error_code set_width_(int value);
 
-		virtual void set_height_(int value);
+		virtual utility::error_code set_height_(int value);
 
-		virtual void offset_size_(int width, int height);
+		virtual utility::error_code offset_size_(int width, int height);
 
-		virtual void offset_width_(int value);
+		virtual utility::error_code offset_width_(int value);
 
-		virtual void offset_height_(int value);
+		virtual utility::error_code offset_height_(int value);
 
 		virtual const SIZE &get_size_() const;
 
-		virtual void set_position_(int x, int y);
+		virtual utility::error_code set_position_(int x, int y);
 
-		virtual void set_x_position_(int value);
+		virtual utility::error_code set_x_position_(int value);
 
-		virtual void set_y_position_(int value);
+		virtual utility::error_code set_y_position_(int value);
 
-		virtual void offset_position_(int x, int y);
+		virtual utility::error_code offset_position_(int x, int y);
 
-		virtual void offset_x_position_(int value);
+		virtual utility::error_code offset_x_position_(int value);
 
-		virtual void offset_y_position_(int value);
+		virtual utility::error_code offset_y_position_(int value);
 
 		virtual const POINT &get_position_() const;
 
-		virtual void set_absolute_position_(int x, int y);
+		virtual utility::error_code set_absolute_position_(int x, int y);
 
 		virtual POINT get_absolute_position_() const;
 
-		virtual void set_dimension_(int x, int y, int width, int height);
+		virtual utility::error_code set_dimension_(int x, int y, int width, int height);
 
 		virtual RECT get_dimension_() const;
 

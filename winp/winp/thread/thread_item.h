@@ -28,7 +28,7 @@ namespace winp::thread{
 
 		item &operator =(const item &) = delete;
 
-		virtual void destruct(const std::function<void(item &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code destruct(const std::function<void(item &, utility::error_code)> &callback = nullptr);
 
 		virtual bool is_destructed(const std::function<void(bool)> &callback = nullptr) const;
 
@@ -100,12 +100,26 @@ namespace winp::thread{
 			return *value;
 		}
 
+		template <typename value_type, typename function_type, typename object_type>
+		static value_type pass_return_value_to_callback(const function_type &callback, object_type &&object, value_type &&value){
+			if (callback)
+				callback(std::forward<object_type>(object), std::forward<value_type>(value));
+			return value;
+		}
+
+		template <typename value_type, typename function_type, typename object_type>
+		static value_type &pass_return_ref_value_to_callback(const function_type &callback, object_type &&object, value_type *value){
+			if (callback)
+				callback(std::forward<object_type>(object), *value);
+			return *value;
+		}
+
 	protected:
 		friend class object;
 		friend class synchronized_item;
 		friend class events::object;
 
-		virtual void destruct_();
+		virtual utility::error_code destruct_();
 
 		template <typename handler_type>
 		void add_event_handler_(const handler_type &handler){

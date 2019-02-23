@@ -17,17 +17,17 @@ namespace winp::ui{
 
 		virtual ~object();
 
-		virtual void create(const std::function<void(object &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code create(const std::function<void(object &, utility::error_code)> &callback = nullptr);
 
-		virtual void destroy(const std::function<void(object &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code destroy(const std::function<void(object &, utility::error_code)> &callback = nullptr);
 
 		virtual bool is_created(const std::function<void(bool)> &callback = nullptr) const;
 
-		virtual void set_parent(tree *value, const std::function<void(object &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_parent(tree *value, const std::function<void(object &, utility::error_code)> &callback = nullptr);
 
-		virtual void set_parent(tree *value, std::size_t index, const std::function<void(object &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_parent(tree *value, std::size_t index, const std::function<void(object &, utility::error_code)> &callback = nullptr);
 
-		virtual void remove_from_parent(const std::function<void(object &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code remove_from_parent(const std::function<void(object &, utility::error_code)> &callback = nullptr);
 
 		virtual tree *get_parent(const std::function<void(tree *)> &callback = nullptr) const;
 
@@ -35,7 +35,7 @@ namespace winp::ui{
 
 		virtual bool is_ancestor(const tree &target, const std::function<void(bool)> &callback = nullptr) const;
 
-		virtual void set_index(std::size_t value, const std::function<void(object &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_index(std::size_t value, const std::function<void(object &, utility::error_code)> &callback = nullptr);
 
 		virtual std::size_t get_index(const std::function<void(std::size_t)> &callback = nullptr) const;
 
@@ -46,17 +46,17 @@ namespace winp::ui{
 	protected:
 		friend class tree;
 
-		virtual void destruct_() override;
+		virtual utility::error_code destruct_() override;
 
-		virtual void create_();
+		virtual utility::error_code create_();
 
-		virtual void destroy_();
+		virtual utility::error_code destroy_();
 
 		virtual bool is_created_() const;
 
-		virtual void set_parent_(tree *value, std::size_t index);
+		virtual utility::error_code set_parent_(tree *value, std::size_t index);
 
-		virtual void set_parent_value_(tree *value);
+		virtual utility::error_code set_parent_value_(tree *value);
 
 		virtual tree *get_parent_() const;
 
@@ -64,7 +64,7 @@ namespace winp::ui{
 
 		virtual bool is_ancestor_(const tree &target) const;
 
-		virtual void set_index_(std::size_t value);
+		virtual utility::error_code set_index_(std::size_t value);
 
 		virtual std::size_t get_index_() const;
 

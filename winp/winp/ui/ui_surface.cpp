@@ -5,108 +5,48 @@
 
 winp::ui::surface::~surface() = default;
 
-void winp::ui::surface::set_size(const SIZE &value, const std::function<void(surface &, utility::error_code)> &callback){
-	set_size(value.cx, value.cy, callback);
+winp::utility::error_code winp::ui::surface::set_size(const SIZE &value, const std::function<void(surface &, utility::error_code)> &callback){
+	return set_size(value.cx, value.cy, callback);
 }
 
-void winp::ui::surface::set_size(int width, int height, const std::function<void(surface &, utility::error_code)> &callback){
-	synchronized_item_execute_or_post_task_inside_thread_context([&]{
-		try{
-			set_size_(width, height);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::surface::set_size(int width, int height, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, set_size_(width, height));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
-void winp::ui::surface::set_width(int value, const std::function<void(surface &, utility::error_code)> &callback){
-	synchronized_item_execute_or_post_task_inside_thread_context([&]{
-		try{
-			set_width_(value);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::surface::set_width(int value, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, set_width_(value));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
-void winp::ui::surface::set_height(int value, const std::function<void(surface &, utility::error_code)> &callback){
-	synchronized_item_execute_or_post_task_inside_thread_context([&]{
-		try{
-			set_height_(value);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::surface::set_height(int value, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, set_height_(value));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
-void winp::ui::surface::offset_size(const SIZE &value, const std::function<void(surface &, utility::error_code)> &callback){
-	offset_size(value.cx, value.cy, callback);
+winp::utility::error_code winp::ui::surface::offset_size(const SIZE &value, const std::function<void(surface &, utility::error_code)> &callback){
+	return offset_size(value.cx, value.cy, callback);
 }
 
-void winp::ui::surface::offset_size(int width, int height, const std::function<void(surface &, utility::error_code)> &callback){
-	synchronized_item_execute_or_post_task_inside_thread_context([&]{
-		try{
-			offset_size_(width, height);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::surface::offset_size(int width, int height, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, offset_size_(width, height));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
-void winp::ui::surface::offset_width(int value, const std::function<void(surface &, utility::error_code)> &callback){
-	synchronized_item_execute_or_post_task_inside_thread_context([&]{
-		try{
-			offset_width_(value);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::surface::offset_width(int value, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, offset_width_(value));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
-void winp::ui::surface::offset_height(int value, const std::function<void(surface &, utility::error_code)> &callback){
-	synchronized_item_execute_or_post_task_inside_thread_context([&]{
-		try{
-			offset_height_(value);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::surface::offset_height(int value, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, offset_height_(value));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
 const SIZE &winp::ui::surface::get_size(const std::function<void(const SIZE &)> &callback) const{
@@ -133,108 +73,48 @@ int winp::ui::surface::get_height(const std::function<void(int)> &callback) cons
 	}).cy;
 }
 
-void winp::ui::surface::set_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback){
-	set_position(value.x, value.y, callback);
+winp::utility::error_code winp::ui::surface::set_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback){
+	return set_position(value.x, value.y, callback);
 }
 
-void winp::ui::surface::set_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback){
-	synchronized_item_execute_or_post_task_inside_thread_context([&]{
-		try{
-			set_position_(x, y);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::surface::set_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, set_position_(x, y));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
-void winp::ui::surface::set_x_position(int value, const std::function<void(surface &, utility::error_code)> &callback){
-	synchronized_item_execute_or_post_task_inside_thread_context([&]{
-		try{
-			set_x_position_(value);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::surface::set_x_position(int value, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, set_x_position_(value));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
-void winp::ui::surface::set_y_position(int value, const std::function<void(surface &, utility::error_code)> &callback){
-	synchronized_item_execute_or_post_task_inside_thread_context([&]{
-		try{
-			set_y_position_(value);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::surface::set_y_position(int value, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, set_y_position_(value));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
-void winp::ui::surface::offset_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback){
-	offset_position(value.x, value.y, callback);
+winp::utility::error_code winp::ui::surface::offset_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback){
+	return offset_position(value.x, value.y, callback);
 }
 
-void winp::ui::surface::offset_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback){
-	synchronized_item_execute_or_post_task_inside_thread_context([&]{
-		try{
-			offset_position_(x, y);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::surface::offset_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, offset_position_(x, y));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
-void winp::ui::surface::offset_x_position(int value, const std::function<void(surface &, utility::error_code)> &callback){
-	synchronized_item_execute_or_post_task_inside_thread_context([&]{
-		try{
-			offset_x_position_(value);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::surface::offset_x_position(int value, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, offset_x_position_(value));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
-void winp::ui::surface::offset_y_position(int value, const std::function<void(surface &, utility::error_code)> &callback){
-	synchronized_item_execute_or_post_task_inside_thread_context([&]{
-		try{
-			offset_y_position_(value);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::surface::offset_y_position(int value, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, offset_y_position_(value));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
 const POINT &winp::ui::surface::get_position(const std::function<void(const POINT &)> &callback) const{
@@ -261,24 +141,14 @@ int winp::ui::surface::get_y_position(const std::function<void(int)> &callback) 
 	}).y;
 }
 
-void winp::ui::surface::set_absolute_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback){
-	set_absolute_position(value.x, value.y, callback);
+winp::utility::error_code winp::ui::surface::set_absolute_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback){
+	return set_absolute_position(value.x, value.y, callback);
 }
 
-void winp::ui::surface::set_absolute_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback){
-	synchronized_item_execute_or_post_task_inside_thread_context([&]{
-		try{
-			set_absolute_position_(x, y);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::surface::set_absolute_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, set_absolute_position_(x, y));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
 POINT winp::ui::surface::get_absolute_position(const std::function<void(const POINT &)> &callback) const{
@@ -305,28 +175,18 @@ int winp::ui::surface::get_absolute_y_position(const std::function<void(int)> &c
 	}).y;
 }
 
-void winp::ui::surface::set_dimension(const RECT &value, const std::function<void(surface &, utility::error_code)> &callback){
-	set_dimension(value.left, value.top, (value.right - value.left), (value.bottom - value.top), callback);
+winp::utility::error_code winp::ui::surface::set_dimension(const RECT &value, const std::function<void(surface &, utility::error_code)> &callback){
+	return set_dimension(value.left, value.top, (value.right - value.left), (value.bottom - value.top), callback);
 }
 
-void winp::ui::surface::set_dimension(const POINT &position, const SIZE &size, const std::function<void(surface &, utility::error_code)> &callback){
-	set_dimension(position.x, position.y, size.cx, size.cy, callback);
+winp::utility::error_code winp::ui::surface::set_dimension(const POINT &position, const SIZE &size, const std::function<void(surface &, utility::error_code)> &callback){
+	return set_dimension(position.x, position.y, size.cx, size.cy, callback);
 }
 
-void winp::ui::surface::set_dimension(int x, int y, int width, int height, const std::function<void(surface &, utility::error_code)> &callback){
-	synchronized_item_execute_or_post_task_inside_thread_context([&]{
-		try{
-			set_dimension_(x, y, width, height);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::surface::set_dimension(int x, int y, int width, int height, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, set_dimension_(x, y, width, height));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
 RECT winp::ui::surface::get_dimension(const std::function<void(const RECT &)> &callback) const{
@@ -429,63 +289,63 @@ winp::ui::surface::hit_target winp::ui::surface::absolute_hit_test(int x, int y,
 	}, (callback != nullptr), hit_target::nil);
 }
 
-void winp::ui::surface::set_size_(int width, int height){
-	set_dimension_(position_.x, position_.y, width, height);
+winp::utility::error_code winp::ui::surface::set_size_(int width, int height){
+	return set_dimension_(position_.x, position_.y, width, height);
 }
 
-void winp::ui::surface::set_width_(int value){
-	set_size_(value, size_.cy);
+winp::utility::error_code winp::ui::surface::set_width_(int value){
+	return set_size_(value, size_.cy);
 }
 
-void winp::ui::surface::set_height_(int value){
-	set_size_(size_.cx, value);
+winp::utility::error_code winp::ui::surface::set_height_(int value){
+	return set_size_(size_.cx, value);
 }
 
-void winp::ui::surface::offset_size_(int width, int height){
-	set_size_((size_.cx + width), (size_.cy + height));
+winp::utility::error_code winp::ui::surface::offset_size_(int width, int height){
+	return set_size_((size_.cx + width), (size_.cy + height));
 }
 
-void winp::ui::surface::offset_width_(int value){
-	offset_size_(value, 0);
+winp::utility::error_code winp::ui::surface::offset_width_(int value){
+	return offset_size_(value, 0);
 }
 
-void winp::ui::surface::offset_height_(int value){
-	offset_size_(0, value);
+winp::utility::error_code winp::ui::surface::offset_height_(int value){
+	return offset_size_(0, value);
 }
 
 const SIZE &winp::ui::surface::get_size_() const{
 	return size_;
 }
 
-void winp::ui::surface::set_position_(int x, int y){
-	set_dimension_(x, y, size_.cx, size_.cy);
+winp::utility::error_code winp::ui::surface::set_position_(int x, int y){
+	return set_dimension_(x, y, size_.cx, size_.cy);
 }
 
-void winp::ui::surface::set_x_position_(int value){
-	set_position_(value, position_.x);
+winp::utility::error_code winp::ui::surface::set_x_position_(int value){
+	return set_position_(value, position_.x);
 }
 
-void winp::ui::surface::set_y_position_(int value){
-	set_position_(position_.y, value);
+winp::utility::error_code winp::ui::surface::set_y_position_(int value){
+	return set_position_(position_.y, value);
 }
 
-void winp::ui::surface::offset_position_(int x, int y){
-	set_position_((position_.x + x), (position_.y + y));
+winp::utility::error_code winp::ui::surface::offset_position_(int x, int y){
+	return set_position_((position_.x + x), (position_.y + y));
 }
 
-void winp::ui::surface::offset_x_position_(int value){
-	offset_position_(value, 0);
+winp::utility::error_code winp::ui::surface::offset_x_position_(int value){
+	return offset_position_(value, 0);
 }
 
-void winp::ui::surface::offset_y_position_(int value){
-	offset_position_(0, value);
+winp::utility::error_code winp::ui::surface::offset_y_position_(int value){
+	return offset_position_(0, value);
 }
 
 const POINT &winp::ui::surface::get_position_() const{
 	return position_;
 }
 
-void winp::ui::surface::set_absolute_position_(int x, int y){
+winp::utility::error_code winp::ui::surface::set_absolute_position_(int x, int y){
 	auto object_self = dynamic_cast<const object *>(this);
 	if (object_self == nullptr)//Position is absolute
 		return set_position_(x, y);
@@ -495,7 +355,7 @@ void winp::ui::surface::set_absolute_position_(int x, int y){
 		return set_position_(x, y);
 
 	auto parent_absolute_position = surface_parent->get_absolute_position_();
-	set_position_((position_.x - parent_absolute_position.x), (position_.y - parent_absolute_position.y));
+	return set_position_((position_.x - parent_absolute_position.x), (position_.y - parent_absolute_position.y));
 }
 
 POINT winp::ui::surface::get_absolute_position_() const{
@@ -511,7 +371,7 @@ POINT winp::ui::surface::get_absolute_position_() const{
 	return POINT{ (parent_absolute_position.x + position_.x), (parent_absolute_position.y + position_.y) };
 }
 
-void winp::ui::surface::set_dimension_(int x, int y, int width, int height){
+winp::utility::error_code winp::ui::surface::set_dimension_(int x, int y, int width, int height){
 	UINT flags = (SWP_NOMOVE | SWP_NOSIZE);
 	if (x != position_.x || y != position_.y)
 		flags &= ~SWP_NOMOVE;
@@ -520,16 +380,16 @@ void winp::ui::surface::set_dimension_(int x, int y, int width, int height){
 		flags &= ~SWP_NOSIZE;
 
 	if (flags == (SWP_NOMOVE | SWP_NOSIZE))
-		return;//No changes
+		return utility::error_code::nil;//No changes
 
 	WINDOWPOS info{ nullptr, nullptr, x, y, width, height, flags };
 	MSG msg{ nullptr, WM_WINDOWPOSCHANGING, 0, reinterpret_cast<LPARAM>(&info) };
 
 	if ((synchronized_item_trigger_event_<events::dimension_change>(true, msg, nullptr).first & events::object::state_default_prevented) != 0u)
-		throw utility::error_code::action_prevented;
+		return utility::error_code::action_prevented;
 
 	if (flags == (SWP_NOMOVE | SWP_NOSIZE))
-		return;//No changes
+		return utility::error_code::nil;//No changes
 
 	if ((flags & SWP_NOMOVE) == 0u){
 		position_.x = x;
@@ -543,6 +403,8 @@ void winp::ui::surface::set_dimension_(int x, int y, int width, int height){
 	
 	msg.message = WM_WINDOWPOSCHANGED;
 	synchronized_item_trigger_event_<events::dimension_change>(false, msg, nullptr);
+
+	return utility::error_code::nil;
 }
 
 RECT winp::ui::surface::get_dimension_() const{

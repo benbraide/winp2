@@ -13,13 +13,13 @@ namespace winp::ui{
 
 		virtual ~tree();
 
-		virtual void add_child(object &child, const std::function<void(tree &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code add_child(object &child, const std::function<void(tree &, utility::error_code)> &callback = nullptr);
 
-		virtual void insert_child(object &child, std::size_t index, const std::function<void(tree &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code insert_child(object &child, std::size_t index, const std::function<void(tree &, utility::error_code)> &callback = nullptr);
 
-		virtual void remove_child(object &child, const std::function<void(tree &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code remove_child(object &child, const std::function<void(tree &, utility::error_code)> &callback = nullptr);
 
-		virtual void erase_child(std::size_t index, const std::function<void(tree &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code erase_child(std::size_t index, const std::function<void(tree &, utility::error_code)> &callback = nullptr);
 
 		virtual std::size_t find_child(const object &child, const std::function<void(std::size_t)> &callback = nullptr) const;
 
@@ -30,13 +30,13 @@ namespace winp::ui{
 	protected:
 		friend class object;
 
-		virtual void destruct_() override;
+		virtual utility::error_code destruct_() override;
 
-		virtual void insert_child_(object &child, std::size_t index);
+		virtual utility::error_code insert_child_(object &child, std::size_t index);
 
-		virtual void erase_child_(std::size_t index);
+		virtual utility::error_code erase_child_(std::size_t index);
 
-		virtual void change_child_index_(std::size_t old_index, std::size_t new_index);
+		virtual utility::error_code change_child_index_(std::size_t old_index, std::size_t new_index);
 
 		virtual std::size_t find_child_(const object &child) const;
 

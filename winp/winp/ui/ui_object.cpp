@@ -20,36 +20,16 @@ winp::ui::object::~object(){
 	destruct();
 }
 
-void winp::ui::object::create(const std::function<void(object &, utility::error_code)> &callback){
-	execute_or_post_task_inside_thread_context([&]{
-		try{
-			create_();
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::object::create(const std::function<void(object &, utility::error_code)> &callback){
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, *this, create_());
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
-void winp::ui::object::destroy(const std::function<void(object &, utility::error_code)> &callback){
-	execute_or_post_task_inside_thread_context([&]{
-		try{
-			destroy_();
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::object::destroy(const std::function<void(object &, utility::error_code)> &callback){
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, *this, destroy_());
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
 bool winp::ui::object::is_created(const std::function<void(bool)> &callback) const{
@@ -58,28 +38,20 @@ bool winp::ui::object::is_created(const std::function<void(bool)> &callback) con
 	}, (callback != nullptr), false);
 }
 
-void winp::ui::object::set_parent(tree *value, const std::function<void(object &, utility::error_code)> &callback){
-	set_parent(value, index_, callback);
+winp::utility::error_code winp::ui::object::set_parent(tree *value, const std::function<void(object &, utility::error_code)> &callback){
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, *this, set_parent_(value, index_));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
-void winp::ui::object::set_parent(tree *value, std::size_t index, const std::function<void(object &, utility::error_code)> &callback){
-	execute_or_post_task_inside_thread_context([&]{
-		try{
-			set_parent_(value, index);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::object::set_parent(tree *value, std::size_t index, const std::function<void(object &, utility::error_code)> &callback){
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, *this, set_parent_(value, index));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
-void winp::ui::object::remove_from_parent(const std::function<void(object &, utility::error_code)> &callback){
-	set_parent(nullptr, static_cast<std::size_t>(-1), callback);
+winp::utility::error_code winp::ui::object::remove_from_parent(const std::function<void(object &, utility::error_code)> &callback){
+	return set_parent(nullptr, static_cast<std::size_t>(-1), callback);
 }
 
 winp::ui::tree *winp::ui::object::get_parent(const std::function<void(tree *)> &callback) const{
@@ -100,20 +72,10 @@ bool winp::ui::object::is_ancestor(const tree &target, const std::function<void(
 	}, (callback != nullptr), false);
 }
 
-void winp::ui::object::set_index(std::size_t value, const std::function<void(object &, utility::error_code)> &callback){
-	execute_or_post_task_inside_thread_context([&]{
-		try{
-			set_index_(value);
-			if (callback != nullptr)
-				callback(*this, utility::error_code::nil);
-		}
-		catch (utility::error_code e){
-			if (callback != nullptr)
-				callback(*this, e);
-			else//Forward exception
-				throw;
-		}
-	}, (callback != nullptr));
+winp::utility::error_code winp::ui::object::set_index(std::size_t value, const std::function<void(object &, utility::error_code)> &callback){
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, *this, set_index_(value));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
 std::size_t winp::ui::object::get_index(const std::function<void(std::size_t)> &callback) const{
@@ -134,36 +96,45 @@ void winp::ui::object::traverse_siblings(const std::function<void(object &)> &ca
 	}, !block);
 }
 
-void winp::ui::object::destruct_(){
-	if (parent_ != nullptr)//Remove parent
-		set_parent_(nullptr, static_cast<std::size_t>(-1));
-	item::destruct_();
+winp::utility::error_code winp::ui::object::destruct_(){
+	if (parent_ != nullptr){//Remove parent
+		if (auto error_code = set_parent_(nullptr, static_cast<std::size_t>(-1)); error_code != utility::error_code::nil)
+			return error_code;
+	}
+
+	return item::destruct_();
 }
 
-void winp::ui::object::create_(){}
+winp::utility::error_code winp::ui::object::create_(){
+	return utility::error_code::not_supported;
+}
 
-void winp::ui::object::destroy_(){}
+winp::utility::error_code winp::ui::object::destroy_(){
+	return utility::error_code::not_supported;
+}
 
 bool winp::ui::object::is_created_() const{
 	return false;
 }
 
-void winp::ui::object::set_parent_(tree *value, std::size_t index){
+winp::utility::error_code winp::ui::object::set_parent_(tree *value, std::size_t index){
 	if (parent_ == value)
-		throw utility::error_code::duplicate_entry;
+		return utility::error_code::duplicate_entry;
 
 	if (value == nullptr)
-		parent_->erase_child_(get_index_());
-	else
-		value->insert_child_(*this, index);
+		return parent_->erase_child_(get_index_());
+	
+	return value->insert_child_(*this, index);
 }
 
-void winp::ui::object::set_parent_value_(tree *value){
+winp::utility::error_code winp::ui::object::set_parent_value_(tree *value){
 	if ((trigger_event_<events::parent_change>(value, true).first & events::object::state_default_prevented) != 0u)
-		throw utility::error_code::action_prevented;
+		return utility::error_code::action_prevented;
 
 	parent_ = value;
 	trigger_event_<events::parent_change>(value, false);
+
+	return utility::error_code::nil;
 }
 
 winp::ui::tree *winp::ui::object::get_parent_() const{
@@ -180,11 +151,13 @@ bool winp::ui::object::is_ancestor_(const tree &target) const{
 	return (parent_ != nullptr && (&target == parent_ || parent_->is_ancestor_(target)));
 }
 
-void winp::ui::object::set_index_(std::size_t value){
+winp::utility::error_code winp::ui::object::set_index_(std::size_t value){
 	if (parent_ == nullptr)
 		index_ = value;
-	else
-		parent_->change_child_index_(get_index_(), value);
+	else if (auto error_code = parent_->change_child_index_(get_index_(), value); error_code != utility::error_code::nil)
+		return error_code;
+
+	return utility::error_code::nil;
 }
 
 std::size_t winp::ui::object::get_index_() const{
