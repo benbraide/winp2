@@ -1,3 +1,4 @@
+#include "../ui/ui_tree.h"
 #include "../app/app_collection.h"
 
 winp::thread::item::item()
@@ -14,13 +15,31 @@ winp::thread::item::~item(){
 	destruct();
 }
 
-void winp::thread::item::destruct(){
-	thread_.get_queue().execute_task([this]{
-		if (!destructed_){
-			destructed_ = true;
-			destruct_();
+void winp::thread::item::destruct(const std::function<void(item &, utility::error_code)> &callback){
+	execute_or_post_task_inside_thread_context([&]{
+		try{
+			if (!is_destructed_){
+				is_destructed_ = true;
+				destruct_();
+				trigger_event_<events::destruct>(true);
+			}
+
+			if (callback != nullptr)
+				callback(*this, utility::error_code::nil);
 		}
-	}, queue::urgent_task_priority, id_);
+		catch (utility::error_code e){
+			if (callback != nullptr)
+				callback(*this, e);
+			else//Forward exception
+				throw;
+		}
+	}, (callback != nullptr));
+}
+
+bool winp::thread::item::is_destructed(const std::function<void(bool)> &callback) const{
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, is_destructed_);
+	}, (callback != nullptr), false);
 }
 
 const winp::thread::object &winp::thread::item::get_thread() const{
@@ -94,10 +113,29 @@ void winp::thread::item::destruct_(){
 	thread_.remove_item_(id_);
 }
 
+void winp::thread::item::trigger_event_handler_(events::object &e) const{
+	e.states_ |= events::object::state_default_done;
+	event_handlers_.trigger_(e);
+}
+
 void winp::thread::item::trigger_event_(events::object &e, bool trigger_handler) const{
 	events_manager_.trigger_(e);
-	if (trigger_handler && (e.get_states() & events::object::state_default_prevented) == 0u)
-		event_handlers_.trigger_(e);
+	if (trigger_handler && (e.states_ & (events::object::state_default_prevented | events::object::state_default_done)) == 0u)
+		trigger_event_handler_(e);
+}
+
+bool winp::thread::item::bubble_event_(events::object &e) const{
+	auto object_context = dynamic_cast<ui::object *>(e.context_);
+	if (object_context == nullptr)
+		return false;
+
+	if (auto parent = object_context->get_parent(); parent != nullptr){
+		e.context_ = parent;
+		e.states_ = events::object::state_nil;
+		return true;
+	}
+
+	return false;
 }
 
 winp::thread::synchronized_item::~synchronized_item() = default;

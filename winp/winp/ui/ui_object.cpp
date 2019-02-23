@@ -78,6 +78,10 @@ void winp::ui::object::set_parent(tree *value, std::size_t index, const std::fun
 	}, (callback != nullptr));
 }
 
+void winp::ui::object::remove_from_parent(const std::function<void(object &, utility::error_code)> &callback){
+	set_parent(nullptr, static_cast<std::size_t>(-1), callback);
+}
+
 winp::ui::tree *winp::ui::object::get_parent(const std::function<void(tree *)> &callback) const{
 	return compute_or_post_task_inside_thread_context([=]{
 		return pass_return_value_to_callback(callback, get_parent_());
@@ -125,7 +129,8 @@ void winp::ui::object::traverse_siblings(const std::function<void(object &)> &ca
 }
 
 void winp::ui::object::destruct_(){
-	set_parent_(nullptr, static_cast<std::size_t>(-1));//Remove parent
+	if (parent_ != nullptr)//Remove parent
+		set_parent_(nullptr, static_cast<std::size_t>(-1));
 	item::destruct_();
 }
 
@@ -138,10 +143,21 @@ bool winp::ui::object::is_created_() const{
 }
 
 void winp::ui::object::set_parent_(tree *value, std::size_t index){
-	if (value != nullptr)
-		value->insert_child_(*this, index);
-	else if (parent_ != nullptr)
+	if (parent_ == value)
+		throw utility::error_code::duplicate_entry;
+
+	if (value == nullptr)
 		parent_->erase_child_(get_index_());
+	else
+		value->insert_child_(*this, index);
+}
+
+void winp::ui::object::set_parent_value_(tree *value){
+	if ((trigger_event_<events::parent_change>(true, value, true).first & events::object::state_default_prevented) != 0u)
+		throw utility::error_code::action_prevented;
+
+	parent_ = value;
+	trigger_event_<events::parent_change>(true, value, false);
 }
 
 winp::ui::tree *winp::ui::object::get_parent_() const{

@@ -5,7 +5,7 @@ winp::events::object::object(thread::item &target, const std::function<void(obje
 	: object(target, target, default_handler){}
 
 winp::events::object::object(thread::item &target, thread::item &context, const std::function<void(object &)> &default_handler)
-	: target_(target), context_(context), default_handler_(default_handler){}
+	: target_(target), context_(&context), default_handler_(default_handler){}
 
 winp::events::object::~object() = default;
 
@@ -22,7 +22,7 @@ winp::thread::item &winp::events::object::get_target(){
 winp::thread::item &winp::events::object::get_context(){
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
-	return context_;
+	return *context_;
 }
 
 void winp::events::object::prevent_default(){
@@ -41,7 +41,7 @@ bool winp::events::object::do_default(){
 
 	states_ |= state_default_done;
 	if (default_handler_ == nullptr)
-		context_.trigger_event_(*this, true);
+		context_->trigger_event_handler_(*this);
 	else//Call default handler
 		default_handler_(*this);
 
@@ -75,7 +75,7 @@ bool winp::events::object_with_message::do_default(){
 	if (original_message_.message < WM_APP && (states_ & state_default_prevented) == 0u){//Call default
 		if ((states_ & state_result_set) == 0u){//Use result
 			states_ |= state_result_set;
-			value_ = CallWindowProcW(default_callback_, original_message_.hwnd, original_message_.message, original_message_.wParam, original_message_.lParam);
+			result_ = CallWindowProcW(default_callback_, original_message_.hwnd, original_message_.message, original_message_.wParam, original_message_.lParam);
 		}
 		else//Discard result
 			CallWindowProcW(default_callback_, original_message_.hwnd, original_message_.message, original_message_.wParam, original_message_.lParam);
@@ -94,4 +94,46 @@ MSG &winp::events::object_with_message::get_message(){
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
 	return message_;
+}
+
+winp::ui::tree *winp::events::parent_change::get_value() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return value_;
+}
+
+bool winp::events::parent_change::is_changing() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return is_changing_;
+}
+
+winp::events::children_change::action_type winp::events::children_change::get_action() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return action_;
+}
+
+const winp::ui::object &winp::events::children_change::get_value() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return value_;
+}
+
+winp::ui::object &winp::events::children_change::get_value(){
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return value_;
+}
+
+std::size_t winp::events::children_change::get_index() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return index_;
+}
+
+bool winp::events::children_change::is_changing() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return is_changing_;
 }

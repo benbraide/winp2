@@ -6,6 +6,11 @@ namespace winp::thread{
 	class item;
 }
 
+namespace winp::ui{
+	class object;
+	class tree;
+}
+
 namespace winp::events{
 	class object{
 	public:
@@ -25,6 +30,35 @@ namespace winp::events{
 
 		virtual thread::item &get_context();
 
+		template <typename result_type>
+		void set_result(const result_type &result){
+			if (!is_thread_context())
+				throw utility::error_code::outside_thread_context;
+
+			states_ |= state_result_set;
+			result_ = result;
+
+			return *this;
+		}
+
+		template <typename result_type>
+		void set_result_if_not_set(const result_type &result){
+			if (!is_thread_context())
+				throw utility::error_code::outside_thread_context;
+
+			if ((states_ & state_result_set) == 0u){
+				states_ |= state_result_set;
+				result_ = result;
+			}
+
+			return *this;
+		}
+
+		template <typename target_type = LRESULT>
+		target_type get_result() const{
+			return (target_type)result_;
+		}
+
 		virtual void prevent_default();
 
 		virtual bool do_default();
@@ -42,9 +76,12 @@ namespace winp::events{
 		static constexpr unsigned int state_result_set					= (1 << 0x0003);
 
 	protected:
-		thread::item &target_;
-		thread::item &context_;
+		friend class thread::item;
 
+		thread::item &target_;
+		thread::item *context_;
+
+		LRESULT result_ = 0;
 		unsigned int states_ = state_nil;
 		std::function<void(object &)> default_handler_;
 	};
@@ -63,35 +100,6 @@ namespace winp::events{
 
 		virtual bool do_default() override;
 
-		template <typename value_type>
-		object_with_message &operator =(const value_type &value){
-			if (!is_thread_context())
-				throw utility::error_code::outside_thread_context;
-
-			states_ |= state_result_set;
-			value_ = value;
-
-			return *this;
-		}
-
-		template <typename value_type>
-		object_with_message &operator %=(const value_type &value){
-			if (!is_thread_context())
-				throw utility::error_code::outside_thread_context;
-
-			if ((states_ & state_result_set) == 0u){
-				states_ |= state_result_set;
-				value_ = value;
-			}
-
-			return *this;
-		}
-
-		template <typename target_type = LRESULT>
-		target_type get_value() const{
-			return (target_type)value_;
-		}
-
 		virtual const MSG &get_message() const;
 
 		virtual MSG &get_message();
@@ -99,15 +107,78 @@ namespace winp::events{
 	protected:
 		MSG &message_;
 		MSG &original_message_;
-
 		WNDPROC default_callback_;
-		LRESULT value_ = 0;
 	};
 
-	class unhandled_event : public object_with_message{
+	class unhandled : public object_with_message{
 	public:
 		template <typename... args_types>
-		explicit unhandled_event(args_types &&... args)
+		explicit unhandled(args_types &&... args)
 			: object_with_message(std::forward<args_types>(args)...){}
+	};
+
+	class create : public object{
+	public:
+		template <typename... args_types>
+		explicit create(args_types &&... args)
+			: object(std::forward<args_types>(args)...){}
+	};
+
+	class destroy : public object{
+	public:
+		template <typename... args_types>
+		explicit destroy(args_types &&... args)
+			: object(std::forward<args_types>(args)...){}
+	};
+
+	class destruct : public object{
+	public:
+		template <typename... args_types>
+		explicit destruct(args_types &&... args)
+			: object(std::forward<args_types>(args)...){}
+	};
+
+	class parent_change : public object{
+	public:
+		template <typename... args_types>
+		explicit parent_change(ui::tree *value, bool is_changing, args_types &&... args)
+			: object(std::forward<args_types>(args)...), value_(value), is_changing_(is_changing){}
+
+		virtual ui::tree *get_value() const;
+
+		virtual bool is_changing() const;
+
+	protected:
+		ui::tree *value_;
+		bool is_changing_;
+	};
+
+	class children_change : public object{
+	public:
+		enum class action_type{
+			insert,
+			remove,
+			index,
+		};
+
+		template <typename... args_types>
+		explicit children_change(action_type action, ui::object &value, std::size_t index, bool is_changing, args_types &&... args)
+			: object(std::forward<args_types>(args)...), action_(action), value_(value), index_(index), is_changing_(is_changing){}
+
+		virtual action_type get_action() const;
+
+		virtual const ui::object &get_value() const;
+
+		virtual ui::object &get_value();
+
+		virtual std::size_t get_index() const;
+
+		virtual bool is_changing() const;
+
+	protected:
+		action_type action_;
+		ui::object &value_;
+		std::size_t index_;
+		bool is_changing_;
 	};
 }

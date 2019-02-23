@@ -27,6 +27,8 @@ namespace winp::ui{
 
 		virtual void set_parent(tree *value, std::size_t index, const std::function<void(object &, utility::error_code)> &callback = nullptr);
 
+		virtual void remove_from_parent(const std::function<void(object &, utility::error_code)> &callback = nullptr);
+
 		virtual tree *get_parent(const std::function<void(tree *)> &callback = nullptr) const;
 
 		virtual bool is_ancestor(const tree &target, const std::function<void(bool)> &callback = nullptr) const;
@@ -51,6 +53,8 @@ namespace winp::ui{
 		virtual bool is_created_() const;
 
 		virtual void set_parent_(tree *value, std::size_t index);
+
+		virtual void set_parent_value_(tree *value);
 
 		virtual tree *get_parent_() const;
 

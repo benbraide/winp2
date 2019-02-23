@@ -30,6 +30,8 @@ namespace winp::ui{
 	protected:
 		friend class object;
 
+		virtual void destruct_() override;
+
 		virtual void insert_child_(object &child, std::size_t index);
 
 		virtual void erase_child_(std::size_t index);

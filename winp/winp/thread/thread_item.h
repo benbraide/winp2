@@ -27,7 +27,9 @@ namespace winp::thread{
 
 		item &operator =(const item &) = delete;
 
-		virtual void destruct();
+		virtual void destruct(const std::function<void(item &, utility::error_code)> &callback = nullptr);
+
+		virtual bool is_destructed(const std::function<void(bool)> &callback = nullptr) const;
 
 		virtual const object &get_thread() const;
 
@@ -103,12 +105,57 @@ namespace winp::thread{
 
 		virtual void destruct_();
 
-		virtual void trigger_event_(events::object &e, bool trigger_handler) const;
-
 		template <typename handler_type>
-		void add_handler_(const handler_type &handler){
+		void add_event_handler_(const handler_type &handler){
 			event_handlers_.bind(handler);
 		}
+
+		virtual void trigger_event_handler_(events::object &e) const;
+
+		virtual void trigger_event_(events::object &e, bool trigger_handler) const;
+
+		template <typename event_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> trigger_event_(bool trigger_handler, args_types &&... args) const{
+			return trigger_event_with_target_and_default_handler_and_value_<event_type>(const_cast<item &>(*this), nullptr, 0, trigger_handler, args...);
+		}
+
+		template <typename event_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> trigger_event_with_target_(item &target, bool trigger_handler, args_types &&... args) const{
+			return trigger_event_with_target_and_default_handler_and_value_<event_type>(target, nullptr, 0, trigger_handler, args...);
+		}
+
+		template <typename event_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> trigger_event_with_default_handler_(const std::function<void(events::object &)> &default_handler, bool trigger_handler, args_types &&... args) const{
+			return trigger_event_with_target_and_default_handler_and_value_<event_type>(const_cast<item &>(*this), default_handler, 0, trigger_handler, args...);
+		}
+
+		template <typename event_type, typename value_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> trigger_event_with_value_(const value_type &value, bool trigger_handler, args_types &&... args) const{
+			return trigger_event_with_target_and_default_handler_and_value_<event_type>(const_cast<item &>(*this), nullptr, value, trigger_handler, args...);
+		}
+
+		template <typename event_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> trigger_event_with_target_and_default_handler_(item &target, const std::function<void(events::object &)> &default_handler, bool trigger_handler, args_types &&... args) const{
+			return trigger_event_with_target_and_default_handler_and_value_<event_type>(target, default_handler, 0, trigger_handler, args...);
+		}
+
+		template <typename event_type, typename value_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> trigger_event_with_target_and_value_(item &target, const value_type &value, bool trigger_handler, args_types &&... args) const{
+			return trigger_event_with_target_and_default_handler_and_value_<event_type>(target, nullptr, value, trigger_handler, args...);
+		}
+
+		template <typename event_type, typename value_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> trigger_event_with_target_and_default_handler_and_value_(item &target, const std::function<void(events::object &)> &default_handler, const value_type &value, bool trigger_handler, args_types &&... args) const{
+			event_type e(std::forward<args_types>(args)..., target, const_cast<item &>(*this), default_handler);
+			trigger_event_(e, trigger_handler);
+
+			if ((e.states_ & events::object::state_result_set) == 0u)
+				return std::make_pair(e.states_, (LRESULT)value);
+
+			return std::make_pair(e.states_, e.result_);
+		}
+
+		virtual bool bubble_event_(events::object &e) const;
 
 		object &thread_;
 		unsigned __int64 id_;
@@ -116,7 +163,7 @@ namespace winp::thread{
 		std::thread::id scope_thread_id_;
 		DWORD local_scope_thread_id_;
 
-		bool destructed_ = false;
+		bool is_destructed_ = false;
 		events::manager<item> events_manager_{ *this };
 		events::single_manager<item> event_handlers_{ *this };
 	};
