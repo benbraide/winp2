@@ -101,7 +101,7 @@ void winp::ui::tree::insert_child_(object &child, std::size_t index){
 	if (child.parent_ != nullptr)//Remove previous parent
 		child.parent_->erase_child_(child.get_index_());
 
-	if ((trigger_event_<events::children_change>(true, events::children_change::action_type::insert, child, index, true).first & events::object::state_default_prevented) != 0u)
+	if ((trigger_event_<events::children_change>(events::children_change::action_type::insert, child, index, true).first & events::object::state_default_prevented) != 0u)
 		throw utility::error_code::action_prevented;
 
 	child.set_parent_value_(this);
@@ -110,7 +110,7 @@ void winp::ui::tree::insert_child_(object &child, std::size_t index){
 	else
 		children_.push_back(&child);
 
-	trigger_event_<events::children_change>(true, events::children_change::action_type::insert, child, index, false);
+	trigger_event_<events::children_change>(events::children_change::action_type::insert, child, index, false);
 }
 
 void winp::ui::tree::erase_child_(std::size_t index){
@@ -120,13 +120,13 @@ void winp::ui::tree::erase_child_(std::size_t index){
 	auto it = std::next(children_.begin(), index);
 	auto &child = **it;
 
-	if ((trigger_event_<events::children_change>(true, events::children_change::action_type::remove, child, index, true).first & events::object::state_default_prevented) != 0u)
+	if ((trigger_event_<events::children_change>(events::children_change::action_type::remove, child, index, true).first & events::object::state_default_prevented) != 0u)
 		throw utility::error_code::action_prevented;
 
 	child.set_parent_value_(nullptr);
 	children_.erase(it);
 
-	trigger_event_<events::children_change>(true, events::children_change::action_type::remove, child, index, false);
+	trigger_event_<events::children_change>(events::children_change::action_type::remove, child, index, false);
 }
 
 void winp::ui::tree::change_child_index_(std::size_t old_index, std::size_t new_index){
@@ -139,7 +139,7 @@ void winp::ui::tree::change_child_index_(std::size_t old_index, std::size_t new_
 	auto it = std::next(children_.begin(), old_index);
 	auto child = *it;
 
-	if ((trigger_event_<events::children_change>(true, events::children_change::action_type::index, *child, new_index, true).first & events::object::state_default_prevented) != 0u)
+	if ((trigger_event_<events::children_change>(events::children_change::action_type::index, *child, new_index, true).first & events::object::state_default_prevented) != 0u)
 		throw utility::error_code::action_prevented;
 
 	children_.erase(it);
@@ -148,7 +148,7 @@ void winp::ui::tree::change_child_index_(std::size_t old_index, std::size_t new_
 	else
 		children_.push_back(child);
 
-	trigger_event_<events::children_change>(true, events::children_change::action_type::index, *child, new_index, false);
+	trigger_event_<events::children_change>(events::children_change::action_type::index, *child, new_index, false);
 }
 
 std::size_t winp::ui::tree::find_child_(const object &child) const{

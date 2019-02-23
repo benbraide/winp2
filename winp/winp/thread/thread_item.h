@@ -14,6 +14,7 @@ namespace winp::ui{
 
 namespace winp::thread{
 	class object;
+	class synchronized_item;
 
 	class item{
 	public:
@@ -101,6 +102,7 @@ namespace winp::thread{
 
 	protected:
 		friend class object;
+		friend class synchronized_item;
 		friend class events::object;
 
 		virtual void destruct_();
@@ -112,42 +114,27 @@ namespace winp::thread{
 
 		virtual void trigger_event_handler_(events::object &e) const;
 
-		virtual void trigger_event_(events::object &e, bool trigger_handler) const;
+		virtual void trigger_event_(events::object &e) const;
 
 		template <typename event_type, typename... args_types>
-		std::pair<unsigned int, LRESULT> trigger_event_(bool trigger_handler, args_types &&... args) const{
-			return trigger_event_with_target_and_default_handler_and_value_<event_type>(const_cast<item &>(*this), nullptr, 0, trigger_handler, args...);
+		std::pair<unsigned int, LRESULT> trigger_event_(args_types &&... args) const{
+			return trigger_event_with_target_and_value_<event_type>(const_cast<item &>(*this), 0, args...);
 		}
 
 		template <typename event_type, typename... args_types>
-		std::pair<unsigned int, LRESULT> trigger_event_with_target_(item &target, bool trigger_handler, args_types &&... args) const{
-			return trigger_event_with_target_and_default_handler_and_value_<event_type>(target, nullptr, 0, trigger_handler, args...);
-		}
-
-		template <typename event_type, typename... args_types>
-		std::pair<unsigned int, LRESULT> trigger_event_with_default_handler_(const std::function<void(events::object &)> &default_handler, bool trigger_handler, args_types &&... args) const{
-			return trigger_event_with_target_and_default_handler_and_value_<event_type>(const_cast<item &>(*this), default_handler, 0, trigger_handler, args...);
+		std::pair<unsigned int, LRESULT> trigger_event_with_target_(item &target, args_types &&... args) const{
+			return trigger_event_with_target_and_value_<event_type>(target, 0, args...);
 		}
 
 		template <typename event_type, typename value_type, typename... args_types>
-		std::pair<unsigned int, LRESULT> trigger_event_with_value_(const value_type &value, bool trigger_handler, args_types &&... args) const{
-			return trigger_event_with_target_and_default_handler_and_value_<event_type>(const_cast<item &>(*this), nullptr, value, trigger_handler, args...);
-		}
-
-		template <typename event_type, typename... args_types>
-		std::pair<unsigned int, LRESULT> trigger_event_with_target_and_default_handler_(item &target, const std::function<void(events::object &)> &default_handler, bool trigger_handler, args_types &&... args) const{
-			return trigger_event_with_target_and_default_handler_and_value_<event_type>(target, default_handler, 0, trigger_handler, args...);
+		std::pair<unsigned int, LRESULT> trigger_event_with_value_(const value_type &value, args_types &&... args) const{
+			return trigger_event_with_target_and_value_<event_type>(const_cast<item &>(*this), value, args...);
 		}
 
 		template <typename event_type, typename value_type, typename... args_types>
-		std::pair<unsigned int, LRESULT> trigger_event_with_target_and_value_(item &target, const value_type &value, bool trigger_handler, args_types &&... args) const{
-			return trigger_event_with_target_and_default_handler_and_value_<event_type>(target, nullptr, value, trigger_handler, args...);
-		}
-
-		template <typename event_type, typename value_type, typename... args_types>
-		std::pair<unsigned int, LRESULT> trigger_event_with_target_and_default_handler_and_value_(item &target, const std::function<void(events::object &)> &default_handler, const value_type &value, bool trigger_handler, args_types &&... args) const{
-			event_type e(std::forward<args_types>(args)..., target, const_cast<item &>(*this), default_handler);
-			trigger_event_(e, trigger_handler);
+		std::pair<unsigned int, LRESULT> trigger_event_with_target_and_value_(item &target, const value_type &value, args_types &&... args) const{
+			event_type e(std::forward<args_types>(args)..., target, const_cast<item &>(*this));
+			trigger_event_(e);
 
 			if ((e.states_ & events::object::state_result_set) == 0u)
 				return std::make_pair(e.states_, (LRESULT)value);
@@ -202,6 +189,37 @@ namespace winp::thread{
 		template <typename value_type, typename function_type>
 		static value_type &synchronized_item_pass_return_ref_value_to_callback(const function_type &callback, value_type *value){
 			return item::pass_return_ref_value_to_callback(callback, value);
+		}
+
+	protected:
+		virtual void synchronized_item_trigger_event_(events::object &e) const;
+
+		template <typename event_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> synchronized_item_trigger_event_(args_types &&... args) const{
+			if (auto item_self = dynamic_cast<const item *>(this); item_self != nullptr)
+				return item_self->trigger_event_<event_type>(args...);
+			return std::make_pair<unsigned int, LRESULT>(0u, 0);
+		}
+
+		template <typename event_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> synchronized_item_trigger_event_with_target_(item &target, args_types &&... args) const{
+			if (auto item_self = dynamic_cast<const item *>(this); item_self != nullptr)
+				return item_self->trigger_event_with_target_<event_type>(target, args...);
+			return std::make_pair<unsigned int, LRESULT>(0u, 0);
+		}
+
+		template <typename event_type, typename value_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> synchronized_item_trigger_event_with_value_(const value_type &value, args_types &&... args) const{
+			if (auto item_self = dynamic_cast<const item *>(this); item_self != nullptr)
+				return item_self->trigger_event_with_value_<event_type>(value, args...);
+			return std::make_pair<unsigned int, LRESULT>(0u, 0);
+		}
+
+		template <typename event_type, typename value_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> synchronized_item_trigger_event_with_target_and_value_(item &target, const value_type &value, args_types &&... args) const{
+			if (auto item_self = dynamic_cast<const item *>(this); item_self != nullptr)
+				return item_self->trigger_event_with_target_and_value_<event_type>(target, value, args...);
+			return std::make_pair<unsigned int, LRESULT>(0u, 0);
 		}
 	};
 }

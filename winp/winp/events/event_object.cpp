@@ -71,8 +71,11 @@ bool winp::events::object_with_message::do_default(){
 	if (!object::do_default() || (states_ & state_default_prevented) != 0u)
 		return false;
 
+	if (default_callback_ == nullptr || original_message_.hwnd == nullptr || WM_APP <= original_message_.message || (states_ & state_default_prevented) != 0u)
+		return true;
+
 	//TODO: Check if the context is a window object and if handles are same
-	if (original_message_.message < WM_APP && (states_ & state_default_prevented) == 0u){//Call default
+	if (true){//Call default
 		if ((states_ & state_result_set) == 0u){//Use result
 			states_ |= state_result_set;
 			result_ = CallWindowProcW(default_callback_, original_message_.hwnd, original_message_.message, original_message_.wParam, original_message_.lParam);
@@ -133,6 +136,18 @@ std::size_t winp::events::children_change::get_index() const{
 }
 
 bool winp::events::children_change::is_changing() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return is_changing_;
+}
+
+WINDOWPOS &winp::events::dimension_change::get_value() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return *reinterpret_cast<WINDOWPOS *>(message_.lParam);
+}
+
+bool winp::events::dimension_change::is_changing() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
 	return is_changing_;

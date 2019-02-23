@@ -181,4 +181,18 @@ namespace winp::events{
 		std::size_t index_;
 		bool is_changing_;
 	};
+
+	class dimension_change : public object_with_message{
+	public:
+		template <typename... args_types>
+		explicit dimension_change(bool is_changing, args_types &&... args)
+			: object_with_message(std::forward<args_types>(args)...), is_changing_(is_changing){}
+
+		virtual WINDOWPOS &get_value() const;
+
+		virtual bool is_changing() const;
+
+	protected:
+		bool is_changing_;
+	};
 }

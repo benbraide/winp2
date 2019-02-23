@@ -88,6 +88,12 @@ winp::ui::tree *winp::ui::object::get_parent(const std::function<void(tree *)> &
 	}, (callback != nullptr), nullptr);
 }
 
+winp::ui::tree *winp::ui::object::get_top_ancestor(const std::function<void(tree *)> &callback) const{
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, get_top_ancestor_());
+	}, (callback != nullptr), nullptr);
+}
+
 bool winp::ui::object::is_ancestor(const tree &target, const std::function<void(bool)> &callback) const{
 	return compute_or_post_task_inside_thread_context([=, &target]{
 		return pass_return_value_to_callback(callback, is_ancestor_(target));
@@ -153,14 +159,20 @@ void winp::ui::object::set_parent_(tree *value, std::size_t index){
 }
 
 void winp::ui::object::set_parent_value_(tree *value){
-	if ((trigger_event_<events::parent_change>(true, value, true).first & events::object::state_default_prevented) != 0u)
+	if ((trigger_event_<events::parent_change>(value, true).first & events::object::state_default_prevented) != 0u)
 		throw utility::error_code::action_prevented;
 
 	parent_ = value;
-	trigger_event_<events::parent_change>(true, value, false);
+	trigger_event_<events::parent_change>(value, false);
 }
 
 winp::ui::tree *winp::ui::object::get_parent_() const{
+	return parent_;
+}
+
+winp::ui::tree *winp::ui::object::get_top_ancestor_() const{
+	if (auto parent_top_ancestor = ((parent_ == nullptr) ? nullptr : parent_->get_top_ancestor_()); parent_top_ancestor != nullptr)
+		return parent_top_ancestor;
 	return parent_;
 }
 

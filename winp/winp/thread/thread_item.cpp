@@ -21,7 +21,7 @@ void winp::thread::item::destruct(const std::function<void(item &, utility::erro
 			if (!is_destructed_){
 				is_destructed_ = true;
 				destruct_();
-				trigger_event_<events::destruct>(true);
+				trigger_event_<events::destruct>();
 			}
 
 			if (callback != nullptr)
@@ -118,10 +118,9 @@ void winp::thread::item::trigger_event_handler_(events::object &e) const{
 	event_handlers_.trigger_(e);
 }
 
-void winp::thread::item::trigger_event_(events::object &e, bool trigger_handler) const{
+void winp::thread::item::trigger_event_(events::object &e) const{
 	events_manager_.trigger_(e);
-	if (trigger_handler && (e.states_ & (events::object::state_default_prevented | events::object::state_default_done)) == 0u)
-		trigger_event_handler_(e);
+	e.do_default();
 }
 
 bool winp::thread::item::bubble_event_(events::object &e) const{
@@ -166,4 +165,9 @@ void winp::thread::synchronized_item::synchronized_item_execute_or_post_task_ins
 		item_self->execute_or_post_task_inside_thread_context(task, post, priority);
 	else//This is not an instance of thread::item
 		task();
+}
+
+void winp::thread::synchronized_item::synchronized_item_trigger_event_(events::object &e) const{
+	if (auto item_self = dynamic_cast<const item *>(this); item_self != nullptr)
+		item_self->trigger_event_(e);
 }

@@ -430,8 +430,7 @@ winp::ui::surface::hit_target winp::ui::surface::absolute_hit_test(int x, int y,
 }
 
 void winp::ui::surface::set_size_(int width, int height){
-	size_.cx = width;
-	size_.cy = height;
+	set_dimension_(position_.x, position_.y, width, height);
 }
 
 void winp::ui::surface::set_width_(int value){
@@ -443,8 +442,7 @@ void winp::ui::surface::set_height_(int value){
 }
 
 void winp::ui::surface::offset_size_(int width, int height){
-	size_.cx += width;
-	size_.cy += height;
+	set_size_((size_.cx + width), (size_.cy + height));
 }
 
 void winp::ui::surface::offset_width_(int value){
@@ -460,8 +458,7 @@ const SIZE &winp::ui::surface::get_size_() const{
 }
 
 void winp::ui::surface::set_position_(int x, int y){
-	position_.x = x;
-	position_.y = y;
+	set_dimension_(x, y, size_.cx, size_.cy);
 }
 
 void winp::ui::surface::set_x_position_(int value){
@@ -473,8 +470,7 @@ void winp::ui::surface::set_y_position_(int value){
 }
 
 void winp::ui::surface::offset_position_(int x, int y){
-	position_.x += x;
-	position_.y += y;
+	set_position_((position_.x + x), (position_.y + y));
 }
 
 void winp::ui::surface::offset_x_position_(int value){
@@ -516,10 +512,37 @@ POINT winp::ui::surface::get_absolute_position_() const{
 }
 
 void winp::ui::surface::set_dimension_(int x, int y, int width, int height){
-	position_.x = x;
-	position_.y = y;
-	size_.cx = width;
-	size_.cy = height;
+	UINT flags = (SWP_NOMOVE | SWP_NOSIZE);
+	if (x != position_.x || y != position_.y)
+		flags &= ~SWP_NOMOVE;
+
+	if (width != size_.cx || height != size_.cy)
+		flags &= ~SWP_NOSIZE;
+
+	if (flags == (SWP_NOMOVE | SWP_NOSIZE))
+		return;//No changes
+
+	WINDOWPOS info{ nullptr, nullptr, x, y, width, height, flags };
+	MSG msg{ nullptr, WM_WINDOWPOSCHANGING, 0, reinterpret_cast<LPARAM>(&info) };
+
+	if ((synchronized_item_trigger_event_<events::dimension_change>(true, msg, nullptr).first & events::object::state_default_prevented) != 0u)
+		throw utility::error_code::action_prevented;
+
+	if (flags == (SWP_NOMOVE | SWP_NOSIZE))
+		return;//No changes
+
+	if ((flags & SWP_NOMOVE) == 0u){
+		position_.x = x;
+		position_.y = y;
+	}
+
+	if ((flags & SWP_NOSIZE) == 0u){
+		size_.cx = width;
+		size_.cy = height;
+	}
+	
+	msg.message = WM_WINDOWPOSCHANGED;
+	synchronized_item_trigger_event_<events::dimension_change>(false, msg, nullptr);
 }
 
 RECT winp::ui::surface::get_dimension_() const{
