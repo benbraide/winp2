@@ -99,7 +99,12 @@ bool winp::ui::visible_surface::is_transparent_background_() const{
 }
 
 winp::utility::error_code winp::ui::visible_surface::set_background_color_(const D2D1::ColorF &value){
+	if ((synchronized_item_trigger_event_<events::background_color_change>(value, true).first & events::object::state_default_prevented) != 0u)
+		return utility::error_code::action_prevented;
+
 	background_color_ = value;
+	synchronized_item_trigger_event_<events::background_color_change>(value, false);
+
 	return utility::error_code::nil;
 }
 

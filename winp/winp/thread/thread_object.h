@@ -4,7 +4,6 @@
 #include "../utility/error_code.h"
 #include "../utility/random_number_generator.h"
 
-#include "thread_queue.h"
 #include "thread_item.h"
 
 namespace winp::app{
@@ -46,6 +45,11 @@ namespace winp::thread{
 		template <typename result_type = LRESULT, typename wparam_type = WPARAM, typename lparam_type = LPARAM>
 		result_type send_message(UINT msg, wparam_type wparam = wparam_type(0), lparam_type lparam = lparam_type(0)) const{
 			return (result_type)SendMessageW(message_hwnd_, msg, (WPARAM)wparam, (LPARAM)lparam);
+		}
+
+		template <typename result_type = LRESULT>
+		result_type send_message(item &target, const MSG &message) const{
+			return (result_type)SendMessageW(message_hwnd_, 0, reinterpret_cast<WPARAM>(&message), reinterpret_cast<LPARAM>(&target));
 		}
 
 		template <typename target_type>

@@ -22,6 +22,7 @@ winp::utility::error_code winp::thread::item::destruct(const std::function<void(
 
 		is_destructed_ = true;
 		auto error_code = destruct_();
+
 		if (error_code == utility::error_code::nil)
 			trigger_event_<events::destruct>();
 

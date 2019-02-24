@@ -195,4 +195,49 @@ namespace winp::events{
 	protected:
 		bool is_changing_;
 	};
+
+	class background_color_change : public object{
+	public:
+		template <typename... args_types>
+		explicit background_color_change(const D2D1::ColorF &value, bool is_changing, args_types &&... args)
+			: object(std::forward<args_types>(args)...), value_(&value), is_changing_(is_changing){}
+
+		virtual const D2D1::ColorF &get_value() const;
+
+		virtual bool is_changing() const;
+
+	protected:
+		const D2D1::ColorF *value_;
+		bool is_changing_;
+	};
+
+	class background_transparency_change : public object{
+	public:
+		template <typename... args_types>
+		explicit background_transparency_change(bool value, bool is_changing, args_types &&... args)
+			: object(std::forward<args_types>(args)...), value_(value), is_changing_(is_changing){}
+
+		virtual bool get_value() const;
+
+		virtual bool is_changing() const;
+
+	protected:
+		bool value_;
+		bool is_changing_;
+	};
+
+	class visibility_change : public object{
+	public:
+		template <typename... args_types>
+		explicit visibility_change(bool value, bool is_changing, args_types &&... args)
+			: object(std::forward<args_types>(args)...), value_(value), is_changing_(is_changing){}
+
+		virtual bool get_value() const;
+
+		virtual bool is_changing() const;
+
+	protected:
+		bool value_;
+		bool is_changing_;
+	};
 }

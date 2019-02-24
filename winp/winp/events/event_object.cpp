@@ -152,3 +152,39 @@ bool winp::events::dimension_change::is_changing() const{
 		throw utility::error_code::outside_thread_context;
 	return is_changing_;
 }
+
+const D2D1::ColorF &winp::events::background_color_change::get_value() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return *value_;
+}
+
+bool winp::events::background_color_change::is_changing() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return is_changing_;
+}
+
+bool winp::events::background_transparency_change::get_value() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return value_;
+}
+
+bool winp::events::background_transparency_change::is_changing() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return is_changing_;
+}
+
+bool winp::events::visibility_change::get_value() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return value_;
+}
+
+bool winp::events::visibility_change::is_changing() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return is_changing_;
+}
