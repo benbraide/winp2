@@ -5,13 +5,6 @@
 namespace winp::ui{
 	class surface : public thread::synchronized_item{
 	public:
-		enum class hit_target{
-			nil,
-			error,
-			inside,
-			intersect,
-		};
-
 		virtual ~surface();
 
 		virtual utility::error_code set_size(const SIZE &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
@@ -98,13 +91,13 @@ namespace winp::ui{
 
 		virtual RECT convert_dimension_to_absolute_value(const RECT &value, const std::function<void(const RECT &)> &callback = nullptr) const;
 
-		virtual hit_target hit_test(const POINT &value, const std::function<void(hit_target)> &callback = nullptr) const;
+		virtual UINT hit_test(const POINT &value, const std::function<void(UINT)> &callback = nullptr) const;
 
-		virtual hit_target hit_test(int x, int y, const std::function<void(hit_target)> &callback = nullptr) const;
+		virtual UINT hit_test(int x, int y, const std::function<void(UINT)> &callback = nullptr) const;
 
-		virtual hit_target absolute_hit_test(const POINT &value, const std::function<void(hit_target)> &callback = nullptr) const;
+		virtual UINT absolute_hit_test(const POINT &value, const std::function<void(UINT)> &callback = nullptr) const;
 
-		virtual hit_target absolute_hit_test(int x, int y, const std::function<void(hit_target)> &callback = nullptr) const;
+		virtual UINT absolute_hit_test(int x, int y, const std::function<void(UINT)> &callback = nullptr) const;
 
 	protected:
 		virtual utility::error_code set_size_(int width, int height);
@@ -153,9 +146,9 @@ namespace winp::ui{
 
 		virtual RECT convert_dimension_to_absolute_value_(const RECT &value) const;
 
-		virtual hit_target hit_test_(int x, int y) const;
+		virtual UINT hit_test_(int x, int y) const;
 
-		virtual hit_target absolute_hit_test_(int x, int y) const;
+		virtual UINT absolute_hit_test_(int x, int y) const;
 
 		SIZE size_{};
 		POINT position_{};

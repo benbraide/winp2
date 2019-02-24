@@ -102,6 +102,9 @@ winp::utility::error_code winp::ui::object::destruct_(){
 			return error_code;
 	}
 
+	if (auto error_code = destroy_(); error_code != utility::error_code::nil && error_code != utility::error_code::not_supported)
+		return error_code;
+
 	return item::destruct_();
 }
 

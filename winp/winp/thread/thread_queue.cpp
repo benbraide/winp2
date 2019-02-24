@@ -20,11 +20,11 @@ void winp::thread::queue::remove_id_from_black_list(unsigned __int64 id){
 bool winp::thread::queue::id_is_black_listed(unsigned __int64 id) const{
 	if (!thread_.is_thread_context())
 		throw utility::error_code::outside_thread_context;
-	return (black_list_.empty() || black_list_.find(id) != black_list_.end());
+	return (!black_list_.empty() && black_list_.find(id) != black_list_.end());
 }
 
 void winp::thread::queue::post_task(const callback_type &task, int priority, unsigned __int64 id) const{
-	add_([&]{
+	add_([=]{
 		is_executing_ = true;
 		if (!id_is_black_listed(id) && task != nullptr)
 			task();

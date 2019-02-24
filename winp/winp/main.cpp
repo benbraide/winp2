@@ -19,8 +19,14 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 		auto z = 0;
 	});
 
-	uio.set_parent(&uit);
-	auto p = uio.get_parent();
+	std::thread th([&]{
+		uit.add_child(uio, [&](winp::ui::tree &p, winp::utility::error_code e){
+			auto up = uio.get_parent();
+			up = nullptr;
+		});
+	});
 
-	return 0;
+	th.detach();
+
+	return main_app.get_thread().run();
 }

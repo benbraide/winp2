@@ -2,6 +2,18 @@
 
 winp::ui::visible_surface::~visible_surface() = default;
 
+winp::utility::error_code winp::ui::visible_surface::redraw(const std::function<void(visible_surface, utility::error_code)> &callback) const{
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, redraw_());
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
+winp::utility::error_code winp::ui::visible_surface::redraw(const RECT &region, const std::function<void(visible_surface, utility::error_code)> &callback) const{
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, redraw_(region));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
 winp::utility::error_code winp::ui::visible_surface::show(const std::function<void(visible_surface, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
 		return thread::item::pass_return_value_to_callback(callback, *this, show_());
@@ -76,6 +88,14 @@ D2D1::ColorF winp::ui::visible_surface::convert_colorref_to_colorf(COLORREF valu
 
 bool winp::ui::visible_surface::compare_colors(const D2D1::ColorF &first, const D2D1::ColorF &second){
 	return (convert_colorf_to_colorref(first) == convert_colorf_to_colorref(second));
+}
+
+winp::utility::error_code winp::ui::visible_surface::redraw_() const{
+	return utility::error_code::not_supported;
+}
+
+winp::utility::error_code winp::ui::visible_surface::redraw_(const RECT &region) const{
+	return utility::error_code::not_supported;
 }
 
 winp::utility::error_code winp::ui::visible_surface::show_(){

@@ -269,24 +269,24 @@ RECT winp::ui::surface::convert_dimension_to_absolute_value(const RECT &value, c
 	}, (callback != nullptr), RECT{});
 }
 
-winp::ui::surface::hit_target winp::ui::surface::hit_test(const POINT &value, const std::function<void(hit_target)> &callback) const{
+UINT winp::ui::surface::hit_test(const POINT &value, const std::function<void(UINT)> &callback) const{
 	return hit_test(value.x, value.y, callback);
 }
 
-winp::ui::surface::hit_target winp::ui::surface::hit_test(int x, int y, const std::function<void(hit_target)> &callback) const{
+UINT winp::ui::surface::hit_test(int x, int y, const std::function<void(UINT)> &callback) const{
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
 		return synchronized_item_pass_return_value_to_callback(callback, hit_test_(x, y));
-	}, (callback != nullptr), hit_target::nil);
+	}, (callback != nullptr), 0u);
 }
 
-winp::ui::surface::hit_target winp::ui::surface::absolute_hit_test(const POINT &value, const std::function<void(hit_target)> &callback) const{
+UINT winp::ui::surface::absolute_hit_test(const POINT &value, const std::function<void(UINT)> &callback) const{
 	return absolute_hit_test(value.x, value.y, callback);
 }
 
-winp::ui::surface::hit_target winp::ui::surface::absolute_hit_test(int x, int y, const std::function<void(hit_target)> &callback) const{
+UINT winp::ui::surface::absolute_hit_test(int x, int y, const std::function<void(UINT)> &callback) const{
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
 		return synchronized_item_pass_return_value_to_callback(callback, absolute_hit_test_(x, y));
-	}, (callback != nullptr), hit_target::nil);
+	}, (callback != nullptr), 0u);
 }
 
 winp::utility::error_code winp::ui::surface::set_size_(int width, int height){
@@ -436,11 +436,11 @@ RECT winp::ui::surface::convert_dimension_to_absolute_value_(const RECT &value) 
 	return RECT{ absolute_position.x, absolute_position.y, ((value.right - value.left) + absolute_position.x), ((value.bottom - value.top) + absolute_position.y) };
 }
 
-winp::ui::surface::hit_target winp::ui::surface::hit_test_(int x, int y) const{
-	return ((0 <= x && 0 <= y && x < size_.cx && y < size_.cy) ? hit_target::inside : hit_target::nil);
+UINT winp::ui::surface::hit_test_(int x, int y) const{
+	return ((0 <= x && 0 <= y && x < size_.cx && y < size_.cy) ? HTCLIENT : HTNOWHERE);
 }
 
-winp::ui::surface::hit_target winp::ui::surface::absolute_hit_test_(int x, int y) const{
+UINT winp::ui::surface::absolute_hit_test_(int x, int y) const{
 	auto relative_position = convert_position_from_absolute_value_(x, y);
 	return hit_test_(relative_position.x, relative_position.y);
 }

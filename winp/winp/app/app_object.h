@@ -8,6 +8,11 @@
 namespace winp::app{
 	class object{
 	public:
+		struct class_info_type{
+			WNDPROC entry;
+			HINSTANCE instance;
+		};
+
 		object();
 
 		virtual ~object();
@@ -15,6 +20,8 @@ namespace winp::app{
 		virtual std::thread::id get_id() const;
 
 		virtual DWORD get_local_id() const;
+
+		virtual void resolve_class_info(const std::wstring &class_name, class_info_type &info) const;
 
 		virtual const WNDCLASSEXW &get_class_info() const;
 
@@ -48,6 +55,8 @@ namespace winp::app{
 		WNDCLASSEXW class_info_;
 
 		std::unordered_map<DWORD, thread::object *> threads_;
+		mutable std::unordered_map<std::wstring, class_info_type> class_info_map_;
+
 		mutable std::mutex lock_;
 	};
 

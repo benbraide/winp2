@@ -7,6 +7,10 @@ namespace winp::ui{
 	public:
 		virtual ~visible_surface();
 
+		virtual utility::error_code redraw(const std::function<void(visible_surface, utility::error_code)> &callback = nullptr) const;
+
+		virtual utility::error_code redraw(const RECT &region, const std::function<void(visible_surface, utility::error_code)> &callback = nullptr) const;
+
 		virtual utility::error_code show(const std::function<void(visible_surface, utility::error_code)> &callback = nullptr);
 
 		virtual utility::error_code hide(const std::function<void(visible_surface, utility::error_code)> &callback = nullptr);
@@ -34,6 +38,10 @@ namespace winp::ui{
 		static bool compare_colors(const D2D1::ColorF &first, const D2D1::ColorF &second);
 
 	protected:
+		virtual utility::error_code redraw_() const;
+
+		virtual utility::error_code redraw_(const RECT &region) const;
+
 		virtual utility::error_code show_();
 
 		virtual utility::error_code hide_();
