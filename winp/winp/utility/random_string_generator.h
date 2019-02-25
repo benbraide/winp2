@@ -112,7 +112,7 @@ namespace winp::utility{
 				char_set = ~char_set;//Exclude specified
 
 			if ((char_set & random_string_generator_char_set::alpha) == random_string_generator_char_set::alpha){//Alphabet range
-				if ((char_set, (random_string_generator_char_set::uppercase | random_string_generator_char_set::lowercase)) != 0u){
+				if ((char_set & (random_string_generator_char_set::uppercase | random_string_generator_char_set::lowercase)) != 0u){
 					if ((char_set & random_string_generator_char_set::uppercase) == random_string_generator_char_set::uppercase)//Uppercase range
 						out.push_back(set_range{ 0x0041, 0x005A });
 
@@ -128,11 +128,11 @@ namespace winp::utility{
 			if ((char_set & random_string_generator_char_set::digits) == random_string_generator_char_set::digits){//Digits range
 				if ((char_set & random_string_generator_char_set::hex) == random_string_generator_char_set::hex){//Hexadecimal range
 					out.push_back(set_range{ 0x0030, 0x0039 });
-					if ((char_set, (random_string_generator_char_set::uppercase | random_string_generator_char_set::lowercase)) != 0u){
+					if ((char_set & (random_string_generator_char_set::uppercase | random_string_generator_char_set::lowercase)) != 0u){
 						if ((char_set & random_string_generator_char_set::uppercase) == random_string_generator_char_set::uppercase)//Uppercase range
 							out.push_back(set_range{ 0x0041, 0x0046 });
 
-						if ((char_set, random_string_generator_char_set::lowercase) == random_string_generator_char_set::lowercase)//Lowercase range
+						if ((char_set & random_string_generator_char_set::lowercase) == random_string_generator_char_set::lowercase)//Lowercase range
 							out.push_back(set_range{ 0x0061, 0x0066 });
 					}
 					else{//Full hex range
@@ -140,7 +140,7 @@ namespace winp::utility{
 						out.push_back(set_range{ 0x0061, 0x0066 });
 					}
 				}
-				else if ((char_set, random_string_generator_char_set::oct) == random_string_generator_char_set::oct)//Octal range
+				else if ((char_set & random_string_generator_char_set::oct) == random_string_generator_char_set::oct)//Octal range
 					out.push_back(set_range{ 0x0030, 0x0039 });
 				else//Full digit range
 					out.push_back(set_range{ 0x0030, 0x0037 });

@@ -6,7 +6,7 @@ winp::app::object::object()
 
 	class_info_.cbSize = sizeof(WNDCLASSEXW);
 	class_info_.hInstance = GetModuleHandleW(nullptr);
-	class_info_.lpfnWndProc = nullptr/*thread::surface_manager::entry_*/;
+	class_info_.lpfnWndProc = thread::object::get_message_entry();
 	class_info_.lpszClassName = (class_name_ = collection::random_wide_string_generator_(18, 36, utility::random_string_generator_char_set::alpha)).data();
 	class_info_.lpszMenuName = nullptr;
 	class_info_.style = (CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS);
@@ -18,7 +18,7 @@ winp::app::object::object()
 	class_info_.cbClsExtra = 0;
 
 	RegisterClassExW(&class_info_);
-	class_info_map_[class_name_] = class_info_type{ DefWindowProcW, GetModuleHandleW(nullptr) };
+	class_info_map_[class_name_] = DefWindowProcW;
 }
 
 winp::app::object::~object(){
@@ -31,6 +31,19 @@ std::thread::id winp::app::object::get_id() const{
 
 DWORD winp::app::object::get_local_id() const{
 	return local_id_;
+}
+
+WNDPROC winp::app::object::get_class_entry(const std::wstring &class_name) const{
+	std::lock_guard<std::mutex> guard(lock_);
+	if (auto it = class_info_map_.find(class_name); it != class_info_map_.end())
+		return it->second;
+
+	if (WNDCLASSEXW class_info{ sizeof(WNDCLASSEXW) }; GetClassInfoExW(nullptr, class_name.data(), &class_info) != FALSE){
+		class_info_map_[class_name] = class_info.lpfnWndProc;
+		return class_info.lpfnWndProc;
+	}
+
+	return nullptr;
 }
 
 const WNDCLASSEXW &winp::app::object::get_class_info() const{
@@ -131,21 +144,6 @@ void winp::app::object::remove_thread_(DWORD id){
 	std::lock_guard<std::mutex> guard(lock_);
 	if (!threads_.empty())
 		threads_.erase(id);
-}
-
-void winp::app::object::resolve_class_info(const std::wstring &class_name, class_info_type &info) const{
-	std::lock_guard<std::mutex> guard(lock_);
-	if (auto it = class_info_map_.find(class_name); it == class_info_map_.end()){//Resolve new
-		WNDCLASSEXW class_info{ sizeof(WNDCLASSEXW) };
-		if (GetClassInfoExW(nullptr, class_name.data(), &class_info) != FALSE){
-			info.entry = class_info.lpfnWndProc;
-			info.instance = class_info.hInstance;
-		}
-		else//Failed to retrieve info
-			info = class_info_type{};
-	}
-	else//Use existing
-		info = it->second;
 }
 
 winp::app::main_object::main_object(){

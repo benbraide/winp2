@@ -90,10 +90,16 @@ bool winp::ui::window_surface::has_styles(DWORD value, bool is_extended, bool ha
 	}, (callback != nullptr), false);
 }
 
-const std::wstring &winp::ui::window_surface::get_class_name(const std::function<void(const std::wstring &)> &callback) const{
+HWND winp::ui::window_surface::get_handle(const std::function<void(HWND)> &callback) const{
 	return compute_or_post_task_inside_thread_context([=]{
-		return pass_return_value_to_callback(callback, get_class_name_());
-	}, (callback != nullptr), thread_.get_app().get_class_name());
+		return pass_return_value_to_callback(callback, get_handle_());
+	}, (callback != nullptr), nullptr);
+}
+
+const std::wstring &winp::ui::window_surface::get_class_name(const std::function<void(const std::wstring &)> &callback) const{
+	return *compute_or_post_task_inside_thread_context([=]{
+		return &pass_return_ref_value_to_callback(callback, &get_class_name_());
+	}, (callback != nullptr), &thread_.get_app().get_class_name());
 }
 
 winp::utility::error_code winp::ui::window_surface::create_(){
@@ -116,26 +122,25 @@ winp::utility::error_code winp::ui::window_surface::create_(){
 		}
 	}
 
-	handle_ = CreateWindowExW(
-		get_styles_(true),
-		get_class_name_().data(),
-		get_window_text_(),
-		get_styles_(false),
-		position.x,
-		position.y,
-		size_.cx,
-		size_.cy,
-		parent_handle,
+	if (parent_ != nullptr && parent_handle == nullptr)
+		return utility::error_code::parent_not_created;
+
+	handle_ = thread_.get_item_manager().create_window(*this, CREATESTRUCTW{
 		nullptr,
 		get_instance_(),
-		this
-	);
+		nullptr,
+		parent_handle,
+		size_.cy,
+		size_.cx,
+		position.y,
+		position.x,
+		static_cast<LONG>(get_styles_(false)),
+		get_window_text_(),
+		get_class_name_().data(),
+		get_styles_(true)
+	});
 
-	if (handle_ == nullptr)
-		return utility::error_code::action_could_not_be_completed;
-
-	trigger_event_<events::create>();
-	return utility::error_code::nil;
+	return ((handle_ == nullptr) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::window_surface::destroy_(){
@@ -145,7 +150,7 @@ winp::utility::error_code winp::ui::window_surface::destroy_(){
 	if (DestroyWindow(handle_) == FALSE)
 		return utility::error_code::action_could_not_be_completed;
 
-	return utility::error_code::nil;
+	return ((handle_ == nullptr) ? utility::error_code::nil : utility::error_code::action_could_not_be_completed);
 }
 
 bool winp::ui::window_surface::is_created_() const{
@@ -326,6 +331,10 @@ DWORD winp::ui::window_surface::get_filtered_styles_(bool is_extended) const{
 	return (is_extended ? 0u : ((parent_ == nullptr) ? WS_POPUP : WS_CHILD));
 }
 
+HWND winp::ui::window_surface::get_handle_() const{
+	return handle_;
+}
+
 const std::wstring &winp::ui::window_surface::get_class_name_() const{
 	return thread_.get_app().get_class_name();
 }
@@ -336,4 +345,8 @@ const wchar_t *winp::ui::window_surface::get_window_text_() const{
 
 HINSTANCE winp::ui::window_surface::get_instance_() const{
 	return GetModuleHandleW(nullptr);
+}
+
+bool winp::ui::window_surface::is_top_level_() const{
+	return (parent_ == nullptr);
 }

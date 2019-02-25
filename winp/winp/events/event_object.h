@@ -94,7 +94,7 @@ namespace winp::events{
 
 		template <typename... args_types>
 		explicit object_with_message(MSG &message, MSG &original_message, WNDPROC default_callback, args_types &&... args)
-			: object(std::forward<args_types>(args)...), message_(message), original_message_(original_message_), default_callback_(default_callback){}
+			: object(std::forward<args_types>(args)...), message_(message), original_message_(original_message), default_callback_(default_callback){}
 
 		virtual ~object_with_message();
 

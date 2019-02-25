@@ -7,6 +7,7 @@ namespace winp::utility{
 		action_prevented,
 		action_could_not_be_completed,
 		object_not_created,
+		parent_not_created,
 		multiple_main_apps,
 		multiple_app_threads,
 		duplicate_entry,

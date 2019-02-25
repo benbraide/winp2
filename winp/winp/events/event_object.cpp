@@ -1,5 +1,5 @@
 #include "../app/app_collection.h"
-#include "../thread/thread_item.h"
+#include "../ui/ui_window_surface.h"
 
 winp::events::object::object(thread::item &target, const std::function<void(object &)> &default_handler)
 	: object(target, target, default_handler){}
@@ -74,8 +74,7 @@ bool winp::events::object_with_message::do_default(){
 	if (default_callback_ == nullptr || original_message_.hwnd == nullptr || WM_APP <= original_message_.message || (states_ & state_default_prevented) != 0u)
 		return true;
 
-	//TODO: Check if the context is a window object and if handles are same
-	if (true){//Call default
+	if (auto window_context = dynamic_cast<ui::window_surface *>(context_); window_context != nullptr && window_context->get_handle() == original_message_.hwnd){//Call default
 		if ((states_ & state_result_set) == 0u){//Use result
 			states_ |= state_result_set;
 			result_ = CallWindowProcW(default_callback_, original_message_.hwnd, original_message_.message, original_message_.wParam, original_message_.lParam);

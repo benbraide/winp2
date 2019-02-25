@@ -42,9 +42,13 @@ namespace winp::ui{
 
 		virtual bool has_styles(DWORD value, bool is_extended, bool has_all, const std::function<void(bool)> &callback = nullptr) const;
 
+		virtual HWND get_handle(const std::function<void(HWND)> &callback = nullptr) const;
+
 		virtual const std::wstring &get_class_name(const std::function<void(const std::wstring &)> &callback = nullptr) const;
 
 	protected:
+		friend class thread::item_manager;
+
 		virtual utility::error_code create_() override;
 
 		virtual utility::error_code destroy_() override;
@@ -99,11 +103,15 @@ namespace winp::ui{
 
 		virtual DWORD get_filtered_styles_(bool is_extended) const;
 
+		virtual HWND get_handle_() const;
+
 		virtual const std::wstring &get_class_name_() const;
 
 		virtual const wchar_t *get_window_text_() const;
 
 		virtual HINSTANCE get_instance_() const;
+
+		virtual bool is_top_level_() const;
 
 		HWND handle_ = nullptr;
 		WNDPROC entry_ = DefWindowProcW;

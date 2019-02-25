@@ -4,7 +4,7 @@ winp::thread::object::object()
 	: object(*((app::collection::get_main() == nullptr) ? app::collection::get_current_thread_app() : app::collection::get_main())){}
 
 winp::thread::object::object(app::object &app)
-	: app_(app), queue_(*this), id_(std::this_thread::get_id()), local_id_(GetCurrentThreadId()){
+	: app_(app), queue_(*this), item_manager_(*this, GetCurrentThreadId()), id_(std::this_thread::get_id()), local_id_(GetCurrentThreadId()){
 	app_.add_thread_(*this);
 	message_hwnd_ = CreateWindowExW(0, app_.get_class_name().data(), L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, GetModuleHandleW(nullptr), nullptr);
 }
@@ -18,7 +18,7 @@ int winp::thread::object::run(){
 		throw utility::error_code::outside_thread_context;
 
 	MSG msg{};
-	while (true){
+	while (!item_manager_.top_level_windows_.empty()){
 		if (queue_.run_next_(queue::urgent_task_priority))
 			continue;//Task ran
 
@@ -35,8 +35,10 @@ int winp::thread::object::run(){
 		if (msg.message == WM_QUIT)
 			return static_cast<int>(msg.wParam);
 
-		if (msg.hwnd == message_hwnd_)
-			handle_message_(msg);
+		if (msg.hwnd == nullptr || !item_manager_.is_dialog_message_(msg)){
+			TranslateMessage(&msg);
+			DispatchMessageW(&msg);
+		}
 	}
 
 	return 0;
@@ -65,6 +67,14 @@ const winp::thread::queue &winp::thread::object::get_queue() const{
 	return queue_;
 }
 
+winp::thread::item_manager &winp::thread::object::get_item_manager(){
+	return item_manager_;
+}
+
+const winp::thread::item_manager &winp::thread::object::get_item_manager() const{
+	return item_manager_;
+}
+
 std::thread::id winp::thread::object::get_id() const{
 	return id_;
 }
@@ -75,6 +85,18 @@ DWORD winp::thread::object::get_local_id() const{
 
 bool winp::thread::object::is_thread_context() const{
 	return (GetCurrentThreadId() == local_id_);
+}
+
+HWND winp::thread::object::get_message_handle() const{
+	return message_hwnd_;
+}
+
+bool winp::thread::object::post_message(item &target, const MSG &msg) const{
+	return (PostMessageW(message_hwnd_, WINP_WM_POST_MESSAGE, reinterpret_cast<WPARAM>(new MSG(msg)), reinterpret_cast<LPARAM>(&target)) != FALSE);
+}
+
+WNDPROC winp::thread::object::get_message_entry(){
+	return item_manager::entry_;
 }
 
 void winp::thread::object::add_item_(item &item){
@@ -90,8 +112,4 @@ void winp::thread::object::remove_item_(unsigned __int64 id){
 
 	if (!items_.empty())//Inside thread context
 		items_.erase(id);
-}
-
-void winp::thread::object::handle_message_(MSG &msg){
-
 }

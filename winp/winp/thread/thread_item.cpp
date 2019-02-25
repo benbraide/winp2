@@ -119,7 +119,7 @@ void winp::thread::item::trigger_event_(events::object &e) const{
 	e.do_default();
 }
 
-bool winp::thread::item::bubble_event_(events::object &e) const{
+bool winp::thread::item::bubble_event_(events::object &e){
 	auto object_context = dynamic_cast<ui::object *>(e.context_);
 	if (object_context == nullptr)
 		return false;

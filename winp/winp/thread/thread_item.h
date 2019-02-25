@@ -15,6 +15,7 @@ namespace winp::ui{
 namespace winp::thread{
 	class object;
 	class synchronized_item;
+	class item_manager;
 
 	class item{
 	public:
@@ -116,14 +117,15 @@ namespace winp::thread{
 
 	protected:
 		friend class object;
+		friend class item_manager;
 		friend class synchronized_item;
 		friend class events::object;
 
 		virtual utility::error_code destruct_();
 
 		template <typename handler_type>
-		void add_event_handler_(const handler_type &handler){
-			event_handlers_.bind(handler);
+		unsigned __int64 add_event_handler_(const handler_type &handler){
+			return event_handlers_.bind(handler);
 		}
 
 		virtual void trigger_event_handler_(events::object &e) const;
@@ -156,7 +158,7 @@ namespace winp::thread{
 			return std::make_pair(e.states_, e.result_);
 		}
 
-		virtual bool bubble_event_(events::object &e) const;
+		static bool bubble_event_(events::object &e);
 
 		object &thread_;
 		unsigned __int64 id_;
@@ -166,7 +168,7 @@ namespace winp::thread{
 
 		bool is_destructed_ = false;
 		events::manager<item> events_manager_{ *this };
-		events::single_manager<item> event_handlers_{ *this };
+		events::manager<item> event_handlers_{ *this };
 	};
 
 	class synchronized_item{
