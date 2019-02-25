@@ -324,11 +324,11 @@ bool winp::ui::window_surface::has_styles_(DWORD value, bool is_extended, bool h
 }
 
 DWORD winp::ui::window_surface::get_persistent_styles_(bool is_extended) const{
-	return (is_extended ?  0u : (((parent_ == nullptr) ? WS_POPUP : WS_CHILD) | WS_CLIPCHILDREN | WS_CLIPSIBLINGS));
+	return (is_extended ?  0u : (((parent_ == nullptr) ? 0u : WS_CHILD) | WS_CLIPCHILDREN | WS_CLIPSIBLINGS));
 }
 
 DWORD winp::ui::window_surface::get_filtered_styles_(bool is_extended) const{
-	return (is_extended ? 0u : ((parent_ == nullptr) ? WS_POPUP : WS_CHILD));
+	return (is_extended ? 0u : ((parent_ == nullptr) ? WS_CHILD : (WS_CHILD | WS_POPUP)));
 }
 
 HWND winp::ui::window_surface::get_handle_() const{

@@ -117,18 +117,18 @@ namespace winp::events{
 			: object_with_message(std::forward<args_types>(args)...){}
 	};
 
-	class create : public object{
+	class create : public object_with_message{
 	public:
 		template <typename... args_types>
 		explicit create(args_types &&... args)
-			: object(std::forward<args_types>(args)...){}
+			: object_with_message(std::forward<args_types>(args)...){}
 	};
 
-	class destroy : public object{
+	class destroy : public object_with_message{
 	public:
 		template <typename... args_types>
 		explicit destroy(args_types &&... args)
-			: object(std::forward<args_types>(args)...){}
+			: object_with_message(std::forward<args_types>(args)...){}
 	};
 
 	class destruct : public object{

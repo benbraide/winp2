@@ -60,9 +60,10 @@ LRESULT winp::thread::item_manager::handle_thread_message_(HWND handle, UINT mes
 }
 
 LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
+	auto window_target = dynamic_cast<ui::window_surface *>(&target);
 	switch (msg.message){
 	case WM_NCCREATE:
-		return get_result_(trigger_event_with_value_<events::create>(target, TRUE), FALSE);
+		return get_result_(trigger_event_with_value_<events::create>(target, TRUE, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))), FALSE);
 	case WM_NCDESTROY:
 		return window_destroyed_(target, msg);
 	case WM_CREATE:
@@ -101,10 +102,12 @@ LRESULT winp::thread::item_manager::window_destroyed_(item &target, MSG &msg){
 			window_cache_ = window_cache_info{};
 	}
 
-	if (auto window_target = dynamic_cast<ui::window_surface *>(&target); window_target != nullptr)
+	if (auto window_target = dynamic_cast<ui::window_surface *>(&target); window_target != nullptr){
 		window_target->handle_ = nullptr;
+		return trigger_event_<events::destroy>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).first;
+	}
 
-	return trigger_event_<events::destroy>(target).first;
+	return trigger_event_<events::destroy>(target, msg, nullptr).first;
 }
 
 void winp::thread::item_manager::trigger_event_(events::object &e){
