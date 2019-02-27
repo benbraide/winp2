@@ -6,13 +6,18 @@ winp::ui::window_surface::window_surface()
 	: window_surface(app::collection::get_main()->get_thread()){}
 
 winp::ui::window_surface::window_surface(thread::object &thread)
-	: tree(thread){}
+	: tree(thread){
+	styles_ = (WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
+	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
+}
 
 winp::ui::window_surface::window_surface(tree &parent)
 	: window_surface(parent, static_cast<std::size_t>(-1)){}
 
 winp::ui::window_surface::window_surface(tree &parent, std::size_t index)
 	: window_surface(parent.get_thread()){
+	styles_ = (WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
+	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
 	set_parent(&parent, index);
 }
 
@@ -125,20 +130,20 @@ winp::utility::error_code winp::ui::window_surface::create_(){
 	if (parent_ != nullptr && parent_handle == nullptr)
 		return utility::error_code::parent_not_created;
 
-	handle_ = thread_.get_item_manager().create_window(*this, CREATESTRUCTW{
-		nullptr,
-		get_instance_(),
-		nullptr,
-		parent_handle,
-		size_.cy,
-		size_.cx,
-		position.y,
-		position.x,
-		static_cast<LONG>(get_styles_(false)),
-		get_window_text_(),
+	handle_ = thread_.get_item_manager().create_window(
+		*this,
+		get_styles_(true),
 		get_class_name_().data(),
-		get_styles_(true)
-	});
+		get_window_text_(),
+		get_styles_(false),
+		position.x,
+		position.y,
+		size_.cx,
+		size_.cy,
+		parent_handle,
+		nullptr,
+		get_instance_()
+	);
 
 	return ((handle_ == nullptr) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
 }
@@ -315,8 +320,8 @@ winp::utility::error_code winp::ui::window_surface::set_styles_(DWORD value, boo
 	return utility::error_code::nil;
 }
 
-DWORD winp::ui::window_surface::get_styles_(bool is_extended_) const{
-	return ((is_extended_ ? extended_styles_ : styles_) | get_persistent_styles_(is_extended_));
+DWORD winp::ui::window_surface::get_styles_(bool is_extended) const{
+	return (((is_extended ? extended_styles_ : styles_) & ~get_filtered_styles_(is_extended)) | get_persistent_styles_(is_extended));
 }
 
 bool winp::ui::window_surface::has_styles_(DWORD value, bool is_extended, bool has_all) const{

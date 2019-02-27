@@ -87,6 +87,84 @@ bool winp::thread::object::is_thread_context() const{
 	return (GetCurrentThreadId() == local_id_);
 }
 
+void winp::thread::object::discard_d2d_resources(){
+	if (!is_thread_context())
+		throw utility::error_code::outside_thread_context;
+
+	if (color_brush_ != nullptr){
+		color_brush_->Release();
+		color_brush_ = nullptr;
+	}
+
+	if (device_render_target_ != nullptr){
+		device_render_target_->Release();
+		device_render_target_ = nullptr;
+	}
+
+	if (write_interop_ != nullptr){
+		write_interop_->Release();
+		write_interop_ = nullptr;
+	}
+}
+
+ID2D1Factory *winp::thread::object::get_draw_factory() const{
+	if (!is_thread_context())
+		throw utility::error_code::outside_thread_context;
+
+	if (draw_factory_ == nullptr)
+		D2D1CreateFactory(D2D1_FACTORY_TYPE::D2D1_FACTORY_TYPE_SINGLE_THREADED, &draw_factory_);
+
+	return draw_factory_;
+}
+
+IDWriteFactory *winp::thread::object::get_write_factory() const{
+	if (!is_thread_context())
+		throw utility::error_code::outside_thread_context;
+
+	if (write_factory_ == nullptr)
+		DWriteCreateFactory(DWRITE_FACTORY_TYPE::DWRITE_FACTORY_TYPE_ISOLATED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown **>(&write_factory_));
+
+	return write_factory_;
+}
+
+IDWriteGdiInterop *winp::thread::object::get_write_interop() const{
+	if (auto factory = get_write_factory(); write_interop_ == nullptr && factory != nullptr)
+		factory->GetGdiInterop(&write_interop_);
+	return write_interop_;
+}
+
+ID2D1DCRenderTarget *winp::thread::object::get_device_render_target() const{
+	if (auto factory = get_draw_factory(); device_render_target_ == nullptr && factory != nullptr){
+		auto props = D2D1::RenderTargetProperties(
+			D2D1_RENDER_TARGET_TYPE_DEFAULT,
+			D2D1::PixelFormat(
+				DXGI_FORMAT_B8G8R8A8_UNORM,
+				D2D1_ALPHA_MODE_PREMULTIPLIED
+			),
+			0,
+			0,
+			D2D1_RENDER_TARGET_USAGE_NONE,
+			D2D1_FEATURE_LEVEL_DEFAULT
+		);
+
+		factory->CreateDCRenderTarget(&props, &device_render_target_);
+	}
+
+	return device_render_target_;
+}
+
+ID2D1SolidColorBrush *winp::thread::object::get_color_brush() const{
+	if (auto render_target = get_device_render_target(); color_brush_ == nullptr && render_target != nullptr){
+		render_target->CreateSolidColorBrush(
+			D2D1::ColorF(D2D1::ColorF::Black, 1.0f),
+			D2D1::BrushProperties(),
+			&color_brush_
+		);
+	}
+
+	return color_brush_;
+}
+
 HWND winp::thread::object::get_message_handle() const{
 	return message_hwnd_;
 }

@@ -17,27 +17,8 @@ winp::thread::object &winp::thread::item_manager::get_thread(){
 	return thread_;
 }
 
-HWND winp::thread::item_manager::create_window(ui::window_surface &owner, const CREATESTRUCTW &info){
-	if (!thread_.is_thread_context())
-		throw utility::error_code::outside_thread_context;
-
-	window_cache_.handle = nullptr;
-	window_cache_.object = &owner;
-
-	return CreateWindowExW(
-		info.dwExStyle,
-		info.lpszClass,
-		info.lpszName,
-		info.style,
-		info.x,
-		info.y,
-		info.cx,
-		info.cy,
-		info.hwndParent,
-		info.hMenu,
-		info.hInstance,
-		&owner
-	);
+bool winp::thread::item_manager::is_thread_context() const{
+	return thread_.is_thread_context();
 }
 
 bool winp::thread::item_manager::is_dialog_message_(MSG &msg) const{
@@ -66,17 +47,22 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return get_result_(trigger_event_with_value_<events::create>(target, TRUE, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))), FALSE);
 	case WM_NCDESTROY:
 		return window_destroyed_(target, msg);
+	case WM_CLOSE:
+		return trigger_event_<events::close>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+	case WM_SETCURSOR:
+		return set_cursor_(target, msg);
+	case WINP_WM_GET_BACKGROUND_COLOR:
+		return trigger_event_<events::background_color>(target, msg, nullptr).second;
+	case WM_ERASEBKGND:
+		return trigger_event_<events::erase_background>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
 	case WM_CREATE:
 	case WM_DESTROY:
-		return ((msg.hwnd == nullptr) ? 0 : CallWindowProcW(DefWindowProcW, msg.hwnd, msg.message, msg.wParam, msg.lParam));
+		return ((window_target == nullptr) ? 0 : CallWindowProcW(thread_.get_app().get_class_entry(window_target->get_class_name()), msg.hwnd, msg.message, msg.wParam, msg.lParam));
 	default:
 		break;
 	}
 
-	if (auto window_target = dynamic_cast<ui::window_surface *>(&target); window_target != nullptr)
-		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
-
-	return trigger_event_<events::unhandled>(target, msg, nullptr).second;
+	return trigger_event_<events::unhandled>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
 }
 
 LRESULT winp::thread::item_manager::dispatch_message_(item &target, HWND handle, UINT message, WPARAM wparam, LPARAM lparam){
@@ -108,6 +94,56 @@ LRESULT winp::thread::item_manager::window_destroyed_(item &target, MSG &msg){
 	}
 
 	return trigger_event_<events::destroy>(target, msg, nullptr).first;
+}
+
+LRESULT winp::thread::item_manager::set_cursor_(item &target, MSG &msg){
+	auto window_target = dynamic_cast<ui::window_surface *>(&target);
+	auto result = trigger_event_<events::cursor>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name())));
+
+	if ((result.first & events::object::state_default_prevented) != 0u)
+		return TRUE;//Default prevented
+
+	auto value = (((result.first & events::object::state_result_set) == 0u) ? get_default_cursor_(msg) : reinterpret_cast<HCURSOR>(result.second));
+	SetCursor((value == nullptr) ? LoadCursorW(nullptr, IDC_ARROW) : value);
+
+	return TRUE;
+}
+
+HCURSOR winp::thread::item_manager::get_default_cursor_(const MSG &msg){
+	switch (LOWORD(msg.lParam)){
+	case HTERROR://Play beep if applicable
+		switch (HIWORD(msg.lParam)){
+		case WM_LBUTTONDOWN:
+		case WM_MBUTTONDOWN:
+		case WM_RBUTTONDOWN:
+		case WM_XBUTTONDOWN:
+			MessageBeep(0);
+			break;
+		default:
+			break;
+		}
+
+		return nullptr;
+	case HTCLIENT://Use class cursor
+		break;
+	case HTLEFT:
+	case HTRIGHT:
+		return LoadCursorW(nullptr, IDC_SIZEWE);
+	case HTTOP:
+	case HTBOTTOM:
+		return LoadCursorW(nullptr, IDC_SIZENS);
+	case HTTOPLEFT:
+	case HTBOTTOMRIGHT:
+		return LoadCursorW(nullptr, IDC_SIZENWSE);
+	case HTTOPRIGHT:
+	case HTBOTTOMLEFT:
+		return LoadCursorW(nullptr, IDC_SIZENESW);
+	default:
+		return LoadCursorW(nullptr, IDC_ARROW);
+	}
+
+	auto value = ((msg.hwnd == nullptr) ? nullptr : reinterpret_cast<HCURSOR>(GetClassLongPtrW(msg.hwnd, GCLP_HCURSOR)));
+	return ((value == nullptr) ? nullptr : LoadCursorW(nullptr, IDC_ARROW));
 }
 
 void winp::thread::item_manager::trigger_event_(events::object &e){

@@ -37,8 +37,6 @@ namespace winp::events{
 
 			states_ |= state_result_set;
 			result_ = result;
-
-			return *this;
 		}
 
 		template <typename result_type>
@@ -50,8 +48,6 @@ namespace winp::events{
 				states_ |= state_result_set;
 				result_ = result;
 			}
-
-			return *this;
 		}
 
 		template <typename target_type = LRESULT>
@@ -74,6 +70,7 @@ namespace winp::events{
 		static constexpr unsigned int state_propagation_stopped			= (1 << 0x0001);
 		static constexpr unsigned int state_default_done				= (1 << 0x0002);
 		static constexpr unsigned int state_result_set					= (1 << 0x0003);
+		static constexpr unsigned int state_default_result_set			= (1 << 0x0004);
 
 	protected:
 		friend class thread::item;
@@ -105,6 +102,12 @@ namespace winp::events{
 		virtual MSG &get_message();
 
 	protected:
+		virtual bool should_call_call_default_() const;
+
+		virtual bool call_default_();
+
+		virtual LRESULT get_called_default_value_() const;
+
 		MSG &message_;
 		MSG &original_message_;
 		WNDPROC default_callback_;
@@ -136,6 +139,13 @@ namespace winp::events{
 		template <typename... args_types>
 		explicit destruct(args_types &&... args)
 			: object(std::forward<args_types>(args)...){}
+	};
+
+	class close : public object_with_message{
+	public:
+		template <typename... args_types>
+		explicit close(args_types &&... args)
+			: object_with_message(std::forward<args_types>(args)...){}
 	};
 
 	class parent_change : public object{
@@ -239,5 +249,85 @@ namespace winp::events{
 	protected:
 		bool value_;
 		bool is_changing_;
+	};
+
+	class cursor : public object_with_message{
+	public:
+		template <typename... args_types>
+		explicit cursor(args_types &&... args)
+			: object_with_message(std::forward<args_types>(args)...){}
+
+		virtual WORD get_hit_target() const;
+
+		virtual WORD get_mouse_button() const;
+
+	protected:
+		virtual bool call_default_() override;
+	};
+
+	class background_color : public object_with_message{
+	public:
+		template <typename... args_types>
+		explicit background_color(args_types &&... args)
+			: object_with_message(std::forward<args_types>(args)...){}
+
+		using object_with_message::set_result;
+
+		void set_result(const D2D1::ColorF &result);
+
+	protected:
+		virtual bool should_call_call_default_() const override;
+
+		virtual LRESULT get_called_default_value_() const override;
+	};
+
+	class draw : public object_with_message{
+	public:
+		template <typename... args_types>
+		explicit draw(args_types &&... args)
+			: object_with_message(std::forward<args_types>(args)...){}
+
+		virtual ~draw();
+
+		virtual utility::error_code begin();
+
+		virtual utility::error_code end();
+
+		virtual ID2D1RenderTarget *get_render_target() const;
+
+		virtual ID2D1SolidColorBrush *get_color_brush() const;
+
+		virtual HDC get_device() const;
+
+		virtual const RECT &get_clip() const;
+
+	protected:
+		virtual bool should_call_call_default_() const override;
+
+		virtual utility::error_code begin_() = 0;
+
+		virtual void end_() = 0;
+
+		ID2D1DCRenderTarget *render_target_ = nullptr;
+		ID2D1SolidColorBrush *color_brush_ = nullptr;
+
+		PAINTSTRUCT info_{};
+		RECT computed_clip_{};
+	};
+
+	class erase_background : public draw{
+	public:
+		template <typename... args_types>
+		explicit erase_background(args_types &&... args)
+			: draw(std::forward<args_types>(args)...){}
+
+		virtual ~erase_background();
+
+	protected:
+		virtual bool call_default_() override;
+
+		virtual utility::error_code begin_() override;
+
+		virtual void end_() override;
 	};
 }

@@ -7,7 +7,7 @@ winp::window::object::object()
 
 winp::window::object::object(thread::object &thread)
 	: window_surface(thread){
-	styles_ = WS_OVERLAPPEDWINDOW;
+	styles_ |= WS_OVERLAPPEDWINDOW;
 }
 
 winp::window::object::object(tree &parent)

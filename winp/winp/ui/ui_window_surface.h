@@ -95,7 +95,7 @@ namespace winp::ui{
 
 		virtual utility::error_code set_styles_(DWORD value, bool is_extended);
 
-		virtual DWORD get_styles_(bool is_extended_) const;
+		virtual DWORD get_styles_(bool is_extended) const;
 
 		virtual bool has_styles_(DWORD value, bool is_extended, bool has_all) const;
 

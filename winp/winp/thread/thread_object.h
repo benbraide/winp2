@@ -41,6 +41,18 @@ namespace winp::thread{
 
 		bool is_thread_context() const;
 
+		void discard_d2d_resources();
+
+		ID2D1Factory *get_draw_factory() const;
+
+		IDWriteFactory *get_write_factory() const;
+
+		IDWriteGdiInterop *get_write_interop() const;
+
+		ID2D1DCRenderTarget *get_device_render_target() const;
+
+		ID2D1SolidColorBrush *get_color_brush() const;
+
 		HWND get_message_handle() const;
 
 		template <typename wparam_type = WPARAM, typename lparam_type = LPARAM>
@@ -55,11 +67,6 @@ namespace winp::thread{
 
 		template <typename result_type = LRESULT>
 		result_type send_message(item &target, MSG &msg) const{
-			return (result_type)SendMessageW(message_hwnd_, WINP_WM_SEND_MESSAGE, reinterpret_cast<WPARAM>(&msg), reinterpret_cast<LPARAM>(&target));
-		}
-
-		template <typename result_type = LRESULT>
-		result_type send_message(item &target, MSG msg) const{
 			return (result_type)SendMessageW(message_hwnd_, WINP_WM_SEND_MESSAGE, reinterpret_cast<WPARAM>(&msg), reinterpret_cast<LPARAM>(&target));
 		}
 
@@ -127,5 +134,12 @@ namespace winp::thread{
 		HWND message_hwnd_ = nullptr;
 		std::unordered_map<unsigned __int64, item *> items_;
 		utility::random_integral_number_generator random_generator_;
+
+		mutable ID2D1Factory *draw_factory_ = nullptr;
+		mutable IDWriteFactory *write_factory_ = nullptr;
+		mutable IDWriteGdiInterop *write_interop_ = nullptr;
+
+		mutable ID2D1DCRenderTarget *device_render_target_ = nullptr;
+		mutable ID2D1SolidColorBrush *color_brush_ = nullptr;
 	};
 }

@@ -152,7 +152,7 @@ namespace winp::thread{
 			event_type e(std::forward<args_types>(args)..., target, const_cast<item &>(*this));
 			trigger_event_(e);
 
-			if ((e.states_ & events::object::state_result_set) == 0u)
+			if ((e.states_ & (events::object::state_result_set | events::object::state_default_result_set)) == 0u)
 				return std::make_pair(e.states_, (LRESULT)value);
 
 			return std::make_pair(e.states_, e.result_);

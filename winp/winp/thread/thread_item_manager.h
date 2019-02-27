@@ -26,7 +26,21 @@ namespace winp::thread{
 
 		object &get_thread();
 
-		HWND create_window(ui::window_surface &owner, const CREATESTRUCTW &info);
+		bool is_thread_context() const;
+
+		template <typename... args_types>
+		HWND create_window(ui::window_surface &owner, args_types &&... args){
+			if (!is_thread_context())
+				throw utility::error_code::outside_thread_context;
+
+			window_cache_.handle = nullptr;
+			window_cache_.object = &owner;
+
+			return CreateWindowExW(
+				std::forward<args_types>(args)...,
+				&owner
+			);
+		}
 
 	private:
 		friend class object;
@@ -42,6 +56,10 @@ namespace winp::thread{
 		LRESULT dispatch_message_(item &target, HWND handle, UINT message, WPARAM wparam, LPARAM lparam);
 
 		LRESULT window_destroyed_(item &target, MSG &msg);
+
+		LRESULT set_cursor_(item &target, MSG &msg);
+
+		static HCURSOR get_default_cursor_(const MSG &msg);
 
 		static void trigger_event_(events::object &e);
 
