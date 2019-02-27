@@ -1,5 +1,6 @@
 #include "../app/app_collection.h"
 #include "../ui/ui_window_surface.h"
+#include "../non_window/non_window_object.h"
 
 winp::thread::item_manager::item_manager(object &thread)
 	: item_manager(thread, thread.get_local_id()){}
@@ -54,7 +55,11 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 	case WINP_WM_GET_BACKGROUND_COLOR:
 		return trigger_event_<events::background_color>(target, msg, nullptr).second;
 	case WM_ERASEBKGND:
-		return trigger_event_<events::erase_background>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+		return ((dynamic_cast<ui::visible_surface *>(&target) == nullptr) ? 0 : erase_background_(target, target, msg));
+	case WM_WINDOWPOSCHANGING:
+		return position_change_(target, msg, true);
+	case WM_WINDOWPOSCHANGED:
+		return position_change_(target, msg, false);
 	case WM_CREATE:
 	case WM_DESTROY:
 		return ((window_target == nullptr) ? 0 : CallWindowProcW(thread_.get_app().get_class_entry(window_target->get_class_name()), msg.hwnd, msg.message, msg.wParam, msg.lParam));
@@ -88,12 +93,18 @@ LRESULT winp::thread::item_manager::window_destroyed_(item &target, MSG &msg){
 			window_cache_ = window_cache_info{};
 	}
 
-	if (auto window_target = dynamic_cast<ui::window_surface *>(&target); window_target != nullptr){
+	auto window_target = dynamic_cast<ui::window_surface *>(&target);
+	if (window_target != nullptr)
 		window_target->handle_ = nullptr;
-		return trigger_event_<events::destroy>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).first;
+
+	if (auto tree_target = dynamic_cast<ui::tree *>(&target); tree_target != nullptr){
+		tree_target->traverse_children([&](ui::object &child){
+			if (dynamic_cast<ui::window_surface *>(&child) == nullptr)
+				child.destroy();
+		}, true);
 	}
 
-	return trigger_event_<events::destroy>(target, msg, nullptr).first;
+	return trigger_event_<events::destroy>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
 }
 
 LRESULT winp::thread::item_manager::set_cursor_(item &target, MSG &msg){
@@ -107,6 +118,37 @@ LRESULT winp::thread::item_manager::set_cursor_(item &target, MSG &msg){
 	SetCursor((value == nullptr) ? LoadCursorW(nullptr, IDC_ARROW) : value);
 
 	return TRUE;
+}
+
+LRESULT winp::thread::item_manager::erase_background_(item &context, item &target, MSG &msg){
+	auto window_context = dynamic_cast<ui::window_surface *>(&context);
+	auto result = trigger_event_with_target_<events::erase_background>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_context->get_class_name()))).second;
+
+	if (auto tree_context = dynamic_cast<ui::tree *>(&context); tree_context != nullptr){
+		tree_context->traverse_children([&](ui::object &child){
+			if (dynamic_cast<ui::visible_surface *>(&child) != nullptr && dynamic_cast<ui::window_surface *>(&child) == nullptr)
+				erase_background_(child, target, msg);
+		}, true);
+	}
+
+	return result;
+}
+
+LRESULT winp::thread::item_manager::position_change_(item &target, MSG &msg, bool changing){
+	LRESULT result = 0;
+	auto window_target = dynamic_cast<ui::window_surface *>(&target);
+	if (changing){
+		auto result_info = trigger_event_<events::position_change>(target, true, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name())));
+		if ((result_info.first & events::object::state_default_prevented) != 0u)
+			reinterpret_cast<WINDOWPOS *>(msg.lParam)->flags |= (SWP_NOMOVE | SWP_NOSIZE);
+		result = result_info.second;
+	}
+	else if (auto non_window_target = dynamic_cast<non_window::object *>(&target); non_window_target != nullptr && (reinterpret_cast<WINDOWPOS *>(msg.lParam)->flags & (SWP_NOMOVE | SWP_NOSIZE)) != (SWP_NOMOVE | SWP_NOSIZE)){
+		non_window_target->resize_handle_();
+		result = trigger_event_<events::position_change>(target, false, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+	}
+
+	return result;
 }
 
 HCURSOR winp::thread::item_manager::get_default_cursor_(const MSG &msg){

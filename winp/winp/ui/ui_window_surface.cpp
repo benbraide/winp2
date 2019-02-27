@@ -16,8 +16,6 @@ winp::ui::window_surface::window_surface(tree &parent)
 
 winp::ui::window_surface::window_surface(tree &parent, std::size_t index)
 	: window_surface(parent.get_thread()){
-	styles_ = (WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
 	set_parent(&parent, index);
 }
 

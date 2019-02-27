@@ -383,27 +383,23 @@ winp::utility::error_code winp::ui::surface::set_dimension_(int x, int y, int wi
 		return utility::error_code::nil;//No changes
 
 	WINDOWPOS info{ nullptr, nullptr, x, y, width, height, flags };
-	MSG msg{ nullptr, WM_WINDOWPOSCHANGING, 0, reinterpret_cast<LPARAM>(&info) };
+	auto item_self = dynamic_cast<thread::item *>(this);
 
-	if ((synchronized_item_trigger_event_<events::dimension_change>(true, msg, nullptr).first & events::object::state_default_prevented) != 0u)
-		return utility::error_code::action_prevented;
-
-	if (flags == (SWP_NOMOVE | SWP_NOSIZE))
+	item_self->get_thread().send_message(*item_self, WM_WINDOWPOSCHANGING, 0, reinterpret_cast<LPARAM>(&info));
+	if ((flags & (SWP_NOMOVE | SWP_NOSIZE)) == (SWP_NOMOVE | SWP_NOSIZE))
 		return utility::error_code::nil;//No changes
 
 	if ((flags & SWP_NOMOVE) == 0u){
-		position_.x = x;
-		position_.y = y;
+		position_.x = info.x;
+		position_.y = info.y;
 	}
 
 	if ((flags & SWP_NOSIZE) == 0u){
-		size_.cx = width;
-		size_.cy = height;
+		size_.cx = info.cx;
+		size_.cy = info.cy;
 	}
 	
-	msg.message = WM_WINDOWPOSCHANGED;
-	synchronized_item_trigger_event_<events::dimension_change>(false, msg, nullptr);
-
+	item_self->get_thread().send_message(*item_self, WM_WINDOWPOSCHANGED, 0, reinterpret_cast<LPARAM>(&info));
 	return utility::error_code::nil;
 }
 

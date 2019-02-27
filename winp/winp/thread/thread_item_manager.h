@@ -59,6 +59,10 @@ namespace winp::thread{
 
 		LRESULT set_cursor_(item &target, MSG &msg);
 
+		LRESULT erase_background_(item &context, item &target, MSG &msg);
+
+		LRESULT position_change_(item &target, MSG &msg, bool changing);
+
 		static HCURSOR get_default_cursor_(const MSG &msg);
 
 		static void trigger_event_(events::object &e);

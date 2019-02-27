@@ -1,5 +1,6 @@
 #include "../app/app_collection.h"
 #include "../ui/ui_window_surface.h"
+#include "../non_window/non_window_object.h"
 
 winp::events::object::object(thread::item &target, const std::function<void(object &)> &default_handler)
 	: object(target, target, default_handler){}
@@ -94,7 +95,7 @@ bool winp::events::object_with_message::should_call_call_default_() const{
 }
 
 bool winp::events::object_with_message::call_default_(){
-	if (should_call_call_default_()){//Call default
+	if ((states_ & state_default_prevented) == 0u && should_call_call_default_()){//Call default
 		if ((states_ & state_result_set) == 0u){//Use result
 			states_ |= state_default_result_set;
 			result_ = get_called_default_value_();
@@ -152,13 +153,13 @@ bool winp::events::children_change::is_changing() const{
 	return is_changing_;
 }
 
-WINDOWPOS &winp::events::dimension_change::get_value() const{
+WINDOWPOS &winp::events::position_change::get_value() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
 	return *reinterpret_cast<WINDOWPOS *>(message_.lParam);
 }
 
-bool winp::events::dimension_change::is_changing() const{
+bool winp::events::position_change::is_changing() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
 	return is_changing_;
@@ -256,14 +257,13 @@ winp::utility::error_code winp::events::draw::begin(){
 	computed_clip_ = info_.rcPaint;
 	SaveDC(info_.hdc);
 
-	auto object_context = dynamic_cast<ui::object *>(context_);
-	auto surface_context = dynamic_cast<ui::surface *>(context_);
+	if (auto non_window_context = dynamic_cast<non_window::object *>(context_); non_window_context != nullptr){
+		SelectClipRgn(info_.hdc, non_window_context->get_handle());
 
-	if (object_context != nullptr && surface_context != nullptr && dynamic_cast<ui::window_surface *>(context_) == nullptr){
-		POINT offset{};
-		auto context_dimension = surface_context->get_dimension();
+		auto offset = non_window_context->get_position();
+		auto context_dimension = non_window_context->get_dimension();
 
-		for (auto ancestor = object_context->get_parent(); ancestor != nullptr; ancestor = ancestor->get_parent()){
+		for (auto ancestor = non_window_context->get_parent(); ancestor != nullptr; ancestor = ancestor->get_parent()){
 			if (auto window_ancestor = dynamic_cast<ui::window_surface *>(ancestor); window_ancestor != nullptr)
 				break;
 
