@@ -84,16 +84,30 @@ std::size_t winp::ui::object::get_index(const std::function<void(std::size_t)> &
 	}, (callback != nullptr), static_cast<std::size_t>(-1));
 }
 
-void winp::ui::object::traverse_ancestors(const std::function<void(tree &)> &callback, bool block) const{
+void winp::ui::object::traverse_ancestors(const std::function<bool(tree &)> &callback, bool block) const{
 	execute_or_post_task_inside_thread_context([&]{
 		traverse_ancestors_(callback);
 	}, !block);
 }
 
-void winp::ui::object::traverse_siblings(const std::function<void(object &)> &callback, bool block) const{
+void winp::ui::object::traverse_all_ancestors(const std::function<void(tree &)> &callback, bool block) const{
+	traverse_ancestors([callback](tree &value){
+		callback(value);
+		return true;
+	}, block);
+}
+
+void winp::ui::object::traverse_siblings(const std::function<bool(object &)> &callback, bool block) const{
 	execute_or_post_task_inside_thread_context([&]{
 		traverse_siblings_(callback);
 	}, !block);
+}
+
+void winp::ui::object::traverse_all_siblings(const std::function<void(object &)> &callback, bool block) const{
+	traverse_siblings([callback](object &value){
+		callback(value);
+		return true;
+	}, block);
 }
 
 winp::utility::error_code winp::ui::object::destruct_(){
@@ -167,17 +181,19 @@ std::size_t winp::ui::object::get_index_() const{
 	return ((parent_ == nullptr) ? index_ : parent_->find_child_(*this));
 }
 
-void winp::ui::object::traverse_ancestors_(const std::function<void(tree &)> &callback) const{
-	for (auto ancestor = parent_; ancestor != nullptr; ancestor = ancestor->parent_)
-		callback(*ancestor);
+void winp::ui::object::traverse_ancestors_(const std::function<bool(tree &)> &callback) const{
+	for (auto ancestor = parent_; ancestor != nullptr; ancestor = ancestor->parent_){
+		if (!callback(*ancestor))
+			break;
+	}
 }
 
-void winp::ui::object::traverse_siblings_(const std::function<void(object &)> &callback) const{
+void winp::ui::object::traverse_siblings_(const std::function<bool(object &)> &callback) const{
 	if (parent_ == nullptr || parent_->children_.empty())
 		return;//No siblings
 
 	for (auto sibling : parent_->children_){
-		if (sibling != this)
-			callback(*sibling);
+		if (sibling != this && !callback(*sibling))
+			break;
 	}
 }

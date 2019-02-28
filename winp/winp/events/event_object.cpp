@@ -1,6 +1,6 @@
 #include "../app/app_collection.h"
 #include "../ui/ui_window_surface.h"
-#include "../non_window/non_window_object.h"
+#include "../ui/ui_non_window_surface.h"
 
 winp::events::object::object(thread::item &target, const std::function<void(object &)> &default_handler)
 	: object(target, target, default_handler){}
@@ -260,7 +260,7 @@ winp::utility::error_code winp::events::draw::begin(){
 	computed_clip_ = info_.rcPaint;
 	SaveDC(info_.hdc);
 
-	if (auto non_window_context = dynamic_cast<non_window::object *>(context_); non_window_context != nullptr){
+	if (auto non_window_context = dynamic_cast<ui::non_window_surface *>(context_); non_window_context != nullptr){
 		SelectClipRgn(info_.hdc, non_window_context->get_handle());
 
 		auto offset = non_window_context->get_position();

@@ -1,20 +1,20 @@
 #pragma once
 
-#include "../ui/ui_tree.h"
-#include "../ui/ui_interactive_surface.h"
+#include "ui_tree.h"
+#include "ui_interactive_surface.h"
 
-namespace winp::non_window{
-	class object : public ui::tree, public ui::interactive_surface{
+namespace winp::ui{
+	class non_window_surface : public ui::tree, public ui::interactive_surface{
 	public:
-		object();
+		non_window_surface();
 
-		explicit object(thread::object &thread);
+		explicit non_window_surface(thread::object &thread);
 
-		explicit object(tree &parent);
+		explicit non_window_surface(tree &parent);
 
-		object(tree &parent, std::size_t index);
+		non_window_surface(tree &parent, std::size_t index);
 
-		virtual ~object();
+		virtual ~non_window_surface();
 
 		virtual HRGN get_handle(const std::function<void(HRGN)> &callback = nullptr) const;
 
@@ -39,9 +39,9 @@ namespace winp::non_window{
 
 		virtual HRGN get_handle_() const;
 
-		virtual HRGN create_handle_() const;
+		virtual HRGN create_handle_() const = 0;
 
-		virtual utility::error_code resize_handle_();
+		virtual utility::error_code resize_handle_() = 0;
 
 		HRGN handle_ = nullptr;
 		bool visible_ = true;

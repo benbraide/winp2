@@ -1,32 +1,32 @@
 #include "../app/app_collection.h"
 
-#include "non_window_object.h"
+#include "ui_non_window_surface.h"
 
-winp::non_window::object::object()
-	: object(app::collection::get_main()->get_thread()){}
+winp::ui::non_window_surface::non_window_surface()
+	: non_window_surface(app::collection::get_main()->get_thread()){}
 
-winp::non_window::object::object(thread::object &thread)
+winp::ui::non_window_surface::non_window_surface(thread::object &thread)
 	: tree(thread){
 	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
 }
 
-winp::non_window::object::object(tree &parent)
-	: object(parent, static_cast<std::size_t>(-1)){}
+winp::ui::non_window_surface::non_window_surface(tree &parent)
+	: non_window_surface(parent, static_cast<std::size_t>(-1)){}
 
-winp::non_window::object::object(tree &parent, std::size_t index)
-	: object(parent.get_thread()){
+winp::ui::non_window_surface::non_window_surface(tree &parent, std::size_t index)
+	: non_window_surface(parent.get_thread()){
 	set_parent(&parent, index);
 }
 
-winp::non_window::object::~object() = default;
+winp::ui::non_window_surface::~non_window_surface() = default;
 
-HRGN winp::non_window::object::get_handle(const std::function<void(HRGN)> &callback) const{
+HRGN winp::ui::non_window_surface::get_handle(const std::function<void(HRGN)> &callback) const{
 	return compute_or_post_task_inside_thread_context([=]{
 		return pass_return_value_to_callback(callback, get_handle_());
 	}, (callback != nullptr), nullptr);
 }
 
-winp::utility::error_code winp::non_window::object::create_(){
+winp::utility::error_code winp::ui::non_window_surface::create_(){
 	if (handle_ != nullptr)
 		return utility::error_code::nil;
 
@@ -40,14 +40,14 @@ winp::utility::error_code winp::non_window::object::create_(){
 		redraw_();
 		return utility::error_code::nil;
 	}
-	
+
 	DeleteObject(handle_);
 	handle_ = nullptr;
 
 	return utility::error_code::action_could_not_be_completed;
 }
 
-winp::utility::error_code winp::non_window::object::destroy_(){
+winp::utility::error_code winp::ui::non_window_surface::destroy_(){
 	if (handle_ == nullptr)
 		return utility::error_code::nil;
 
@@ -61,17 +61,17 @@ winp::utility::error_code winp::non_window::object::destroy_(){
 	return utility::error_code::nil;
 }
 
-bool winp::non_window::object::is_created_() const{
+bool winp::ui::non_window_surface::is_created_() const{
 	return (handle_ != nullptr);
 }
 
-winp::utility::error_code winp::non_window::object::redraw_() const{
+winp::utility::error_code winp::ui::non_window_surface::redraw_() const{
 	auto dimension = get_dimension_();
 	OffsetRect(&dimension, -dimension.left, -dimension.top);
 	return redraw_(dimension);
 }
 
-winp::utility::error_code winp::non_window::object::redraw_(const RECT &region) const{
+winp::utility::error_code winp::ui::non_window_surface::redraw_(const RECT &region) const{
 	if (handle_ == nullptr)
 		return utility::error_code::object_not_created;
 
@@ -84,7 +84,7 @@ winp::utility::error_code winp::non_window::object::redraw_(const RECT &region) 
 	return utility::error_code::nil;
 }
 
-winp::utility::error_code winp::non_window::object::show_(){
+winp::utility::error_code winp::ui::non_window_surface::show_(){
 	if (visible_)
 		return utility::error_code::nil;
 
@@ -92,7 +92,7 @@ winp::utility::error_code winp::non_window::object::show_(){
 	return ((handle_ == nullptr) ? utility::error_code::nil : redraw_());
 }
 
-winp::utility::error_code winp::non_window::object::hide_(){
+winp::utility::error_code winp::ui::non_window_surface::hide_(){
 	if (!visible_ || handle_ == nullptr || parent_ == nullptr || !parent_->is_created())
 		return utility::error_code::nil;
 
@@ -103,25 +103,10 @@ winp::utility::error_code winp::non_window::object::hide_(){
 	return utility::error_code::nil;
 }
 
-bool winp::non_window::object::is_visible_() const{
+bool winp::ui::non_window_surface::is_visible_() const{
 	return visible_;
 }
 
-HRGN winp::non_window::object::get_handle_() const{
+HRGN winp::ui::non_window_surface::get_handle_() const{
 	return handle_;
-}
-
-HRGN winp::non_window::object::create_handle_() const{
-	return CreateRectRgn(0, 0, size_.cx, size_.cy);
-}
-
-winp::utility::error_code winp::non_window::object::resize_handle_(){
-	if (handle_ == nullptr)
-		return utility::error_code::nil;
-
-	if (SetRectRgn(handle_, 0, 0, size_.cx, size_.cy) == FALSE)
-		return utility::error_code::action_could_not_be_completed;
-
-	redraw_();
-	return utility::error_code::nil;
 }

@@ -39,9 +39,13 @@ namespace winp::ui{
 
 		virtual std::size_t get_index(const std::function<void(std::size_t)> &callback = nullptr) const;
 
-		virtual void traverse_ancestors(const std::function<void(tree &)> &callback, bool block = false) const;
+		virtual void traverse_ancestors(const std::function<bool(tree &)> &callback, bool block = false) const;
 
-		virtual void traverse_siblings(const std::function<void(object &)> &callback, bool block = false) const;
+		virtual void traverse_all_ancestors(const std::function<void(tree &)> &callback, bool block = false) const;
+
+		virtual void traverse_siblings(const std::function<bool(object &)> &callback, bool block = false) const;
+
+		virtual void traverse_all_siblings(const std::function<void(object &)> &callback, bool block = false) const;
 
 	protected:
 		friend class tree;
@@ -68,9 +72,9 @@ namespace winp::ui{
 
 		virtual std::size_t get_index_() const;
 
-		virtual void traverse_ancestors_(const std::function<void(tree &)> &callback) const;
+		virtual void traverse_ancestors_(const std::function<bool(tree &)> &callback) const;
 
-		virtual void traverse_siblings_(const std::function<void(object &)> &callback) const;
+		virtual void traverse_siblings_(const std::function<bool(object &)> &callback) const;
 
 		tree *parent_ = nullptr;
 		std::size_t index_ = static_cast<std::size_t>(-1);

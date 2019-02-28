@@ -46,10 +46,17 @@ winp::ui::object *winp::ui::tree::get_child_at(std::size_t index, const std::fun
 	}, (callback != nullptr), nullptr);
 }
 
-void winp::ui::tree::traverse_children(const std::function<void(object &)> &callback, bool block) const{
+void winp::ui::tree::traverse_children(const std::function<bool(object &)> &callback, bool block) const{
 	execute_or_post_task_inside_thread_context([&]{
 		traverse_children_(callback);
 	}, !block);
+}
+
+void winp::ui::tree::traverse_all_children(const std::function<void(object &)> &callback, bool block) const{
+	traverse_children([callback](object &value){
+		callback(value);
+		return true;
+	}, block);
 }
 
 winp::utility::error_code winp::ui::tree::destruct_(){
@@ -142,9 +149,11 @@ winp::ui::object *winp::ui::tree::get_child_at_(std::size_t index) const{
 	return ((index < children_.size()) ? *std::next(children_.begin(), index) : nullptr);
 }
 
-void winp::ui::tree::traverse_children_(const std::function<void(object &)> &callback) const{
+void winp::ui::tree::traverse_children_(const std::function<bool(object &)> &callback) const{
 	if (!children_.empty()){
-		for (auto child : children_)
-			callback(*child);
+		for (auto child : children_){
+			if (!callback(*child))
+				break;
+		}
 	}
 }

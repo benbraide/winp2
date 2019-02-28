@@ -1,6 +1,6 @@
 #include "app/app_object.h"
 #include "window/window_object.h"
-#include "non_window/non_window_object.h"
+#include "non_window/rectangular_non_window.h"
 #include "utility/random_bool_generator.h"
 
 int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_show){
@@ -13,7 +13,7 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 	ws.create();
 	ws.show(cmd_show);
 
-	winp::non_window::object nwo(ws);
+	winp::non_window::rectangle nwo(ws);
 	nwo.events().bind([&](winp::events::paint &e){
 		e.begin();
 		if (auto drawer = e.get_render_target(); drawer != nullptr){

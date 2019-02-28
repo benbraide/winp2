@@ -1,6 +1,6 @@
 #include "../app/app_collection.h"
 #include "../ui/ui_window_surface.h"
-#include "../non_window/non_window_object.h"
+#include "../ui/ui_non_window_surface.h"
 
 winp::thread::item_manager::item_manager(object &thread)
 	: item_manager(thread, thread.get_local_id()){}
@@ -106,7 +106,7 @@ LRESULT winp::thread::item_manager::window_destroyed_(item &target, MSG &msg){
 		window_target->handle_ = nullptr;
 
 	if (auto tree_target = dynamic_cast<ui::tree *>(&target); tree_target != nullptr){
-		tree_target->traverse_children([&](ui::object &child){
+		tree_target->traverse_all_children([&](ui::object &child){
 			if (dynamic_cast<ui::window_surface *>(&child) == nullptr)
 				child.destroy();
 		}, true);
@@ -141,7 +141,7 @@ LRESULT winp::thread::item_manager::erase_background_(item &context, item &targe
 
 	auto result = trigger_event_with_target_<events::erase_background>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_context->get_class_name()))).second;
 	if (auto tree_context = dynamic_cast<ui::tree *>(&context); tree_context != nullptr){
-		tree_context->traverse_children([&](ui::object &child){
+		tree_context->traverse_all_children([&](ui::object &child){
 			if (dynamic_cast<ui::window_surface *>(&child) == nullptr)
 				erase_background_(child, target, msg);
 		}, true);
@@ -165,7 +165,7 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 
 	auto result = trigger_event_with_target_<events::paint>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_context->get_class_name()))).second;
 	if (auto tree_context = dynamic_cast<ui::tree *>(&context); tree_context != nullptr){
-		tree_context->traverse_children([&](ui::object &child){
+		tree_context->traverse_all_children([&](ui::object &child){
 			if (dynamic_cast<ui::window_surface *>(&child) == nullptr)
 				paint_(child, target, msg);
 		}, true);
@@ -183,7 +183,7 @@ LRESULT winp::thread::item_manager::position_change_(item &target, MSG &msg, boo
 			reinterpret_cast<WINDOWPOS *>(msg.lParam)->flags |= (SWP_NOMOVE | SWP_NOSIZE);
 		result = result_info.second;
 	}
-	else if (auto non_window_target = dynamic_cast<non_window::object *>(&target); non_window_target != nullptr && (reinterpret_cast<WINDOWPOS *>(msg.lParam)->flags & (SWP_NOMOVE | SWP_NOSIZE)) != (SWP_NOMOVE | SWP_NOSIZE)){
+	else if (auto non_window_target = dynamic_cast<ui::non_window_surface *>(&target); non_window_target != nullptr && (reinterpret_cast<WINDOWPOS *>(msg.lParam)->flags & (SWP_NOMOVE | SWP_NOSIZE)) != (SWP_NOMOVE | SWP_NOSIZE)){
 		non_window_target->resize_handle_();
 		result = trigger_event_<events::position_change>(target, false, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
 	}
