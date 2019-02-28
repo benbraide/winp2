@@ -28,6 +28,8 @@ namespace winp::thread{
 
 		bool is_thread_context() const;
 
+		const RECT &get_update_rect() const;
+
 		template <typename... args_types>
 		HWND create_window(ui::window_surface &owner, args_types &&... args){
 			if (!is_thread_context())
@@ -60,6 +62,8 @@ namespace winp::thread{
 		LRESULT set_cursor_(item &target, MSG &msg);
 
 		LRESULT erase_background_(item &context, item &target, MSG &msg);
+
+		LRESULT paint_(item &context, item &target, MSG &msg);
 
 		LRESULT position_change_(item &target, MSG &msg, bool changing);
 
@@ -100,6 +104,8 @@ namespace winp::thread{
 
 		std::unordered_map<HWND, ui::window_surface *> windows_;
 		std::unordered_map<HWND, ui::window_surface *> top_level_windows_;
+
 		window_cache_info window_cache_{};
+		RECT update_rect_{};
 	};
 }

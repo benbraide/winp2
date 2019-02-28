@@ -68,9 +68,10 @@ namespace winp::events{
 		static constexpr unsigned int state_nil							= (0 << 0x0000);
 		static constexpr unsigned int state_default_prevented			= (1 << 0x0000);
 		static constexpr unsigned int state_propagation_stopped			= (1 << 0x0001);
-		static constexpr unsigned int state_default_done				= (1 << 0x0002);
-		static constexpr unsigned int state_result_set					= (1 << 0x0003);
-		static constexpr unsigned int state_default_result_set			= (1 << 0x0004);
+		static constexpr unsigned int state_doing_default				= (1 << 0x0002);
+		static constexpr unsigned int state_default_done				= (1 << 0x0003);
+		static constexpr unsigned int state_result_set					= (1 << 0x0004);
+		static constexpr unsigned int state_default_result_set			= (1 << 0x0005);
 
 	protected:
 		friend class thread::item;
@@ -106,7 +107,7 @@ namespace winp::events{
 
 		virtual bool call_default_();
 
-		virtual LRESULT get_called_default_value_() const;
+		virtual LRESULT get_called_default_value_();
 
 		MSG &message_;
 		MSG &original_message_;
@@ -278,7 +279,7 @@ namespace winp::events{
 	protected:
 		virtual bool should_call_call_default_() const override;
 
-		virtual LRESULT get_called_default_value_() const override;
+		virtual LRESULT get_called_default_value_() override;
 	};
 
 	class draw : public object_with_message{
@@ -302,8 +303,6 @@ namespace winp::events{
 		virtual const RECT &get_clip() const;
 
 	protected:
-		virtual bool should_call_call_default_() const override;
-
 		virtual utility::error_code begin_() = 0;
 
 		virtual void end_() = 0;
@@ -324,10 +323,30 @@ namespace winp::events{
 		virtual ~erase_background();
 
 	protected:
-		virtual bool call_default_() override;
+		virtual bool should_call_call_default_() const override;
+
+		virtual LRESULT get_called_default_value_() override;
 
 		virtual utility::error_code begin_() override;
 
 		virtual void end_() override;
+	};
+
+	class paint : public draw{
+	public:
+		template <typename... args_types>
+		explicit paint(args_types &&... args)
+			: draw(std::forward<args_types>(args)...){}
+
+		virtual ~paint();
+
+	protected:
+		virtual bool should_call_call_default_() const override;
+
+		virtual utility::error_code begin_() override;
+
+		virtual void end_() override;
+
+		bool began_paint_ = false;
 	};
 }

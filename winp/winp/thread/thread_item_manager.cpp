@@ -22,6 +22,12 @@ bool winp::thread::item_manager::is_thread_context() const{
 	return thread_.is_thread_context();
 }
 
+const RECT &winp::thread::item_manager::get_update_rect() const{
+	if (!is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return update_rect_;
+}
+
 bool winp::thread::item_manager::is_dialog_message_(MSG &msg) const{
 	return false;
 }
@@ -56,6 +62,13 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return trigger_event_<events::background_color>(target, msg, nullptr).second;
 	case WM_ERASEBKGND:
 		return ((dynamic_cast<ui::visible_surface *>(&target) == nullptr) ? 0 : erase_background_(target, target, msg));
+	case WM_PAINT:
+		if (dynamic_cast<ui::window_surface *>(&target) != nullptr){
+			if (msg.hwnd != nullptr)
+				GetUpdateRect(msg.hwnd, &update_rect_, FALSE);
+			return paint_(target, target, msg);
+		}
+		return ((dynamic_cast<ui::visible_surface *>(&target) == nullptr) ? 0 : paint_(target, target, msg));
 	case WM_WINDOWPOSCHANGING:
 		return position_change_(target, msg, true);
 	case WM_WINDOWPOSCHANGED:
@@ -128,6 +141,20 @@ LRESULT winp::thread::item_manager::erase_background_(item &context, item &targe
 		tree_context->traverse_children([&](ui::object &child){
 			if (dynamic_cast<ui::visible_surface *>(&child) != nullptr && dynamic_cast<ui::window_surface *>(&child) == nullptr)
 				erase_background_(child, target, msg);
+		}, true);
+	}
+
+	return result;
+}
+
+LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg){
+	auto window_context = dynamic_cast<ui::window_surface *>(&context);
+	auto result = trigger_event_with_target_<events::paint>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_context->get_class_name()))).second;
+
+	if (auto tree_context = dynamic_cast<ui::tree *>(&context); tree_context != nullptr){
+		tree_context->traverse_children([&](ui::object &child){
+			if (dynamic_cast<ui::visible_surface *>(&child) != nullptr && dynamic_cast<ui::window_surface *>(&child) == nullptr)
+				paint_(child, target, msg);
 		}, true);
 	}
 

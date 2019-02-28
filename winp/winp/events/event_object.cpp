@@ -37,14 +37,17 @@ bool winp::events::object::do_default(){
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
 
-	if ((states_ & (state_default_prevented | state_default_done)) != 0u)
+	if ((states_ & (state_default_prevented | state_doing_default | state_default_done)) != 0u)
 		return false;//Default prevented or done
 
-	states_ |= state_default_done;
+	states_ |= state_doing_default;
 	if (default_handler_ == nullptr)
 		context_->trigger_event_handler_(*this);
 	else//Call default handler
 		default_handler_(*this);
+
+	states_ |= state_default_done;
+	states_ &= ~state_doing_default;
 
 	return true;
 }
@@ -107,7 +110,7 @@ bool winp::events::object_with_message::call_default_(){
 	return true;
 }
 
-LRESULT winp::events::object_with_message::get_called_default_value_() const{
+LRESULT winp::events::object_with_message::get_called_default_value_(){
 	return CallWindowProcW(default_callback_, original_message_.hwnd, original_message_.message, original_message_.wParam, original_message_.lParam);
 }
 
@@ -225,7 +228,7 @@ bool winp::events::background_color::should_call_call_default_() const{
 	return ((states_ & state_default_prevented) == 0u);
 }
 
-LRESULT winp::events::background_color::get_called_default_value_() const{
+LRESULT winp::events::background_color::get_called_default_value_(){
 	if (auto visible_context = dynamic_cast<ui::visible_surface *>(context_); visible_context != nullptr)
 		return static_cast<LRESULT>(ui::visible_surface::convert_colorf_to_colorref(visible_context->get_background_color()));
 	return 0;
@@ -309,8 +312,8 @@ winp::utility::error_code winp::events::draw::end(){
 		return utility::error_code::action_could_not_be_completed;
 	}
 
-	end_();
 	RestoreDC(info_.hdc, -1);
+	end_();
 
 	render_target_ = nullptr;
 	color_brush_ = nullptr;
@@ -343,21 +346,25 @@ const RECT &winp::events::draw::get_clip() const{
 	return info_.rcPaint;
 }
 
-bool winp::events::draw::should_call_call_default_() const{
-	return ((states_ & state_default_prevented) == 0u);
-}
-
 winp::events::erase_background::~erase_background(){
 	end();
 }
 
-bool winp::events::erase_background::call_default_(){
+bool winp::events::erase_background::should_call_call_default_() const{
+	return ((states_ & state_default_prevented) == 0u);
+}
+
+LRESULT winp::events::erase_background::get_called_default_value_(){
+	auto window_context = dynamic_cast<ui::window_surface *>(context_);
+	if (window_context != nullptr && window_context->get_thread().get_app().get_class_entry(window_context->get_class_name()) != DefWindowProcW)
+		return object_with_message::get_called_default_value_();
+
 	auto background_color = ui::visible_surface::convert_colorref_to_colorf(static_cast<COLORREF>(context_->get_thread().send_message(*context_, WINP_WM_GET_BACKGROUND_COLOR)));
 	if (begin() != utility::error_code::nil)
-		return false;
+		return 0;
 
 	render_target_->Clear(background_color);
-	return true;
+	return 0;
 }
 
 winp::utility::error_code winp::events::erase_background::begin_(){
@@ -367,3 +374,38 @@ winp::utility::error_code winp::events::erase_background::begin_(){
 }
 
 void winp::events::erase_background::end_(){}
+
+winp::events::paint::~paint(){
+	end();
+}
+
+bool winp::events::paint::should_call_call_default_() const{
+	return (!began_paint_ && object_with_message::should_call_call_default_());
+}
+
+winp::utility::error_code winp::events::paint::begin_(){
+	if (original_message_.hwnd == nullptr)
+		return utility::error_code::action_could_not_be_completed;
+
+	auto window_context = dynamic_cast<ui::window_surface *>(context_);
+	if ((states_ & state_default_done) != 0u || window_context == nullptr || target_.get_thread().get_app().get_class_entry(window_context->get_class_name()) != DefWindowProcW){
+		if ((info_.hdc = GetDC(original_message_.hwnd)) == nullptr)
+			return utility::error_code::action_could_not_be_completed;
+		info_.rcPaint = target_.get_thread().get_item_manager().get_update_rect();
+	}
+	else{//Begin paint
+		began_paint_ = true;
+		BeginPaint(original_message_.hwnd, &info_);
+	}
+
+	return utility::error_code::nil;
+}
+
+void winp::events::paint::end_(){
+	if (began_paint_){
+		EndPaint(original_message_.hwnd, &info_);
+		began_paint_ = false;
+	}
+	else
+		ReleaseDC(original_message_.hwnd, info_.hdc);
+}

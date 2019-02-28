@@ -14,6 +14,19 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 	ws.show(cmd_show);
 
 	winp::non_window::object nwo(ws);
+	nwo.events().bind([&](winp::events::paint &e){
+		e.begin();
+		if (auto drawer = e.get_render_target(); drawer != nullptr){
+			e.get_color_brush()->SetColor(D2D1::ColorF(D2D1::ColorF::White));
+			auto size = dynamic_cast<winp::ui::surface *>(&e.get_context())->get_size();
+
+			for (auto step = 10; step < size.cx; step += 10)
+				drawer->DrawLine(D2D1::Point2F((float)step, 0.f), D2D1::Point2F((float)step, (float)size.cy), e.get_color_brush());
+			for (auto step = 10; step < size.cy; step += 10)
+				drawer->DrawLine(D2D1::Point2F(0.f, (float)step), D2D1::Point2F((float)size.cx, (float)step), e.get_color_brush());
+		}
+	});
+
 	nwo.set_position(30, 30);
 	nwo.set_size(300, 150);
 	nwo.set_background_color(D2D1::ColorF::Red);
