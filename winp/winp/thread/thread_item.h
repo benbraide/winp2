@@ -128,6 +128,11 @@ namespace winp::thread{
 			return event_handlers_.bind(handler);
 		}
 
+		template <typename handler_type>
+		unsigned __int64 add_event_handler_(item &target, const handler_type &handler){
+			return target.add_event_handler_(handler);
+		}
+
 		virtual void trigger_event_handler_(events::object &e) const;
 
 		virtual void trigger_event_(events::object &e) const;

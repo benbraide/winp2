@@ -51,6 +51,7 @@ winp::utility::error_code winp::non_window::object::destroy_(){
 	if (handle_ == nullptr)
 		return utility::error_code::nil;
 
+	hide_();
 	if (DeleteObject(handle_) == FALSE)
 		return utility::error_code::action_could_not_be_completed;
 
