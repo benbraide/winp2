@@ -427,7 +427,7 @@ POINT winp::events::mouse::get_offset() const{
 	return POINT{ (position_.x - last_position.x), (position_.y - last_position.y) };
 }
 
-winp::events::mouse::button_type winp::events::mouse::get_button() const{
+unsigned int winp::events::mouse::get_button() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
 	return button_;
@@ -457,4 +457,43 @@ bool winp::events::mouse_move::is_non_client() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
 	return (message_.message == WM_NCMOUSEMOVE);
+}
+
+unsigned int winp::events::mouse_drag_begin::get_button() const{
+	return target_.get_thread().get_item_manager().get_mouse_button_down();
+}
+
+POINT winp::events::mouse_drag::get_offset() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+
+	if (is_initial_){
+		auto &down_position = target_.get_thread().get_item_manager().get_mouse_down_position();
+		return POINT{ (position_.x - down_position.x), (position_.y - down_position.y) };
+	}
+
+	auto &last_position = target_.get_thread().get_item_manager().get_last_mouse_position();
+	return POINT{ (position_.x - last_position.x), (position_.y - last_position.y) };
+}
+
+unsigned int winp::events::mouse_drag::get_button() const{
+	return target_.get_thread().get_item_manager().get_mouse_button_down();
+}
+
+bool winp::events::mouse_down::is_non_client() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return is_non_client_;
+}
+
+bool winp::events::mouse_up::is_non_client() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return is_non_client_;
+}
+
+bool winp::events::mouse_dbl_clk::is_non_client() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return is_non_client_;
 }

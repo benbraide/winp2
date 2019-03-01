@@ -8,6 +8,8 @@ winp::thread::item_manager::item_manager(object &thread)
 winp::thread::item_manager::item_manager(object &thread, DWORD thread_id)
 	: thread_(thread){
 	hook_handle_ = SetWindowsHookExW(WH_CBT, hook_entry_, nullptr, thread_id);
+	mouse_.drag_threshold.cx = GetSystemMetrics(SM_CXDRAG);
+	mouse_.drag_threshold.cy = GetSystemMetrics(SM_CYDRAG);
 }
 
 const winp::thread::object &winp::thread::item_manager::get_thread() const{
@@ -32,6 +34,18 @@ const POINT &winp::thread::item_manager::get_last_mouse_position() const{
 	if (!is_thread_context())
 		throw utility::error_code::outside_thread_context;
 	return mouse_.last_position;
+}
+
+const POINT &winp::thread::item_manager::get_mouse_down_position() const{
+	if (!is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return mouse_.down_position;
+}
+
+unsigned int winp::thread::item_manager::get_mouse_button_down() const{
+	if (!is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return mouse_.button_down;
 }
 
 bool winp::thread::item_manager::is_dialog_message_(MSG &msg) const{
@@ -74,15 +88,48 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return position_change_(target, msg, true);
 	case WM_WINDOWPOSCHANGED:
 		return position_change_(target, msg, false);
-	case WM_NCMOUSEMOVE:
-	case WM_MOUSEMOVE:
-		return mouse_move_(target, msg, GetMessagePos());
 	case WM_NCMOUSELEAVE:
 	case WM_MOUSELEAVE:
 		return mouse_leave_(target, msg, GetMessagePos());
-	case WM_CREATE:
-	case WM_DESTROY:
-		return ((window_target == nullptr) ? 0 : CallWindowProcW(thread_.get_app().get_class_entry(window_target->get_class_name()), msg.hwnd, msg.message, msg.wParam, msg.lParam));
+	case WM_NCMOUSEMOVE:
+	case WM_MOUSEMOVE:
+		return mouse_move_(target, msg, GetMessagePos());
+	case WM_NCLBUTTONDOWN:
+		return mouse_down_(target, msg, GetMessagePos(), events::mouse::button_type_left, true);
+	case WM_LBUTTONDOWN:
+		return mouse_down_(target, msg, GetMessagePos(), events::mouse::button_type_left, false);
+	case WM_NCMBUTTONDOWN:
+		return mouse_down_(target, msg, GetMessagePos(), events::mouse::button_type_middle, true);
+	case WM_MBUTTONDOWN:
+		return mouse_down_(target, msg, GetMessagePos(), events::mouse::button_type_middle, false);
+	case WM_NCRBUTTONDOWN:
+		return mouse_down_(target, msg, GetMessagePos(), events::mouse::button_type_right, true);
+	case WM_RBUTTONDOWN:
+		return mouse_down_(target, msg, GetMessagePos(), events::mouse::button_type_right, false);
+	case WM_NCLBUTTONUP:
+		return mouse_up_(target, msg, GetMessagePos(), events::mouse::button_type_left, true);
+	case WM_LBUTTONUP:
+		return mouse_up_(target, msg, GetMessagePos(), events::mouse::button_type_left, false);
+	case WM_NCMBUTTONUP:
+		return mouse_up_(target, msg, GetMessagePos(), events::mouse::button_type_middle, true);
+	case WM_MBUTTONUP:
+		return mouse_up_(target, msg, GetMessagePos(), events::mouse::button_type_middle, false);
+	case WM_NCRBUTTONUP:
+		return mouse_up_(target, msg, GetMessagePos(), events::mouse::button_type_right, true);
+	case WM_RBUTTONUP:
+		return mouse_up_(target, msg, GetMessagePos(), events::mouse::button_type_right, false);
+	case WM_NCLBUTTONDBLCLK:
+		return mouse_dbl_clk_(target, msg, GetMessagePos(), events::mouse::button_type_left, true);
+	case WM_LBUTTONDBLCLK:
+		return mouse_dbl_clk_(target, msg, GetMessagePos(), events::mouse::button_type_left, false);
+	case WM_NCMBUTTONDBLCLK:
+		return mouse_dbl_clk_(target, msg, GetMessagePos(), events::mouse::button_type_middle, true);
+	case WM_MBUTTONDBLCLK:
+		return mouse_dbl_clk_(target, msg, GetMessagePos(), events::mouse::button_type_middle, false);
+	case WM_NCRBUTTONDBLCLK:
+		return mouse_dbl_clk_(target, msg, GetMessagePos(), events::mouse::button_type_right, true);
+	case WM_RBUTTONDBLCLK:
+		return mouse_dbl_clk_(target, msg, GetMessagePos(), events::mouse::button_type_right, false);
 	default:
 		break;
 	}
@@ -203,12 +250,73 @@ LRESULT winp::thread::item_manager::position_change_(item &target, MSG &msg, boo
 	return result;
 }
 
-LRESULT winp::thread::item_manager::mouse_move_(item &context, MSG &msg, DWORD position){
+LRESULT winp::thread::item_manager::mouse_leave_(item &context, MSG &msg, DWORD position){
 	auto window_context = dynamic_cast<ui::window_surface *>(&context);
 	if (window_context == nullptr)//Window surface required
 		return 0;
 
 	POINT mouse_position{ GET_X_LPARAM(position), GET_Y_LPARAM(position) };
+	MSG mouse_msg{ nullptr, WM_NCMOUSELEAVE }, client_mouse_msg{ nullptr, WM_MOUSELEAVE };
+
+	for (auto object_mouse_target = dynamic_cast<ui::object *>(mouse_.target); object_mouse_target != nullptr && object_mouse_target != &context; object_mouse_target = object_mouse_target->get_parent()){
+		trigger_event_<events::mouse_leave>(*object_mouse_target, client_mouse_msg, nullptr);
+		trigger_event_<events::mouse_leave>(*object_mouse_target, mouse_msg, nullptr);
+	}
+
+	LRESULT result = 0;
+	auto mouse_leave = false;
+
+	if (msg.message == WM_MOUSELEAVE){
+		result = trigger_event_<events::mouse_leave>(context, msg, thread_.get_app().get_class_entry(window_context->get_class_name())).second;
+		if (window_context->absolute_hit_test(mouse_position) == HTNOWHERE){//Mouse leave
+			trigger_event_<events::mouse_leave>(*window_context, mouse_msg, nullptr);
+			mouse_.target = dynamic_cast<ui::interactive_surface *>(window_context->get_parent());
+			mouse_leave = true;
+		}
+		else{//Inside non-client
+			mouse_.target = window_context;
+			track_mouse_leave_(msg.hwnd, TME_NONCLIENT);
+		}
+	}
+	else if (window_context->absolute_hit_test(mouse_position) == HTCLIENT){//Inside client
+		mouse_.target = window_context;
+		client_mouse_msg.message = WINP_WM_MOUSEENTER;
+		trigger_event_<events::mouse_enter>(context, client_mouse_msg, nullptr);
+		track_mouse_leave_(msg.hwnd, 0);
+	}
+	else{//Mouse leave
+		trigger_event_<events::mouse_leave>(*window_context, client_mouse_msg, nullptr);
+		result = trigger_event_<events::mouse_enter>(context, msg, thread_.get_app().get_class_entry(window_context->get_class_name())).second;
+		mouse_.target = dynamic_cast<ui::interactive_surface *>(window_context->get_parent());
+		mouse_leave = true;
+	}
+
+	if (mouse_.target != window_context && mouse_.target != nullptr){//Mouse leave
+		client_mouse_msg.message = WM_MOUSELEAVE;
+		for (auto object_mouse_target = dynamic_cast<ui::object *>(mouse_.target); object_mouse_target != nullptr;){
+			trigger_event_<events::mouse_leave>(*object_mouse_target, client_mouse_msg, nullptr);
+			trigger_event_<events::mouse_leave>(*object_mouse_target, mouse_msg, nullptr);
+			mouse_.target = dynamic_cast<ui::interactive_surface *>(object_mouse_target = object_mouse_target->get_parent());
+		}
+	}
+
+	if (mouse_leave && mouse_.dragging != nullptr){
+		MSG mouse_msg{ nullptr, WINP_WM_MOUSEDRAGEND };
+		trigger_event_<events::mouse_drag_end>(*dynamic_cast<ui::object *>(mouse_.dragging), mouse_msg, nullptr);
+		mouse_.dragging = nullptr;
+	}
+
+	return result;
+}
+
+LRESULT winp::thread::item_manager::mouse_move_(item &context, MSG &msg, DWORD position){
+	auto window_context = dynamic_cast<ui::window_surface *>(&context);
+	if (window_context == nullptr)//Window surface required
+		return 0;
+
+	auto mouse_enter = false;
+	POINT mouse_position{ GET_X_LPARAM(position), GET_Y_LPARAM(position) };
+
 	if (msg.message == WM_MOUSEMOVE){//Resolve moused
 		MSG mouse_msg{ nullptr, WM_NCMOUSELEAVE }, client_mouse_msg{ nullptr, WM_MOUSELEAVE };
 		while (mouse_.target != nullptr && mouse_.target != window_context && mouse_.target->absolute_hit_test_(mouse_position.x, mouse_position.y) == HTNOWHERE){
@@ -229,7 +337,9 @@ LRESULT winp::thread::item_manager::mouse_move_(item &context, MSG &msg, DWORD p
 			trigger_event_<events::mouse_enter>(context, mouse_msg, nullptr);
 			if ((mouse_.target = window_context)->absolute_hit_test_(mouse_position.x, mouse_position.y) == HTCLIENT)
 				trigger_event_<events::mouse_enter>(context, client_mouse_msg, nullptr);
+
 			track_mouse_leave_(msg.hwnd, 0);
+			mouse_enter = true;
 		}
 
 		if (auto deepest_mouse_target = mouse_.target->find_deepest_moused_(mouse_position); deepest_mouse_target != nullptr){//Trigger mouse enter
@@ -252,7 +362,9 @@ LRESULT winp::thread::item_manager::mouse_move_(item &context, MSG &msg, DWORD p
 		trigger_event_<events::mouse_enter>(context, mouse_msg, nullptr);
 		if ((mouse_.target = window_context)->absolute_hit_test_(mouse_position.x, mouse_position.y) == HTCLIENT)
 			trigger_event_<events::mouse_enter>(context, client_mouse_msg, nullptr);
+
 		track_mouse_leave_(msg.hwnd, TME_NONCLIENT);
+		mouse_enter = true;
 	}
 
 	MSG mouse_msg{ nullptr, WM_MOUSEMOVE };
@@ -265,53 +377,102 @@ LRESULT winp::thread::item_manager::mouse_move_(item &context, MSG &msg, DWORD p
 			trigger_event_with_target_<events::mouse_move>(*object_mouse_target, *target, mouse_msg, nullptr);
 	}
 
+	if (msg.message == WM_MOUSEMOVE && !mouse_enter && mouse_.dragging == nullptr && mouse_.button_down != events::mouse::button_type_nil){//Check fro drag begin
+		SIZE mouse_delta{
+			std::abs(mouse_position.x - mouse_.down_position.x),
+			std::abs(mouse_position.y - mouse_.down_position.y)
+		};
+
+		if (mouse_.drag_threshold.cx <= mouse_delta.cx || mouse_.drag_threshold.cy <= mouse_delta.cy){//Drag begin
+			mouse_msg.message = WINP_WM_MOUSEDRAGBEGIN;
+			auto object_mouse_target = dynamic_cast<ui::object *>(mouse_.target), target = object_mouse_target;
+
+			for (; object_mouse_target != nullptr; object_mouse_target = object_mouse_target->get_parent()){
+				if (get_result_(trigger_event_with_target_<events::mouse_drag_begin>(*object_mouse_target, *target, mouse_msg, nullptr), FALSE) != FALSE){
+					mouse_.dragging = dynamic_cast<ui::interactive_surface *>(object_mouse_target);
+					break;
+				}
+			}
+
+			if (mouse_.dragging != nullptr){
+				mouse_msg.message = WINP_WM_MOUSEDRAG;
+				trigger_event_<events::mouse_drag>(*object_mouse_target, true, mouse_msg, nullptr);
+			}
+		}
+	}
+	else if (auto object_dragging = dynamic_cast<ui::object *>(mouse_.dragging); object_dragging != nullptr){
+		mouse_msg.message = WINP_WM_MOUSEDRAG;
+		trigger_event_<events::mouse_drag>(*object_dragging, false, mouse_msg, nullptr);
+	}
+
+	mouse_.last_position = mouse_position;
 	return result;
 }
 
-LRESULT winp::thread::item_manager::mouse_leave_(item &context, MSG &msg, DWORD position){
+LRESULT winp::thread::item_manager::mouse_down_(item &context, MSG &msg, DWORD position, unsigned int button, bool is_non_client){
 	auto window_context = dynamic_cast<ui::window_surface *>(&context);
 	if (window_context == nullptr)//Window surface required
 		return 0;
 
-	POINT mouse_position{ GET_X_LPARAM(position), GET_Y_LPARAM(position) };
-	MSG mouse_msg{ nullptr, WM_NCMOUSELEAVE }, client_mouse_msg{ nullptr, WM_MOUSELEAVE };
-
-	for (auto object_mouse_target = dynamic_cast<ui::object *>(mouse_.target); object_mouse_target != nullptr && object_mouse_target != &context; object_mouse_target = object_mouse_target->get_parent()){
-		trigger_event_<events::mouse_leave>(*object_mouse_target, client_mouse_msg, nullptr);
-		trigger_event_<events::mouse_leave>(*object_mouse_target, mouse_msg, nullptr);
+	if (!is_non_client){
+		if (mouse_.button_down == events::mouse::button_type_nil)
+			mouse_.down_position = POINT{ GET_X_LPARAM(position), GET_Y_LPARAM(position) };
+		mouse_.button_down |= button;
 	}
 
 	LRESULT result = 0;
-	if (msg.message == WM_MOUSELEAVE){
-		result = trigger_event_<events::mouse_leave>(context, msg, thread_.get_app().get_class_entry(window_context->get_class_name())).second;
-		if (window_context->absolute_hit_test(mouse_position) == HTNOWHERE){//Mouse leave
-			trigger_event_<events::mouse_leave>(*window_context, mouse_msg, nullptr);
-			mouse_.target = dynamic_cast<ui::interactive_surface *>(window_context->get_parent());
-		}
-		else{//Inside non-client
-			mouse_.target = window_context;
-			track_mouse_leave_(msg.hwnd, TME_NONCLIENT);
-		}
-	}
-	else if (window_context->absolute_hit_test(mouse_position) == HTCLIENT){//Inside client
-		mouse_.target = window_context;
-		client_mouse_msg.message = WINP_WM_MOUSEENTER;
-		trigger_event_<events::mouse_enter>(context, client_mouse_msg, nullptr);
-		track_mouse_leave_(msg.hwnd, 0);
-	}
-	else{//Mouse leave
-		trigger_event_<events::mouse_leave>(*window_context, client_mouse_msg, nullptr);
-		result = trigger_event_<events::mouse_enter>(context, msg, thread_.get_app().get_class_entry(window_context->get_class_name())).second;
-		mouse_.target = dynamic_cast<ui::interactive_surface *>(window_context->get_parent());
+	MSG mouse_msg{ nullptr, WINP_WM_MOUSEDOWN };
+
+	for (auto object_mouse_target = dynamic_cast<ui::object *>(mouse_.target), target = object_mouse_target; object_mouse_target != nullptr; object_mouse_target = object_mouse_target->get_parent()){
+		if (object_mouse_target == &context)
+			result = trigger_event_with_target_<events::mouse_down>(*object_mouse_target, *target, button, is_non_client, mouse_msg, msg, thread_.get_app().get_class_entry(window_context->get_class_name())).second;
+		else//Ignore result
+			trigger_event_with_target_<events::mouse_down>(*object_mouse_target, *target, button, is_non_client, mouse_msg, nullptr);
 	}
 
-	if (mouse_.target != window_context && mouse_.target != nullptr){//Mouse leave
-		client_mouse_msg.message = WM_MOUSELEAVE;
-		for (auto object_mouse_target = dynamic_cast<ui::object *>(mouse_.target); object_mouse_target != nullptr;){
-			trigger_event_<events::mouse_leave>(*object_mouse_target, client_mouse_msg, nullptr);
-			trigger_event_<events::mouse_leave>(*object_mouse_target, mouse_msg, nullptr);
-			mouse_.target = dynamic_cast<ui::interactive_surface *>(object_mouse_target = object_mouse_target->get_parent());
+	return result;
+}
+
+LRESULT winp::thread::item_manager::mouse_up_(item &context, MSG &msg, DWORD position, unsigned int button, bool is_non_client){
+	auto window_context = dynamic_cast<ui::window_surface *>(&context);
+	if (window_context == nullptr)//Window surface required
+		return 0;
+
+	if (!is_non_client){
+		mouse_.button_down &= ~button;
+		if (mouse_.button_down == events::mouse::button_type_nil && mouse_.dragging != nullptr){
+			MSG mouse_msg{ nullptr, WINP_WM_MOUSEDRAGEND };
+			trigger_event_<events::mouse_drag_end>(*dynamic_cast<ui::object *>(mouse_.dragging), mouse_msg, nullptr);
+			mouse_.dragging = nullptr;
 		}
+	}
+
+	LRESULT result = 0;
+	MSG mouse_msg{ nullptr, WINP_WM_MOUSEUP };
+
+	for (auto object_mouse_target = dynamic_cast<ui::object *>(mouse_.target), target = object_mouse_target; object_mouse_target != nullptr; object_mouse_target = object_mouse_target->get_parent()){
+		if (object_mouse_target == &context)
+			result = trigger_event_with_target_<events::mouse_down>(*object_mouse_target, *target, button, is_non_client, mouse_msg, msg, thread_.get_app().get_class_entry(window_context->get_class_name())).second;
+		else//Ignore result
+			trigger_event_with_target_<events::mouse_down>(*object_mouse_target, *target, button, is_non_client, mouse_msg, nullptr);
+	}
+
+	return result;
+}
+
+LRESULT winp::thread::item_manager::mouse_dbl_clk_(item &context, MSG &msg, DWORD position, unsigned int button, bool is_non_client){
+	auto window_context = dynamic_cast<ui::window_surface *>(&context);
+	if (window_context == nullptr)//Window surface required
+		return 0;
+
+	LRESULT result = 0;
+	MSG mouse_msg{ nullptr, WINP_WM_MOUSEDBLCLK };
+
+	for (auto object_mouse_target = dynamic_cast<ui::object *>(mouse_.target), target = object_mouse_target; object_mouse_target != nullptr; object_mouse_target = object_mouse_target->get_parent()){
+		if (object_mouse_target == &context)
+			result = trigger_event_with_target_<events::mouse_down>(*object_mouse_target, *target, button, is_non_client, mouse_msg, msg, thread_.get_app().get_class_entry(window_context->get_class_name())).second;
+		else//Ignore result
+			trigger_event_with_target_<events::mouse_down>(*object_mouse_target, *target, button, is_non_client, mouse_msg, nullptr);
 	}
 
 	return result;

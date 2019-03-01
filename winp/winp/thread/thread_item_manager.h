@@ -11,9 +11,12 @@
 #define WINP_WM_MOUSEENTER						(WM_APP + 0x11)
 
 #define WINP_WM_MOUSEDRAG						(WM_APP + 0x12)
-#define WINP_WM_MOUSEDRAGQUERY					(WM_APP + 0x13)
-#define WINP_WM_MOUSEDRAGBEGIN					(WM_APP + 0x14)
-#define WINP_WM_MOUSEDRAGEND					(WM_APP + 0x15)
+#define WINP_WM_MOUSEDRAGBEGIN					(WM_APP + 0x13)
+#define WINP_WM_MOUSEDRAGEND					(WM_APP + 0x14)
+
+#define WINP_WM_MOUSEDOWN						(WM_APP + 0x15)
+#define WINP_WM_MOUSEUP							(WM_APP + 0x16)
+#define WINP_WM_MOUSEDBLCLK						(WM_APP + 0x17)
 
 namespace winp::ui{
 	class interactive_surface;
@@ -30,7 +33,11 @@ namespace winp::thread{
 
 		struct mouse_info{
 			ui::interactive_surface *target;
+			ui::interactive_surface *dragging;
+			unsigned int button_down;
 			POINT last_position;
+			POINT down_position;
+			SIZE drag_threshold;
 		};
 
 		explicit item_manager(object &thread);
@@ -44,6 +51,10 @@ namespace winp::thread{
 		const RECT &get_update_rect() const;
 
 		const POINT &get_last_mouse_position() const;
+
+		const POINT &get_mouse_down_position() const;
+
+		unsigned int get_mouse_button_down() const;
 
 		template <typename... args_types>
 		HWND create_window(ui::window_surface &owner, args_types &&... args){
@@ -82,9 +93,15 @@ namespace winp::thread{
 
 		LRESULT position_change_(item &target, MSG &msg, bool changing);
 
+		LRESULT mouse_leave_(item &context, MSG &msg, DWORD position);
+
 		LRESULT mouse_move_(item &context, MSG &msg, DWORD position);
 
-		LRESULT mouse_leave_(item &context, MSG &msg, DWORD position);
+		LRESULT mouse_down_(item &context, MSG &msg, DWORD position, unsigned int button, bool is_non_client);
+
+		LRESULT mouse_up_(item &context, MSG &msg, DWORD position, unsigned int button, bool is_non_client);
+
+		LRESULT mouse_dbl_clk_(item &context, MSG &msg, DWORD position, unsigned int button, bool is_non_client);
 
 		static HCURSOR get_default_cursor_(const MSG &msg);
 
