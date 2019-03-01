@@ -367,14 +367,20 @@ LRESULT winp::thread::item_manager::mouse_move_(item &context, MSG &msg, DWORD p
 		mouse_enter = true;
 	}
 
-	MSG mouse_msg{ nullptr, WM_MOUSEMOVE };
 	LRESULT result = 0;
+	std::pair<unsigned int, LRESULT> result_info;
 
+	MSG mouse_msg{ nullptr, WM_MOUSEMOVE };
 	for (auto object_mouse_target = dynamic_cast<ui::object *>(mouse_.target), target = object_mouse_target; object_mouse_target != nullptr; object_mouse_target = object_mouse_target->get_parent()){
-		if (object_mouse_target == &context)
-			result = trigger_event_with_target_<events::mouse_move>(*object_mouse_target, *target, msg, thread_.get_app().get_class_entry(window_context->get_class_name())).second;
+		if (object_mouse_target == &context){
+			result_info = trigger_event_with_target_<events::mouse_move>(*object_mouse_target, *target, msg, thread_.get_app().get_class_entry(window_context->get_class_name()));
+			result = result_info.second;
+		}
 		else//Ignore result
-			trigger_event_with_target_<events::mouse_move>(*object_mouse_target, *target, mouse_msg, nullptr);
+			result_info = trigger_event_with_target_<events::mouse_move>(*object_mouse_target, *target, mouse_msg, nullptr);
+
+		if ((result_info.first & events::object::state_propagation_stopped) != 0u)
+			break;//Propagation stopped
 	}
 
 	if (msg.message == WM_MOUSEMOVE && !mouse_enter && mouse_.dragging == nullptr && mouse_.button_down != events::mouse::button_type_nil){//Check fro drag begin
@@ -388,10 +394,14 @@ LRESULT winp::thread::item_manager::mouse_move_(item &context, MSG &msg, DWORD p
 			auto object_mouse_target = dynamic_cast<ui::object *>(mouse_.target), target = object_mouse_target;
 
 			for (; object_mouse_target != nullptr; object_mouse_target = object_mouse_target->get_parent()){
-				if (get_result_(trigger_event_with_target_<events::mouse_drag_begin>(*object_mouse_target, *target, mouse_msg, nullptr), FALSE) != FALSE){
+				result_info = trigger_event_with_target_<events::mouse_drag_begin>(*object_mouse_target, *target, mouse_msg, nullptr);
+				if ((result_info.first & events::object::state_default_prevented) == 0u && result_info.second != FALSE){
 					mouse_.dragging = dynamic_cast<ui::interactive_surface *>(object_mouse_target);
 					break;
 				}
+
+				if ((result_info.first & events::object::state_propagation_stopped) != 0u)
+					break;//Propagation stopped
 			}
 
 			if (mouse_.dragging != nullptr){
@@ -421,13 +431,19 @@ LRESULT winp::thread::item_manager::mouse_down_(item &context, MSG &msg, DWORD p
 	}
 
 	LRESULT result = 0;
-	MSG mouse_msg{ nullptr, WINP_WM_MOUSEDOWN };
+	std::pair<unsigned int, LRESULT> result_info;
 
+	MSG mouse_msg{ nullptr, WINP_WM_MOUSEDOWN };
 	for (auto object_mouse_target = dynamic_cast<ui::object *>(mouse_.target), target = object_mouse_target; object_mouse_target != nullptr; object_mouse_target = object_mouse_target->get_parent()){
-		if (object_mouse_target == &context)
-			result = trigger_event_with_target_<events::mouse_down>(*object_mouse_target, *target, button, is_non_client, mouse_msg, msg, thread_.get_app().get_class_entry(window_context->get_class_name())).second;
+		if (object_mouse_target == &context){
+			result_info = trigger_event_with_target_<events::mouse_down>(*object_mouse_target, *target, button, is_non_client, mouse_msg, msg, thread_.get_app().get_class_entry(window_context->get_class_name()));
+			result = result_info.second;
+		}
 		else//Ignore result
-			trigger_event_with_target_<events::mouse_down>(*object_mouse_target, *target, button, is_non_client, mouse_msg, nullptr);
+			result_info = trigger_event_with_target_<events::mouse_down>(*object_mouse_target, *target, button, is_non_client, mouse_msg, nullptr);
+
+		if ((result_info.first & events::object::state_propagation_stopped) != 0u)
+			break;//Propagation stopped
 	}
 
 	return result;
@@ -448,13 +464,19 @@ LRESULT winp::thread::item_manager::mouse_up_(item &context, MSG &msg, DWORD pos
 	}
 
 	LRESULT result = 0;
-	MSG mouse_msg{ nullptr, WINP_WM_MOUSEUP };
+	std::pair<unsigned int, LRESULT> result_info;
 
+	MSG mouse_msg{ nullptr, WINP_WM_MOUSEUP };
 	for (auto object_mouse_target = dynamic_cast<ui::object *>(mouse_.target), target = object_mouse_target; object_mouse_target != nullptr; object_mouse_target = object_mouse_target->get_parent()){
-		if (object_mouse_target == &context)
-			result = trigger_event_with_target_<events::mouse_down>(*object_mouse_target, *target, button, is_non_client, mouse_msg, msg, thread_.get_app().get_class_entry(window_context->get_class_name())).second;
+		if (object_mouse_target == &context){
+			result_info = trigger_event_with_target_<events::mouse_up>(*object_mouse_target, *target, button, is_non_client, mouse_msg, msg, thread_.get_app().get_class_entry(window_context->get_class_name()));
+			result = result_info.second;
+		}
 		else//Ignore result
-			trigger_event_with_target_<events::mouse_down>(*object_mouse_target, *target, button, is_non_client, mouse_msg, nullptr);
+			result_info = trigger_event_with_target_<events::mouse_up>(*object_mouse_target, *target, button, is_non_client, mouse_msg, nullptr);
+
+		if ((result_info.first & events::object::state_propagation_stopped) != 0u)
+			break;//Propagation stopped
 	}
 
 	return result;
@@ -466,13 +488,19 @@ LRESULT winp::thread::item_manager::mouse_dbl_clk_(item &context, MSG &msg, DWOR
 		return 0;
 
 	LRESULT result = 0;
-	MSG mouse_msg{ nullptr, WINP_WM_MOUSEDBLCLK };
+	std::pair<unsigned int, LRESULT> result_info;
 
+	MSG mouse_msg{ nullptr, WINP_WM_MOUSEDBLCLK };
 	for (auto object_mouse_target = dynamic_cast<ui::object *>(mouse_.target), target = object_mouse_target; object_mouse_target != nullptr; object_mouse_target = object_mouse_target->get_parent()){
-		if (object_mouse_target == &context)
-			result = trigger_event_with_target_<events::mouse_down>(*object_mouse_target, *target, button, is_non_client, mouse_msg, msg, thread_.get_app().get_class_entry(window_context->get_class_name())).second;
+		if (object_mouse_target == &context){
+			result_info = trigger_event_with_target_<events::mouse_dbl_clk>(*object_mouse_target, *target, button, is_non_client, mouse_msg, msg, thread_.get_app().get_class_entry(window_context->get_class_name()));
+			result = result_info.second;
+		}
 		else//Ignore result
-			trigger_event_with_target_<events::mouse_down>(*object_mouse_target, *target, button, is_non_client, mouse_msg, nullptr);
+			result_info = trigger_event_with_target_<events::mouse_dbl_clk>(*object_mouse_target, *target, button, is_non_client, mouse_msg, nullptr);
+
+		if ((result_info.first & events::object::state_propagation_stopped) != 0u)
+			break;//Propagation stopped
 	}
 
 	return result;
