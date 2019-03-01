@@ -38,6 +38,12 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 			e.prevent_default();
 	});
 
+	nwo.events().bind([&](winp::events::mouse_wheel &e){
+		auto iv = e.is_vertical();
+		auto d = e.get_delta();
+		auto z = 0;
+	});
+
 	std::thread([&]{
 		std::this_thread::sleep_for(std::chrono::seconds(3));
 		nwo.set_width(400);

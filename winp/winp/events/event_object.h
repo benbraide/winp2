@@ -482,4 +482,15 @@ namespace winp::events{
 	protected:
 		bool is_non_client_;
 	};
+
+	class mouse_wheel : public mouse{
+	public:
+		template <typename... args_types>
+		explicit mouse_wheel(args_types &&... args)
+			: mouse(std::forward<args_types>(args)...){}
+
+		virtual bool is_vertical() const;
+
+		virtual SIZE get_delta() const;
+	};
 }

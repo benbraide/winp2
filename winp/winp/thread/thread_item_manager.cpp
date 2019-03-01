@@ -130,6 +130,9 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return mouse_dbl_clk_(target, msg, GetMessagePos(), events::mouse::button_type_right, true);
 	case WM_RBUTTONDBLCLK:
 		return mouse_dbl_clk_(target, msg, GetMessagePos(), events::mouse::button_type_right, false);
+	case WM_MOUSEWHEEL:
+	case WM_MOUSEHWHEEL:
+		return mouse_wheel_(target, msg, GetMessagePos());
 	default:
 		break;
 	}
@@ -498,6 +501,29 @@ LRESULT winp::thread::item_manager::mouse_dbl_clk_(item &context, MSG &msg, DWOR
 		}
 		else//Ignore result
 			result_info = trigger_event_with_target_<events::mouse_dbl_clk>(*object_mouse_target, *target, button, is_non_client, mouse_msg, nullptr);
+
+		if ((result_info.first & events::object::state_propagation_stopped) != 0u)
+			break;//Propagation stopped
+	}
+
+	return result;
+}
+
+LRESULT winp::thread::item_manager::mouse_wheel_(item &context, MSG &msg, DWORD position){
+	auto window_context = dynamic_cast<ui::window_surface *>(&context);
+	if (window_context == nullptr)//Window surface required
+		return 0;
+
+	LRESULT result = 0;
+	std::pair<unsigned int, LRESULT> result_info;
+
+	for (auto object_mouse_target = dynamic_cast<ui::object *>(mouse_.target), target = object_mouse_target; object_mouse_target != nullptr; object_mouse_target = object_mouse_target->get_parent()){
+		if (object_mouse_target == &context){
+			result_info = trigger_event_with_target_<events::mouse_wheel>(*object_mouse_target, *target, msg, thread_.get_app().get_class_entry(window_context->get_class_name()));
+			result = result_info.second;
+		}
+		else//Ignore result
+			result_info = trigger_event_with_target_<events::mouse_wheel>(*object_mouse_target, *target, msg, nullptr);
 
 		if ((result_info.first & events::object::state_propagation_stopped) != 0u)
 			break;//Propagation stopped

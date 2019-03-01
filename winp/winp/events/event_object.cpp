@@ -497,3 +497,19 @@ bool winp::events::mouse_dbl_clk::is_non_client() const{
 		throw utility::error_code::outside_thread_context;
 	return is_non_client_;
 }
+
+bool winp::events::mouse_wheel::is_vertical() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return (message_.message == WM_MOUSEWHEEL);
+}
+
+SIZE winp::events::mouse_wheel::get_delta() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+
+	if (message_.message == WM_MOUSEWHEEL)
+		return SIZE{ 0, static_cast<int>(static_cast<short>(HIWORD(message_.wParam)) / WHEEL_DELTA) };
+
+	return SIZE{ static_cast<int>(static_cast<short>(HIWORD(message_.wParam)) / WHEEL_DELTA), 0 };
+}

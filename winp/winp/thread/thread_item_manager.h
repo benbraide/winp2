@@ -103,6 +103,8 @@ namespace winp::thread{
 
 		LRESULT mouse_dbl_clk_(item &context, MSG &msg, DWORD position, unsigned int button, bool is_non_client);
 
+		LRESULT mouse_wheel_(item &context, MSG &msg, DWORD position);
+
 		static HCURSOR get_default_cursor_(const MSG &msg);
 
 		static void track_mouse_leave_(HWND target, UINT flags);
