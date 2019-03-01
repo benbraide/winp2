@@ -194,6 +194,19 @@ POINT winp::ui::window_surface::get_absolute_position_() const{
 	return POINT{ dimension.left, dimension.top };
 }
 
+POINT winp::ui::window_surface::get_client_offset_() const{
+	if (handle_ == nullptr)
+		return interactive_surface::get_client_offset_();
+
+	RECT dimension{};
+	GetWindowRect(handle_, &dimension);
+
+	POINT offset{};
+	ClientToScreen(handle_, &offset);
+
+	return POINT{ (offset.x - dimension.left), (offset.y - dimension.top) };
+}
+
 winp::utility::error_code winp::ui::window_surface::set_dimension_(int x, int y, int width, int height){
 	if (handle_ == nullptr)
 		return interactive_surface::set_dimension_(x, y, width, height);

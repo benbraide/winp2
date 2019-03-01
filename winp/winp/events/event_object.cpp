@@ -409,3 +409,52 @@ void winp::events::paint::end_(){
 	else
 		ReleaseDC(original_message_.hwnd, info_.hdc);
 }
+
+bool winp::events::mouse::is_non_client() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return false;
+}
+
+const POINT &winp::events::mouse::get_position() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return position_;
+}
+
+POINT winp::events::mouse::get_offset() const{
+	auto &last_position = target_.get_thread().get_item_manager().get_last_mouse_position();
+	return POINT{ (position_.x - last_position.x), (position_.y - last_position.y) };
+}
+
+winp::events::mouse::button_type winp::events::mouse::get_button() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return button_;
+}
+
+bool winp::events::mouse_leave::is_non_client() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return (message_.message == WM_NCMOUSELEAVE);
+}
+
+bool winp::events::mouse_leave::should_call_call_default_() const{
+	return false;
+}
+
+bool winp::events::mouse_enter::is_non_client() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return (message_.message == WINP_WM_NCMOUSEENTER);
+}
+
+bool winp::events::mouse_enter::should_call_call_default_() const{
+	return false;
+}
+
+bool winp::events::mouse_move::is_non_client() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return (message_.message == WM_NCMOUSEMOVE);
+}

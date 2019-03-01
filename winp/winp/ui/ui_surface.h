@@ -132,6 +132,8 @@ namespace winp::ui{
 
 		virtual POINT get_absolute_position_() const;
 
+		virtual POINT get_client_offset_() const;
+
 		virtual utility::error_code set_dimension_(int x, int y, int width, int height);
 
 		virtual RECT get_dimension_() const;

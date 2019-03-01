@@ -349,4 +349,67 @@ namespace winp::events{
 
 		bool began_paint_ = false;
 	};
+
+	class mouse : public object_with_message{
+	public:
+		enum class button_type{
+			nil,
+			left,
+			middle,
+			right,
+		};
+
+		template <typename... args_types>
+		explicit mouse(args_types &&... args)
+			: object_with_message(std::forward<args_types>(args)...){
+			auto position = ::GetMessagePos();
+			position_.x = GET_X_LPARAM(position);
+			position_.y = GET_Y_LPARAM(position);
+		}
+
+		virtual bool is_non_client() const;
+
+		virtual const POINT &get_position() const;
+
+		virtual POINT get_offset() const;
+
+		virtual button_type get_button() const;
+
+	protected:
+		button_type button_ = button_type::nil;
+		POINT position_{};
+	};
+
+	class mouse_leave : public mouse{
+	public:
+		template <typename... args_types>
+		explicit mouse_leave(args_types &&... args)
+			: mouse(std::forward<args_types>(args)...){}
+
+		virtual bool is_non_client() const override;
+
+	protected:
+		virtual bool should_call_call_default_() const override;
+	};
+
+	class mouse_enter : public mouse{
+	public:
+		template <typename... args_types>
+		explicit mouse_enter(args_types &&... args)
+			: mouse(std::forward<args_types>(args)...){}
+
+		virtual bool is_non_client() const override;
+
+	protected:
+		virtual bool should_call_call_default_() const override;
+	};
+
+	class mouse_move : public mouse{
+	public:
+		template <typename... args_types>
+		explicit mouse_move(args_types &&... args)
+			: mouse(std::forward<args_types>(args)...){}
+
+		virtual bool is_non_client() const override;
+	};
 }
