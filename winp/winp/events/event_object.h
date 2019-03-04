@@ -366,8 +366,6 @@ namespace winp::events{
 
 		virtual const POINT &get_position() const;
 
-		virtual POINT get_offset() const;
-
 		virtual unsigned int get_button() const;
 
 		static const unsigned int button_type_nil				= (0 << 0x00);
@@ -383,64 +381,19 @@ namespace winp::events{
 	class mouse_leave : public mouse{
 	public:
 		template <typename... args_types>
-		explicit mouse_leave(args_types &&... args)
+		explicit mouse_leave(unsigned int button, bool is_non_client, args_types &&... args)
 			: mouse(std::forward<args_types>(args)...){}
 
 		virtual bool is_non_client() const override;
-
-	protected:
-		virtual bool should_call_call_default_() const override;
-	};
-
-	class mouse_enter : public mouse{
-	public:
-		template <typename... args_types>
-		explicit mouse_enter(args_types &&... args)
-			: mouse(std::forward<args_types>(args)...){}
-
-		virtual bool is_non_client() const override;
-
-	protected:
-		virtual bool should_call_call_default_() const override;
 	};
 
 	class mouse_move : public mouse{
 	public:
 		template <typename... args_types>
-		explicit mouse_move(args_types &&... args)
+		explicit mouse_move(unsigned int button, bool is_non_client, args_types &&... args)
 			: mouse(std::forward<args_types>(args)...){}
 
 		virtual bool is_non_client() const override;
-	};
-
-	class mouse_drag_begin : public mouse{
-	public:
-		template <typename... args_types>
-		explicit mouse_drag_begin(args_types &&... args)
-			: mouse(std::forward<args_types>(args)...){}
-
-		virtual unsigned int get_button() const override;
-	};
-
-	class mouse_drag : public mouse{
-	public:
-		template <typename... args_types>
-		explicit mouse_drag(bool is_initial, args_types &&... args)
-			: mouse(std::forward<args_types>(args)...), is_initial_(is_initial){}
-
-		virtual POINT get_offset() const override;
-
-		virtual unsigned int get_button() const override;
-
-	protected:
-		bool is_initial_;
-	};
-
-	class mouse_drag_end : public mouse{
-	public:
-		template <typename... args_types>
-		explicit mouse_drag_end(args_types &&... args)
-			: mouse(std::forward<args_types>(args)...){}
 	};
 
 	class mouse_down : public mouse{
@@ -556,6 +509,13 @@ namespace winp::events{
 	public:
 		template <typename... args_types>
 		explicit kill_focus(args_types &&... args)
+			: object_with_message(std::forward<args_types>(args)...){}
+	};
+
+	class activate : public object_with_message{
+	public:
+		template <typename... args_types>
+		explicit activate(args_types &&... args)
 			: object_with_message(std::forward<args_types>(args)...){}
 	};
 

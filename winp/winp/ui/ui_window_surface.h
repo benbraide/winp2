@@ -1,10 +1,10 @@
 #pragma once
 
 #include "ui_tree.h"
-#include "ui_interactive_surface.h"
+#include "ui_visible_surface.h"
 
 namespace winp::ui{
-	class window_surface : public tree, public interactive_surface{
+	class window_surface : public tree, public visible_surface{
 	public:
 		window_surface();
 
@@ -16,7 +16,7 @@ namespace winp::ui{
 
 		virtual ~window_surface();
 
-		using interactive_surface::show;
+		using visible_surface::show;
 
 		virtual utility::error_code show(int how, const std::function<void(window_surface &, utility::error_code)> &callback = nullptr);
 
@@ -79,7 +79,7 @@ namespace winp::ui{
 
 		virtual UINT absolute_hit_test_(int x, int y) const override;
 
-		virtual bool is_dialog_message_(MSG &msg) const override;
+		virtual bool is_dialog_message_(MSG &msg) const;
 
 		virtual utility::error_code show_(int how);
 

@@ -1,10 +1,10 @@
 #pragma once
 
 #include "ui_tree.h"
-#include "ui_interactive_surface.h"
+#include "ui_visible_surface.h"
 
 namespace winp::ui{
-	class non_window_surface : public ui::tree, public ui::interactive_surface{
+	class non_window_surface : public tree, public visible_surface{
 	public:
 		non_window_surface();
 

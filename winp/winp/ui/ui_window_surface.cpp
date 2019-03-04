@@ -186,7 +186,7 @@ bool winp::ui::window_surface::is_visible_() const{
 
 POINT winp::ui::window_surface::get_absolute_position_() const{
 	if (handle_ == nullptr)
-		return interactive_surface::get_absolute_position_();
+		return visible_surface::get_absolute_position_();
 
 	RECT dimension{};
 	GetWindowRect(handle_, &dimension);
@@ -196,7 +196,7 @@ POINT winp::ui::window_surface::get_absolute_position_() const{
 
 POINT winp::ui::window_surface::get_client_offset_() const{
 	if (handle_ == nullptr)
-		return interactive_surface::get_client_offset_();
+		return visible_surface::get_client_offset_();
 
 	RECT dimension{};
 	GetWindowRect(handle_, &dimension);
@@ -209,13 +209,13 @@ POINT winp::ui::window_surface::get_client_offset_() const{
 
 winp::utility::error_code winp::ui::window_surface::set_dimension_(int x, int y, int width, int height){
 	if (handle_ == nullptr)
-		return interactive_surface::set_dimension_(x, y, width, height);
+		return visible_surface::set_dimension_(x, y, width, height);
 	return ((SetWindowPos(handle_, nullptr, x, y, width, height, (SWP_NOZORDER | SWP_NOACTIVATE)) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
 }
 
 RECT winp::ui::window_surface::get_absolute_dimension_() const{
 	if (handle_ == nullptr)
-		return interactive_surface::get_absolute_dimension_();
+		return visible_surface::get_absolute_dimension_();
 
 	RECT dimension{};
 	GetWindowRect(handle_, &dimension);
@@ -225,7 +225,7 @@ RECT winp::ui::window_surface::get_absolute_dimension_() const{
 
 POINT winp::ui::window_surface::convert_position_from_absolute_value_(int x, int y) const{
 	if (handle_ == nullptr)
-		return interactive_surface::convert_position_from_absolute_value_(x, y);
+		return visible_surface::convert_position_from_absolute_value_(x, y);
 
 	POINT p{ x, y };
 	ScreenToClient(handle_, &p);
@@ -235,7 +235,7 @@ POINT winp::ui::window_surface::convert_position_from_absolute_value_(int x, int
 
 POINT winp::ui::window_surface::convert_position_to_absolute_value_(int x, int y) const{
 	if (handle_ == nullptr)
-		return interactive_surface::convert_position_to_absolute_value_(x, y);
+		return visible_surface::convert_position_to_absolute_value_(x, y);
 
 	POINT p{ x, y };
 	ClientToScreen(handle_, &p);
@@ -244,7 +244,7 @@ POINT winp::ui::window_surface::convert_position_to_absolute_value_(int x, int y
 }
 
 UINT winp::ui::window_surface::absolute_hit_test_(int x, int y) const{
-	return ((handle_ == nullptr) ? interactive_surface::absolute_hit_test_(x, y) : static_cast<UINT>(SendMessageW(handle_, WM_NCHITTEST, 0, MAKELONG(x, y))));
+	return ((handle_ == nullptr) ? visible_surface::absolute_hit_test_(x, y) : static_cast<UINT>(SendMessageW(handle_, WM_NCHITTEST, 0, MAKELONG(x, y))));
 }
 
 bool winp::ui::window_surface::is_dialog_message_(MSG &msg) const{

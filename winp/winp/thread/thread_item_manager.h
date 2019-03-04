@@ -7,17 +7,6 @@
 
 #define WINP_WM_GET_BACKGROUND_COLOR			(WM_APP + 0x02)
 
-#define WINP_WM_NCMOUSEENTER					(WM_APP + 0x10)
-#define WINP_WM_MOUSEENTER						(WM_APP + 0x11)
-
-#define WINP_WM_MOUSEDRAG						(WM_APP + 0x12)
-#define WINP_WM_MOUSEDRAGBEGIN					(WM_APP + 0x13)
-#define WINP_WM_MOUSEDRAGEND					(WM_APP + 0x14)
-
-#define WINP_WM_MOUSEDOWN						(WM_APP + 0x15)
-#define WINP_WM_MOUSEUP							(WM_APP + 0x16)
-#define WINP_WM_MOUSEDBLCLK						(WM_APP + 0x17)
-
 namespace winp::ui{
 	class interactive_surface;
 	class window_surface;
@@ -31,20 +20,6 @@ namespace winp::thread{
 			ui::window_surface *object;
 		};
 
-		struct mouse_info{
-			ui::interactive_surface *target;
-			ui::interactive_surface *dragging;
-			unsigned int button_down;
-			POINT last_position;
-			POINT down_position;
-			SIZE drag_threshold;
-		};
-
-		struct io_info{
-			ui::interactive_surface *activated;
-			ui::interactive_surface *focused;
-		};
-
 		explicit item_manager(object &thread);
 
 		const object &get_thread() const;
@@ -54,12 +29,6 @@ namespace winp::thread{
 		bool is_thread_context() const;
 
 		const RECT &get_update_rect() const;
-
-		const POINT &get_last_mouse_position() const;
-
-		const POINT &get_mouse_down_position() const;
-
-		unsigned int get_mouse_button_down() const;
 
 		template <typename... args_types>
 		HWND create_window(ui::window_surface &owner, args_types &&... args){
@@ -98,72 +67,27 @@ namespace winp::thread{
 
 		LRESULT position_change_(item &target, MSG &msg, bool changing);
 
-		LRESULT mouse_leave_(item &context, MSG &msg, DWORD position);
+		LRESULT mouse_leave_(item &target, MSG &msg);
 
-		LRESULT mouse_move_(item &context, MSG &msg, DWORD position);
+		LRESULT mouse_move_(item &target, MSG &msg);
 
-		template <typename window_type, typename object_type, typename event_type, typename app_type>
-		LRESULT mouse_button_(item &context, MSG &msg, DWORD position, unsigned int button, bool is_non_client, app_type &app, const std::function<void()> &callback){
-			auto window_context = dynamic_cast<window_type *>(&context);
-			if (window_context == nullptr)//Window surface required
+		template <typename window_type, typename event_type, typename app_type>
+		LRESULT mouse_(item &target, MSG &msg, unsigned int button, bool is_non_client, app_type &app){
+			auto window_target = dynamic_cast<window_type *>(&target);
+			if (window_target == nullptr)//Window surface required
 				return 0;
 
-			if (callback != nullptr)
-				callback();
-
-			LRESULT result = 0;
-			std::pair<unsigned int, LRESULT> result_info;
-
-			auto object_mouse_target = (is_non_client ? window_context : dynamic_cast<object_type *>(mouse_.target));
-			for (auto target = object_mouse_target; object_mouse_target != nullptr; object_mouse_target = object_mouse_target->get_parent()){
-				if (object_mouse_target == &context){
-					result_info = trigger_event_with_target_<event_type>(*object_mouse_target, *target, button, is_non_client, msg, app.get_class_entry(window_context->get_class_name()));
-					result = result_info.second;
-				}
-				else//Ignore result
-					result_info = trigger_event_with_target_<event_type>(*object_mouse_target, *target, button, false, msg, nullptr);
-
-				if ((result_info.first & events::object::state_propagation_stopped) != 0u)
-					break;//Propagation stopped
-			}
-
-			return result;
+			return trigger_event_<event_type>(target, button, is_non_client, msg, app.get_class_entry(window_target->get_class_name())).second;
 		}
 
-		LRESULT mouse_down_(item &context, MSG &msg, DWORD position, unsigned int button, bool is_non_client);
+		template <typename window_type, typename event_type, typename app_type>
+		LRESULT key_(item &target, MSG &msg, app_type &app){
+			auto window_target = dynamic_cast<window_type *>(&target);
+			if (window_target == nullptr)//Window surface required
+				return 0;
 
-		LRESULT mouse_up_(item &context, MSG &msg, DWORD position, unsigned int button, bool is_non_client);
-
-		LRESULT mouse_dbl_clk_(item &context, MSG &msg, DWORD position, unsigned int button, bool is_non_client);
-
-		LRESULT mouse_wheel_(item &context, MSG &msg, DWORD position);
-
-		template <typename window_type, typename object_type, typename event_type, typename app_type>
-		LRESULT key_(item &context, MSG &msg, app_type &app){
-			LRESULT result = 0;
-			auto window_context = dynamic_cast<window_type *>(&context);
-
-			std::pair<unsigned int, LRESULT> result_info;
-			for (auto object_mouse_target = dynamic_cast<object_type *>(io_.focused), target = object_mouse_target; object_mouse_target != nullptr; object_mouse_target = object_mouse_target->get_parent()){
-				if (window_context != nullptr && object_mouse_target == &context){
-					result_info = trigger_event_with_target_<event_type>(*object_mouse_target, *target, msg, app.get_class_entry(window_context->get_class_name()));
-					result = result_info.second;
-				}
-				else//Ignore result
-					result_info = trigger_event_with_target_<event_type>(*object_mouse_target, *target, msg, nullptr);
-
-				if ((result_info.first & events::object::state_propagation_stopped) != 0u)
-					break;//Propagation stopped
-			}
-
-			return result;
+			return trigger_event_<event_type>(target, msg, app.get_class_entry(window_target->get_class_name())).second;
 		}
-
-		LRESULT set_focus_(item &target, MSG &msg);
-
-		LRESULT kill_focus_(item &target, MSG &msg);
-
-		LRESULT mouse_activate_(item &target, MSG &msg);
 
 		static HCURSOR get_default_cursor_(const MSG &msg);
 
@@ -206,9 +130,8 @@ namespace winp::thread{
 		std::unordered_map<HWND, ui::window_surface *> top_level_windows_;
 
 		window_cache_info window_cache_{};
-		mouse_info mouse_{};
-		io_info io_{};
-
 		RECT update_rect_{};
+
+		item *tracking_mouse_leave_ = nullptr;
 	};
 }
