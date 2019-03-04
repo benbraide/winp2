@@ -13,6 +13,14 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 	ws.create();
 	ws.show(cmd_show);
 
+	winp::window::object wsc;
+	wsc.set_parent(ws);
+	wsc.set_caption(L"Child Window");
+	wsc.set_position(30, 200);
+	wsc.set_size(300, 120);
+	wsc.create();
+	wsc.show();
+
 	winp::non_window::rectangle nwo(ws);
 	nwo.events().bind([&](winp::events::paint &e){
 		e.begin();
@@ -44,6 +52,14 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 		auto z = 0;
 	});
 
+	nwo.events().bind([&](winp::events::key_down &e){
+		auto vc = e.get_virtual_code();
+		auto sc = e.get_scan_code();
+		auto rc = e.get_repeat_count();
+		auto fd = e.is_first_down();
+		auto z = 0;
+	});
+
 	std::thread([&]{
 		std::this_thread::sleep_for(std::chrono::seconds(3));
 		nwo.set_width(400);
@@ -52,6 +68,18 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 	ws.events().bind([&](winp::events::close &e){
 		if (!rand)
 			e.prevent_default();
+	});
+
+	ws.events().bind([&](winp::events::mouse_leave &e){
+		e.prevent_default();
+	});
+
+	nwo.events().bind([&](winp::events::mouse_leave &e){
+		e.prevent_default();
+	});
+
+	wsc.events().bind([&](winp::events::mouse_leave &e){
+		e.prevent_default();
 	});
 
 	return main_app.get_thread().run();

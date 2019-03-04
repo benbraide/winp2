@@ -37,7 +37,8 @@ winp::utility::error_code winp::ui::non_window_surface::create_(){
 		return utility::error_code::action_could_not_be_completed;
 
 	if (thread_.send_message(*this, WM_NCCREATE) != FALSE){
-		redraw_();
+		if (visible_)
+			redraw_();
 		return utility::error_code::nil;
 	}
 

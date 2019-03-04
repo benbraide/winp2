@@ -50,6 +50,14 @@ winp::utility::error_code winp::ui::object::set_parent(tree *value, std::size_t 
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
+winp::utility::error_code winp::ui::object::set_parent(tree &value, const std::function<void(object &, utility::error_code)> &callback){
+	return set_parent(&value, callback);
+}
+
+winp::utility::error_code winp::ui::object::set_parent(tree &value, std::size_t index, const std::function<void(object &, utility::error_code)> &callback){
+	return set_parent(&value, index, callback);
+}
+
 winp::utility::error_code winp::ui::object::remove_from_parent(const std::function<void(object &, utility::error_code)> &callback){
 	return set_parent(nullptr, static_cast<std::size_t>(-1), callback);
 }

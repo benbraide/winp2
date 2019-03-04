@@ -22,7 +22,7 @@ winp::ui::interactive_surface *winp::ui::interactive_surface::find_deepest_mouse
 		if (!child.is_created() || dynamic_cast<window_surface *>(&child) != nullptr)
 			return true;
 
-		if (auto interactive_child = dynamic_cast<interactive_surface *>(&child); interactive_child != nullptr && dynamic_cast<window_surface *>(&child) == nullptr){
+		if (auto interactive_child = dynamic_cast<interactive_surface *>(&child); interactive_child != nullptr){
 			if (interactive_child->is_visible() && interactive_child->absolute_hit_test(absolute_position) != HTNOWHERE && (deepest_moused = interactive_child->find_deepest_moused_(absolute_position)) == nullptr)
 				deepest_moused = interactive_child;
 		}
