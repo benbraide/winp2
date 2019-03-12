@@ -17,6 +17,8 @@ namespace winp::app{
 
 		static thread::object *find_thread(const std::thread::id &id);
 
+		static object *get_current_app();
+
 		static object *get_current_thread_app();
 
 		static thread::object *get_current_thread();
@@ -70,5 +72,6 @@ namespace winp::app{
 
 		static bool automatic_thread_creation_enabled_;
 		static thread_local automatic_thread_creation_class automatic_thread_creation_;
+		static thread_local object *current_app_;
 	};
 }

@@ -44,13 +44,17 @@ winp::thread::object *winp::app::collection::find_thread(const std::thread::id &
 	return nullptr;
 }
 
+winp::app::object *winp::app::collection::get_current_app(){
+	return current_app_;
+}
+
 winp::app::object *winp::app::collection::get_current_thread_app(){
 	auto current_thread = get_current_thread();
-	return ((current_thread == nullptr) ? find_app(GetCurrentThreadId()) : &current_thread->get_app());
+	return ((current_thread == nullptr) ? current_app_ : &current_thread->get_app());
 }
 
 winp::thread::object *winp::app::collection::get_current_thread(){
-	return find_thread(GetCurrentThreadId());
+	return object::get_current_thread();
 }
 
 DWORD winp::app::collection::convert_thread_id_to_local_id(const std::thread::id &value){
@@ -215,6 +219,8 @@ std::mutex winp::app::collection::lock_;
 bool winp::app::collection::automatic_thread_creation_enabled_ = false;
 
 thread_local winp::app::collection::automatic_thread_creation_class winp::app::collection::automatic_thread_creation_;
+
+thread_local winp::app::object *winp::app::collection::current_app_ = nullptr;
 
 winp::app::collection::automatic_thread_creation_class::automatic_thread_creation_class()
 	: thread_id_(collection::create_thread_()){}

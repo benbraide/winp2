@@ -151,6 +151,21 @@ namespace winp::events{
 			: object_with_message(std::forward<args_types>(args)...){}
 	};
 
+	class index_change : public object{
+	public:
+		template <typename... args_types>
+		explicit index_change(std::size_t value, bool is_changing, args_types &&... args)
+			: object(std::forward<args_types>(args)...), value_(value), is_changing_(is_changing){}
+
+		virtual std::size_t get_value() const;
+
+		virtual bool is_changing() const;
+
+	protected:
+		std::size_t value_;
+		bool is_changing_;
+	};
+
 	class parent_change : public object{
 	public:
 		template <typename... args_types>
@@ -524,5 +539,47 @@ namespace winp::events{
 		template <typename... args_types>
 		explicit mouse_activate(args_types &&... args)
 			: object_with_message(std::forward<args_types>(args)...){}
+	};
+
+	class enable : public object_with_message{
+	public:
+		template <typename... args_types>
+		explicit enable(args_types &&... args)
+			: object_with_message(std::forward<args_types>(args)...){}
+
+		virtual bool is_enabled() const;
+	};
+
+	class menu : public object_with_message{
+	public:
+		template <typename... args_types>
+		explicit menu(args_types &&... args)
+			: object_with_message(std::forward<args_types>(args)...){}
+
+	protected:
+		virtual bool should_call_call_default_() const override;
+	};
+
+	class menu_item_highlight : public menu{
+	public:
+		template <typename... args_types>
+		explicit menu_item_highlight(args_types &&... args)
+			: menu(std::forward<args_types>(args)...){}
+	};
+
+	class menu_item_select : public menu{
+	public:
+		template <typename... args_types>
+		explicit menu_item_select(args_types &&... args)
+			: menu(std::forward<args_types>(args)...){}
+	};
+
+	class menu_item_check : public menu{
+	public:
+		template <typename... args_types>
+		explicit menu_item_check(args_types &&... args)
+			: menu(std::forward<args_types>(args)...){}
+
+		virtual bool is_checked() const;
 	};
 }

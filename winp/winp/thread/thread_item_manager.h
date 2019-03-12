@@ -7,14 +7,25 @@
 
 #define WINP_WM_GET_BACKGROUND_COLOR			(WM_APP + 0x02)
 
+#define WINP_WM_MENU_ITEM_SELECT				(WM_APP + 0x03)
+#define WINP_WM_MENU_ITEM_CHECK					(WM_APP + 0x04)
+#define WINP_WM_MENU_ITEM_HIGHLIGHT				(WM_APP + 0x05)
+
 namespace winp::ui{
 	class interactive_surface;
 	class window_surface;
 }
 
+namespace winp::menu{
+	class item;
+	class object;
+}
+
 namespace winp::thread{
 	class item_manager{
 	public:
+		using menu_items_map_type = std::unordered_map<UINT, menu::item *>;
+
 		struct window_cache_info{
 			HWND handle;
 			ui::window_surface *object;
@@ -44,10 +55,26 @@ namespace winp::thread{
 			);
 		}
 
+		HMENU create_menu(menu::object &owner, HWND target);
+
+		bool destroy_menu(HMENU handle, HWND target);
+
+		void add_menu(menu::object &owner);
+
+		void remove_menu(menu::object &owner);
+
+		UINT generate_menu_item_id(menu::item &target, UINT id = 0u, std::size_t max_tries = 0xFFFFu);
+
+		void add_generated_item_id(menu::item &target);
+
+		void remove_generated_item_id(menu::item &target);
+
 	private:
 		friend class object;
 
 		explicit item_manager(object &thread, DWORD thread_id);
+
+		menu::item *find_menu_item_(menu::object &menu, UINT id) const;
 
 		bool is_dialog_message_(MSG &msg) const;
 
@@ -89,6 +116,10 @@ namespace winp::thread{
 			return trigger_event_<event_type>(target, msg, app.get_class_entry(window_target->get_class_name())).second;
 		}
 
+		LRESULT menu_select_(item &target, MSG &msg);
+
+		static bool menu_item_id_is_reserved_(UINT id);
+
 		static HCURSOR get_default_cursor_(const MSG &msg);
 
 		static void track_mouse_leave_(HWND target, UINT flags);
@@ -125,6 +156,9 @@ namespace winp::thread{
 
 		object &thread_;
 		HHOOK hook_handle_ = nullptr;
+
+		std::unordered_map<HMENU, menu::object *> menus_;
+		std::unordered_map<HMENU, menu_items_map_type> menu_items_;
 
 		std::unordered_map<HWND, ui::window_surface *> windows_;
 		std::unordered_map<HWND, ui::window_surface *> top_level_windows_;

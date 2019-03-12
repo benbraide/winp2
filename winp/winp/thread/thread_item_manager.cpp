@@ -28,6 +28,135 @@ const RECT &winp::thread::item_manager::get_update_rect() const{
 	return update_rect_;
 }
 
+HMENU winp::thread::item_manager::create_menu(menu::object &owner, HWND target){
+	if (!is_thread_context())
+		throw utility::error_code::outside_thread_context;
+
+	auto value = ((target == nullptr) ? CreatePopupMenu() : CreateMenu());
+	if (value == nullptr)
+		return nullptr;
+
+	menu_items_[value];
+	menus_[value] = &owner;
+
+	if (target != nullptr){
+		SetMenu(target, value);
+		DrawMenuBar(target);
+	}
+
+	return value;
+}
+
+bool winp::thread::item_manager::destroy_menu(HMENU handle, HWND target){
+	if (!is_thread_context())
+		throw utility::error_code::outside_thread_context;
+
+	if (DestroyMenu(handle) == FALSE)
+		return false;
+
+	if (target != nullptr)
+		SetMenu(target, nullptr);
+
+	if (!menus_.empty())
+		menus_.erase(handle);
+
+	if (!menu_items_.empty())
+		menu_items_.erase(handle);
+
+	return true;
+}
+
+void winp::thread::item_manager::add_menu(menu::object &owner){
+	auto handle = owner.get_handle();
+	if (handle != nullptr){
+		menu_items_[handle];
+		menus_[handle] = &owner;
+	}
+}
+
+void winp::thread::item_manager::remove_menu(menu::object &owner){
+	auto handle = owner.get_handle();
+	if (handle == nullptr)
+		return;
+
+	if (!menus_.empty())
+		menus_.erase(handle);
+
+	if (!menu_items_.empty())
+		menu_items_.erase(handle);
+}
+
+UINT winp::thread::item_manager::generate_menu_item_id(menu::item &target, UINT id, std::size_t max_tries){
+	if (!is_thread_context())
+		throw utility::error_code::outside_thread_context;
+
+	auto menu_object_parent = dynamic_cast<menu::object *>(target.get_parent());
+	if (menu_object_parent == nullptr || menu_object_parent->get_handle() == nullptr)
+		return 0u;
+
+	auto it = menu_items_.find(menu_object_parent->get_handle());
+	if (it == menu_items_.end())
+		return 0u;
+
+	if (id == 0u || it->second.find(id) != it->second.end()){//Generate new
+		for (; max_tries > 0u; --max_tries){
+			id = thread_.generate_random_integer(static_cast<UINT>(1), std::numeric_limits<UINT>::max());
+			if (!menu_item_id_is_reserved_(id) && it->second.find(id) == it->second.end())
+				break;//ID is unique
+		}
+
+		if (max_tries == 0u)
+			return 0u;
+	}
+
+	it->second[id] = &target;
+	return id;
+}
+
+void winp::thread::item_manager::add_generated_item_id(menu::item &target){
+	if (!is_thread_context())
+		throw utility::error_code::outside_thread_context;
+
+	if (target.get_id() == 0u)
+		return;
+
+	auto menu_object_parent = dynamic_cast<menu::object *>(target.get_parent());
+	if (menu_object_parent == nullptr || menu_object_parent->get_handle() == nullptr)
+		return;
+
+	auto it = menu_items_.find(menu_object_parent->get_handle());
+	if (it != menu_items_.end())
+		it->second[target.get_id()] = &target;
+}
+
+void winp::thread::item_manager::remove_generated_item_id(menu::item &target){
+	if (!is_thread_context())
+		throw utility::error_code::outside_thread_context;
+
+	if (menu_items_.empty())
+		return;
+
+	auto menu_object_parent = dynamic_cast<menu::object *>(target.get_parent());
+	if (menu_object_parent == nullptr || menu_object_parent->get_handle() == nullptr)
+		return;
+
+	auto it = menu_items_.find(menu_object_parent->get_handle());
+	if (it != menu_items_.end())
+		it->second.erase(target.get_id());
+}
+
+winp::menu::item *winp::thread::item_manager::find_menu_item_(menu::object &menu, UINT id) const{
+	if (menu_items_.empty())
+		return nullptr;
+
+	auto it = menu_items_.find(menu.get_handle());
+	if (it == menu_items_.end())
+		return nullptr;
+
+	auto item_it = it->second.find(id);
+	return ((item_it == it->second.end()) ? nullptr : item_it->second);
+}
+
 bool winp::thread::item_manager::is_dialog_message_(MSG &msg) const{
 	return false;
 }
@@ -127,6 +256,16 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return trigger_event_<events::activate>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
 	case WM_MOUSEACTIVATE:
 		return trigger_event_<events::mouse_activate>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+	case WM_ENABLE:
+		return trigger_event_<events::enable>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+	case WM_MENUSELECT:
+		return menu_select_(target, msg);
+	case WINP_WM_MENU_ITEM_SELECT:
+		return trigger_event_<events::menu_item_select>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+	case WINP_WM_MENU_ITEM_CHECK:
+		return trigger_event_<events::menu_item_check>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+	case WINP_WM_MENU_ITEM_HIGHLIGHT:
+		return trigger_event_<events::menu_item_highlight>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
 	default:
 		break;
 	}
@@ -274,6 +413,33 @@ LRESULT winp::thread::item_manager::mouse_move_(item &target, MSG &msg){
 	return mouse_<ui::window_surface, events::mouse_move>(target, msg, events::mouse::button_type_nil, false, thread_.get_app());
 }
 
+LRESULT winp::thread::item_manager::menu_select_(item &target, MSG &msg){
+	auto window_target = dynamic_cast<ui::window_surface *>(&target);
+
+	auto flags = HIWORD(msg.wParam);
+	if ((flags & MF_HILITE) == 0u || menus_.empty())
+		return trigger_event_<events::unhandled>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+
+	auto menu = menus_.find(reinterpret_cast<HMENU>(msg.lParam));
+	if (menu == menus_.end())
+		return trigger_event_<events::unhandled>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+
+	menu::item *menu_item_target = nullptr;
+	if ((flags & MF_POPUP) != 0u)//By index
+		menu_item_target = menu->second->get_item_at(static_cast<UINT>(msg.wParam));
+	else if (static_cast<UINT>(msg.wParam) != 0u)//By ID
+		menu_item_target = find_menu_item_(*menu->second, static_cast<UINT>(msg.wParam));
+
+	if (menu_item_target == nullptr)
+		return trigger_event_<events::unhandled>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+
+	return trigger_event_<events::menu_item_highlight>(*menu_item_target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+}
+
+bool winp::thread::item_manager::menu_item_id_is_reserved_(UINT id){
+	return (HIWORD(id) == 1u);
+}
+
 HCURSOR winp::thread::item_manager::get_default_cursor_(const MSG &msg){
 	switch (LOWORD(msg.lParam)){
 	case HTERROR://Play beep if applicable
@@ -348,14 +514,18 @@ LRESULT CALLBACK winp::thread::item_manager::entry_(HWND handle, UINT message, W
 }
 
 LRESULT CALLBACK winp::thread::item_manager::hook_entry_(int code, WPARAM wparam, LPARAM lparam){
+	auto &manager = app::collection::get_current_thread()->get_item_manager();
 	switch (code){
 	case HCBT_CREATEWND:
 		break;
+	case HCBT_DESTROYWND:
+		if (reinterpret_cast<HWND>(wparam) == manager.window_cache_.handle || (!manager.windows_.empty() && manager.windows_.find(reinterpret_cast<HWND>(wparam)) != manager.windows_.end()))
+			SetMenu(reinterpret_cast<HWND>(wparam), nullptr);
+		return CallNextHookEx(nullptr, code, wparam, lparam);
 	default:
 		return CallNextHookEx(nullptr, code, wparam, lparam);
 	}
 
-	auto &manager = app::collection::get_current_thread()->get_item_manager();
 	if (manager.window_cache_.handle != nullptr || manager.window_cache_.object == nullptr || manager.window_cache_.object != static_cast<ui::window_surface *>(reinterpret_cast<CBT_CREATEWNDW *>(lparam)->lpcs->lpCreateParams))
 		return CallNextHookEx(nullptr, code, wparam, lparam);//Does not match object creating window
 

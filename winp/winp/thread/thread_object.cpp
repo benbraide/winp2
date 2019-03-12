@@ -5,12 +5,14 @@ winp::thread::object::object()
 
 winp::thread::object::object(app::object &app)
 	: app_(app), queue_(*this), item_manager_(*this, GetCurrentThreadId()), id_(std::this_thread::get_id()), local_id_(GetCurrentThreadId()){
+	app::object::current_thread_ = this;
 	app_.add_thread_(*this);
 	message_hwnd_ = CreateWindowExW(0, app_.get_class_name().data(), L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, GetModuleHandleW(nullptr), nullptr);
 }
 
 winp::thread::object::~object(){
 	app_.remove_thread_(local_id_);
+	app::object::current_thread_ = nullptr;
 }
 
 int winp::thread::object::run(){

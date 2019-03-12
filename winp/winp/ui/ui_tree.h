@@ -25,6 +25,8 @@ namespace winp::ui{
 
 		virtual object *get_child_at(std::size_t index, const std::function<void(object *)> &callback = nullptr) const;
 
+		virtual const std::list<object *> &get_children(const std::function<void(const std::list<object *> &)> &callback = nullptr) const;
+
 		virtual void traverse_children(const std::function<bool(object &)> &callback, bool block = false) const;
 
 		virtual void traverse_all_children(const std::function<void(object &)> &callback, bool block = false) const;

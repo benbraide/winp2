@@ -26,8 +26,6 @@ namespace winp::app{
 
 		virtual thread::object *find_thread(const std::thread::id &id) const;
 
-		virtual thread::object *get_current_thread() const;
-
 		virtual DWORD convert_thread_id_to_local_id(const std::thread::id &value) const;
 
 		virtual std::thread::id convert_local_thread_id_to_id(DWORD value) const;
@@ -35,6 +33,8 @@ namespace winp::app{
 		virtual void traverse_threads(const std::function<void(thread::object &)> &callback, DWORD context_id = 0, int task_priority = thread::queue::urgent_task_priority, unsigned __int64 task_id = 0u);
 
 		virtual void traverse_threads(const std::function<void(thread::object &)> &callback, thread::object &context, int task_priority = thread::queue::urgent_task_priority, unsigned __int64 task_id = 0u);
+
+		static thread::object *get_current_thread();
 
 	protected:
 		friend class thread::object;
@@ -53,6 +53,8 @@ namespace winp::app{
 		mutable std::unordered_map<std::wstring, WNDPROC> class_info_map_;
 
 		mutable std::mutex lock_;
+
+		static thread_local thread::object *current_thread_;
 	};
 
 	class main_object : public object{

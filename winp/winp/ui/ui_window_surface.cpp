@@ -19,7 +19,9 @@ winp::ui::window_surface::window_surface(tree &parent, std::size_t index)
 	set_parent(&parent, index);
 }
 
-winp::ui::window_surface::~window_surface() = default;
+winp::ui::window_surface::~window_surface(){
+	destruct();
+}
 
 winp::utility::error_code winp::ui::window_surface::show(int how, const std::function<void(window_surface &, utility::error_code)> &callback){
 	return compute_or_post_task_inside_thread_context([=]{

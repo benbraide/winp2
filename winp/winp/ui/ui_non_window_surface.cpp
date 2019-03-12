@@ -18,7 +18,9 @@ winp::ui::non_window_surface::non_window_surface(tree &parent, std::size_t index
 	set_parent(&parent, index);
 }
 
-winp::ui::non_window_surface::~non_window_surface() = default;
+winp::ui::non_window_surface::~non_window_surface(){
+	destruct();
+}
 
 HRGN winp::ui::non_window_surface::get_handle(const std::function<void(HRGN)> &callback) const{
 	return compute_or_post_task_inside_thread_context([=]{
@@ -45,7 +47,7 @@ winp::utility::error_code winp::ui::non_window_surface::create_(){
 	DeleteObject(handle_);
 	handle_ = nullptr;
 
-	return utility::error_code::action_could_not_be_completed;
+	return utility::error_code::action_prevented;
 }
 
 winp::utility::error_code winp::ui::non_window_surface::destroy_(){

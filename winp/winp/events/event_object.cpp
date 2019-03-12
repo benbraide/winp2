@@ -125,6 +125,18 @@ LRESULT winp::events::object_with_message::get_called_default_value_(){
 	return CallWindowProcW(default_callback_, original_message_.hwnd, original_message_.message, original_message_.wParam, original_message_.lParam);
 }
 
+std::size_t winp::events::index_change::get_value() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return value_;
+}
+
+bool winp::events::index_change::is_changing() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return is_changing_;
+}
+
 winp::ui::tree *winp::events::parent_change::get_value() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
@@ -543,4 +555,20 @@ bool winp::events::key_press::is_being_released() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
 	return std::bitset<sizeof(LPARAM) * 8>(message_.lParam).test(31);
+}
+
+bool winp::events::enable::is_enabled() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return (original_message_.wParam != FALSE);
+}
+
+bool winp::events::menu::should_call_call_default_() const{
+	return (default_callback_ != nullptr && original_message_.hwnd != nullptr && original_message_.message < WM_APP && (states_ & state_default_prevented) == 0u);
+}
+
+bool winp::events::menu_item_check::is_checked() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return (original_message_.wParam != FALSE);
 }

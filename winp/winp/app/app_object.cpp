@@ -2,6 +2,7 @@
 
 winp::app::object::object()
 	: id_(std::this_thread::get_id()), local_id_(GetCurrentThreadId()){
+	collection::current_app_ = this;
 	collection::add_(*this);
 
 	class_info_.cbSize = sizeof(WNDCLASSEXW);
@@ -23,6 +24,7 @@ winp::app::object::object()
 
 winp::app::object::~object(){
 	collection::remove_(local_id_);
+	collection::current_app_ = nullptr;
 }
 
 std::thread::id winp::app::object::get_id() const{
@@ -74,10 +76,6 @@ winp::thread::object *winp::app::object::find_thread(const std::thread::id &id) 
 	}
 
 	return nullptr;
-}
-
-winp::thread::object *winp::app::object::get_current_thread() const{
-	return find_thread(GetCurrentThreadId());
 }
 
 DWORD winp::app::object::convert_thread_id_to_local_id(const std::thread::id &value) const{
@@ -132,6 +130,10 @@ void winp::app::object::traverse_threads(const std::function<void(thread::object
 	}
 }
 
+winp::thread::object *winp::app::object::get_current_thread(){
+	return current_thread_;
+}
+
 void winp::app::object::add_thread_(thread::object &thread){
 	std::lock_guard<std::mutex> guard(lock_);
 	if (threads_.find(thread.local_id_) == threads_.end())
@@ -145,6 +147,8 @@ void winp::app::object::remove_thread_(DWORD id){
 	if (!threads_.empty())
 		threads_.erase(id);
 }
+
+thread_local winp::thread::object *winp::app::object::current_thread_ = nullptr;
 
 winp::app::main_object::main_object(){
 	{//Scoped lock

@@ -152,9 +152,9 @@ winp::utility::error_code winp::ui::object::set_parent_(tree *value, std::size_t
 	return value->insert_child_(*this, index);
 }
 
-winp::utility::error_code winp::ui::object::set_parent_value_(tree *value){
-	if ((trigger_event_<events::parent_change>(value, true).first & events::object::state_default_prevented) != 0u)
-		return utility::error_code::action_prevented;
+winp::utility::error_code winp::ui::object::set_parent_value_(tree *value, bool changing){
+	if (changing)
+		return (((trigger_event_<events::parent_change>(value, true).first & events::object::state_default_prevented) == 0u) ? utility::error_code::nil : utility::error_code::action_prevented);
 
 	parent_ = value;
 	trigger_event_<events::parent_change>(value, false);
@@ -182,6 +182,14 @@ winp::utility::error_code winp::ui::object::set_index_(std::size_t value){
 	else if (auto error_code = parent_->change_child_index_(get_index_(), value); error_code != utility::error_code::nil)
 		return error_code;
 
+	return utility::error_code::nil;
+}
+
+winp::utility::error_code winp::ui::object::set_index_value_(std::size_t value, bool changing){
+	if (changing)
+		return (((trigger_event_<events::index_change>(value, true).first & events::object::state_default_prevented) == 0u) ? utility::error_code::nil : utility::error_code::action_prevented);
+
+	trigger_event_<events::index_change>(value, false);
 	return utility::error_code::nil;
 }
 

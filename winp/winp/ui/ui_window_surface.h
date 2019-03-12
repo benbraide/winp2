@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../menu/menu_object.h"
+
 #include "ui_tree.h"
 #include "ui_visible_surface.h"
 

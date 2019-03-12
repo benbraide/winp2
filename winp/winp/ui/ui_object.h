@@ -64,7 +64,7 @@ namespace winp::ui{
 
 		virtual utility::error_code set_parent_(tree *value, std::size_t index);
 
-		virtual utility::error_code set_parent_value_(tree *value);
+		virtual utility::error_code set_parent_value_(tree *value, bool changing);
 
 		virtual tree *get_parent_() const;
 
@@ -73,6 +73,8 @@ namespace winp::ui{
 		virtual bool is_ancestor_(const tree &target) const;
 
 		virtual utility::error_code set_index_(std::size_t value);
+
+		virtual utility::error_code set_index_value_(std::size_t value, bool changing);
 
 		virtual std::size_t get_index_() const;
 
