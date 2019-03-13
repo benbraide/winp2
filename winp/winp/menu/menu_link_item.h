@@ -24,13 +24,15 @@ namespace winp::menu{
 		virtual const std::wstring &get_text(const std::function<void(const std::wstring &)> &callback = nullptr) const;
 
 	protected:
+		explicit link_item(thread::object &thread);
+
 		virtual utility::error_code create_() override;
 
 		virtual HMENU create_handle_(menu::object &parent) override;
 
 		virtual utility::error_code set_text_(const std::wstring &value);
 
-		popup &target_;
+		popup *target_;
 		std::wstring text_;
 	};
 }

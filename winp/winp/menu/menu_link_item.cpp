@@ -3,8 +3,11 @@
 #include "menu_object.h"
 #include "menu_link_item.h"
 
+winp::menu::link_item::link_item(thread::object &thread)
+	: item(thread), target_(nullptr){}
+
 winp::menu::link_item::link_item(popup &target)
-	: item(target.get_thread()), target_(target){}
+	: item(target.get_thread()), target_(&target){}
 
 winp::menu::link_item::link_item(popup &target, tree &parent)
 	: link_item(target, parent, static_cast<std::size_t>(-1)){}
@@ -18,14 +21,14 @@ winp::menu::link_item::~link_item() = default;
 
 const winp::menu::popup &winp::menu::link_item::get_target(const std::function<void(const popup &)> &callback) const{
 	return *compute_or_post_task_inside_thread_context([=]{
-		return &pass_return_ref_value_to_callback(callback, &target_);
-	}, (callback != nullptr), &target_);
+		return &pass_return_ref_value_to_callback(callback, target_);
+	}, (callback != nullptr), target_);
 }
 
 winp::menu::popup &winp::menu::link_item::get_target(const std::function<void(const popup &)> &callback){
 	return *compute_or_post_task_inside_thread_context([=]{
-		return &pass_return_ref_value_to_callback(callback, &target_);
-	}, (callback != nullptr), &target_);
+		return &pass_return_ref_value_to_callback(callback, target_);
+	}, (callback != nullptr), target_);
 }
 
 winp::utility::error_code winp::menu::link_item::set_text(const std::wstring &value, const std::function<void(object &, utility::error_code)> &callback){
@@ -41,7 +44,7 @@ const std::wstring &winp::menu::link_item::get_text(const std::function<void(con
 }
 
 winp::utility::error_code winp::menu::link_item::create_(){
-	return (target_.is_created() ? item::create_() : utility::error_code::menu_link_target_not_created);
+	return (target_->is_created() ? item::create_() : utility::error_code::menu_link_target_not_created);
 }
 
 HMENU winp::menu::link_item::create_handle_(menu::object &parent){
@@ -54,7 +57,7 @@ HMENU winp::menu::link_item::create_handle_(menu::object &parent){
 	};
 
 	info.fMask = (MIIM_SUBMENU | MIIM_STRING);
-	info.hSubMenu = target_.get_handle();
+	info.hSubMenu = target_->get_handle();
 	info.dwTypeData = text_.data();
 	info.cch = static_cast<UINT>(text_.size());
 

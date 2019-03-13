@@ -30,8 +30,6 @@ namespace winp::menu{
 	protected:
 		virtual UINT get_filtered_states_() const override;
 
-		virtual UINT get_types_() const override;
-
 		virtual utility::error_code set_checked_bitmap_(HBITMAP value);
 
 		virtual utility::error_code set_unchecked_bitmap_(HBITMAP value);

@@ -154,6 +154,7 @@ winp::utility::error_code winp::menu::item::destroy_(){
 
 	handle_ = nullptr;
 	thread_.send_message(*this, WM_NCDESTROY);
+	thread_.get_item_manager().remove_generated_item_id(*this);
 
 	return utility::error_code::nil;
 }
@@ -170,8 +171,8 @@ winp::utility::error_code winp::menu::item::set_parent_value_(ui::tree *value, b
 	}
 	
 	if (handle_ != nullptr){//Remove item from menu
-		if (RemoveMenu(handle_, id_, MF_BYCOMMAND) != FALSE)
-			handle_ = nullptr;
+		RemoveMenu(handle_, id_, MF_BYCOMMAND);
+		handle_ = nullptr;
 	}
 
 	return ui::object::set_parent_value_(value, false);
@@ -184,7 +185,7 @@ winp::utility::error_code winp::menu::item::set_index_value_(std::size_t value, 
 	if (handle_ != nullptr){
 		RemoveMenu(handle_, id_, MF_BYCOMMAND);
 		if (auto object_parent = dynamic_cast<menu::object *>(parent_); object_parent == nullptr || !object_parent->is_created())
-			handle_ == nullptr;
+			handle_ = nullptr;
 		else//Recreate
 			handle_ = create_handle_(*object_parent);
 	}
@@ -306,10 +307,10 @@ winp::utility::error_code winp::menu::item::set_states_(UINT value){
 	states_ = value;
 	update_states_();
 
-	if (was_enabled != (states_ & MFS_DISABLED) == 0u)//Enabled state changed
+	if (was_enabled != ((states_ & MFS_DISABLED) == 0u))//Enabled state changed
 		thread_.send_message(*this, WM_ENABLE, (was_enabled ? FALSE : TRUE));
 
-	if (was_checked != (states_ & MFS_CHECKED) != 0u)//Checked state changed
+	if (was_checked != ((states_ & MFS_CHECKED) != 0u))//Checked state changed
 		thread_.send_message(*this, WINP_WM_MENU_ITEM_CHECK, (was_checked ? FALSE : TRUE));
 
 	return utility::error_code::nil;

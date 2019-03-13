@@ -1,6 +1,6 @@
 #include "../app/app_collection.h"
 
-#include "menu_group.h"
+#include "menu_tree.h"
 #include "menu_check_item.h"
 
 winp::menu::check_item::check_item()
@@ -9,7 +9,7 @@ winp::menu::check_item::check_item()
 winp::menu::check_item::check_item(thread::object &thread)
 	: action_item(thread){
 	add_event_handler_([this](events::menu_item_select &e){
-		if (dynamic_cast<group *>(parent_) == nullptr)//Toggle check state
+		if ((get_types_() & MFT_RADIOCHECK) == 0u)//Toggle check state
 			set_checked_state_((get_states_() & MFS_CHECKED) == 0u);
 		else//Radio check item
 			set_checked_state_(true);
@@ -19,8 +19,8 @@ winp::menu::check_item::check_item(thread::object &thread)
 		if (!e.is_checked())
 			return;
 
-		if (auto group_parent = dynamic_cast<group *>(parent_); group_parent != nullptr){
-			group_parent->traverse_all_items([this](menu::item &child){//Remove check state from siblings
+		if (auto tree_parent = dynamic_cast<tree *>(parent_); tree_parent != nullptr && (get_types_() & MFT_RADIOCHECK) != 0u){
+			tree_parent->traverse_all_items([this](menu::item &child){//Remove check state from siblings
 				if (auto check_item_child = dynamic_cast<check_item *>(&child); check_item_child != nullptr && check_item_child != this)
 					check_item_child->set_checked_state_(false);
 			}, true);
@@ -76,10 +76,6 @@ bool winp::menu::check_item::is_checked(const std::function<void(bool)> &callbac
 
 UINT winp::menu::check_item::get_filtered_states_() const{
 	return (action_item::get_filtered_states_() & ~MFS_CHECKED);
-}
-
-UINT winp::menu::check_item::get_types_() const{
-	return ((dynamic_cast<group *>(parent_) == nullptr) ? action_item::get_types_() : (action_item::get_types_() | MFT_RADIOCHECK));
 }
 
 winp::utility::error_code winp::menu::check_item::set_checked_bitmap_(HBITMAP value){
