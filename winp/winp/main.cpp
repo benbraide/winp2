@@ -2,7 +2,9 @@
 #include "window/window_object.h"
 #include "non_window/rectangular_non_window.h"
 #include "utility/random_bool_generator.h"
-#include "ui/ui_object_collection.h"
+
+#include "menu/menu_item_wrapper.h"
+#include "menu/menu_link_item_with_popup.h"
 
 int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_show){
 	winp::app::main_object main_app;
@@ -16,12 +18,24 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 
 	auto &smn = ws.get_system_menu();
 	smn.add_object([](winp::menu::separator &item){
-		return true;
+		return winp::ui::add_result_type::confirm;
 	});
 
 	smn.add_object([](winp::menu::action_item &item){
 		item.set_text(L"Custom Action Item");
-		return true;
+		return winp::ui::add_result_type::confirm;
+	});
+
+	smn.add_object([](winp::menu::link_item_with_popup &item){
+		item.set_text(L"Link Item");
+		item.create();
+
+		item.add_object([](winp::menu::action_item &item){
+			item.set_text(L"Link Action Item");
+			return winp::ui::add_result_type::confirm;
+		});
+
+		return winp::ui::add_result_type::dont_create;
 	});
 
 	winp::window::object wsc;
@@ -62,7 +76,7 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 			nwo.set_width(400);
 		}).detach();
 
-		return true;
+		return winp::ui::add_result_type::confirm;
 	});
 
 	ws.events().bind([&](winp::events::close &e){

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "menu_object.h"
-#include "menu_item_wrapper.h"
 
 namespace winp::menu{
 	class popup_wrapper : public popup{
@@ -23,13 +22,10 @@ namespace winp::menu{
 
 		virtual utility::error_code do_erase_child_(ui::object &child, std::size_t index) override;
 
-		virtual bool is_system_() const override;
-
-		virtual utility::error_code set_handle_(HMENU value);
+		virtual utility::error_code set_handle_(HMENU value, bool is_system);
 
 		virtual void resolve_handle_(HMENU handle);
 
-		bool is_system_value_ = false;
 		std::unordered_map<thread::item *, std::shared_ptr<menu::item>> items_;
 	};
 }

@@ -3,6 +3,13 @@
 #include "ui_object.h"
 
 namespace winp::ui{
+	enum class add_result_type{
+		nil,
+		confirm,
+		cancel,
+		dont_create,
+	};
+
 	template <class base_type>
 	class object_collection : public base_type{
 	public:
@@ -36,17 +43,24 @@ namespace winp::ui{
 		}
 
 		template <typename object_type, typename... args_types>
-		object_type *add_object_(const std::function<bool(object_type &)> &callback, args_types &&... args){
+		object_type *add_object_(const std::function<add_result_type(object_type &)> &callback, args_types &&... args){
 			auto object = std::make_shared<object_type>(*this, static_cast<std::size_t>(-1), std::forward<args_types>(args)...);
 			if (object == nullptr)
 				return nullptr;
 
-			if (callback != nullptr && !callback(*object))
-				return nullptr;
+			if (callback != nullptr){
+				switch (callback(*object)){
+				case add_result_type::cancel:
+					return nullptr;
+				case add_result_type::dont_create:
+					break;
+				default:
+					object->create();
+					break;
+				}
+			}
 
-			object->create();
 			objects_[object.get()] = object;
-
 			return object.get();
 		}
 

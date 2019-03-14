@@ -13,6 +13,12 @@ winp::menu::object::~object(){
 	destruct();
 }
 
+winp::utility::error_code winp::menu::object::set_system_state(bool is_system, const std::function<void(object &, utility::error_code)> &callback){
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, *this, set_system_state_(is_system));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
 bool winp::menu::object::is_system(const std::function<void(bool)> &callback) const{
 	return compute_or_post_task_inside_thread_context([=]{
 		return pass_return_value_to_callback(callback, is_system_());
@@ -66,6 +72,10 @@ std::size_t winp::menu::object::get_items_count_before_() const{
 	return 0u;
 }
 
+winp::utility::error_code winp::menu::object::set_system_state_(bool is_system){
+	return utility::error_code::not_supported;
+}
+
 bool winp::menu::object::is_system_() const{
 	return false;
 }
@@ -73,11 +83,26 @@ bool winp::menu::object::is_system_() const{
 winp::menu::popup::popup()
 	: popup(app::collection::get_main()->get_thread()){}
 
+winp::menu::popup::popup(bool is_system)
+	: popup(app::collection::get_main()->get_thread(), is_system){}
+
 winp::menu::popup::popup(thread::object &thread)
-	: object(thread){}
+	: popup(thread, false){}
+
+winp::menu::popup::popup(thread::object &thread, bool is_system)
+	: object(thread), is_system_value_(is_system){}
 
 winp::menu::popup::~popup(){
 	destruct();
+}
+
+winp::utility::error_code winp::menu::popup::set_system_state_(bool is_system){
+	is_system_value_ = is_system;
+	return utility::error_code::nil;
+}
+
+bool winp::menu::popup::is_system_() const{
+	return is_system_value_;
 }
 
 HMENU winp::menu::popup::create_handle_(){

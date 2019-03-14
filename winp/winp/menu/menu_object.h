@@ -15,6 +15,8 @@ namespace winp::menu{
 
 		virtual ~object();
 
+		virtual utility::error_code set_system_state(bool is_system, const std::function<void(object &, utility::error_code)> &callback = nullptr);
+
 		virtual bool is_system(const std::function<void(bool)> &callback = nullptr) const;
 
 		virtual HMENU get_handle(const std::function<void(HMENU)> &callback = nullptr) const;
@@ -30,6 +32,8 @@ namespace winp::menu{
 
 		virtual std::size_t get_items_count_before_() const override;
 
+		virtual utility::error_code set_system_state_(bool is_system);
+
 		virtual bool is_system_() const;
 
 		virtual HMENU create_handle_() = 0;
@@ -43,14 +47,24 @@ namespace winp::menu{
 	public:
 		popup();
 
+		explicit popup(bool is_system);
+
 		explicit popup(thread::object &thread);
+
+		popup(thread::object &thread, bool is_system);
 
 		virtual ~popup();
 
 	protected:
+		virtual utility::error_code set_system_state_(bool is_system) override;
+
+		virtual bool is_system_() const override;
+
 		virtual HMENU create_handle_() override;
 
 		virtual utility::error_code destroy_handle_() override;
+
+		bool is_system_value_ = false;
 	};
 
 	class bar : public object{

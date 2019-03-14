@@ -70,6 +70,7 @@ void winp::menu::action_item_wrapper::resolve_info_(menu::object &parent, UINT i
 
 winp::menu::link_item_wrapper::link_item_wrapper(menu::object &parent, std::size_t index, const MENUITEMINFOW &info)
 	: link_item(parent.get_thread()){
+	target_ = (popup_ = std::make_shared<ui::object_collection<menu::popup_wrapper>>(thread_)).get();
 	set_parent(&parent, index);
 	resolve_info_(parent, static_cast<UINT>(index), info);
 }
@@ -102,7 +103,7 @@ winp::utility::error_code winp::menu::link_item_wrapper::create_(){
 winp::utility::error_code winp::menu::link_item_wrapper::destroy_(){
 	if (handle_ != nullptr){
 		handle_ = nullptr;
-		popup_ = nullptr;
+		popup_->destroy();
 		thread_.get_item_manager().remove_generated_item_id(*this);
 	}
 
@@ -132,7 +133,7 @@ void winp::menu::link_item_wrapper::resolve_info_(menu::object &parent, UINT ind
 	types_ = info.fType;
 
 	if (info.hSubMenu != nullptr)//Wrap sub-menu
-		target_ = (popup_ = std::make_shared<menu::popup_wrapper>(thread_, info.hSubMenu, parent.is_system())).get();
+		popup_->set_handle(info.hSubMenu, parent.is_system());
 
 	thread_.get_item_manager().add_generated_item_id(*this);
 }

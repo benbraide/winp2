@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../ui/ui_object_collection.h"
+
 #include "menu_item.h"
 
 namespace winp::menu{

@@ -1,7 +1,7 @@
 #include "../ui/ui_window_surface.h"
 #include "../app/app_collection.h"
 
-#include "menu_object_wrapper.h"
+#include "menu_item_wrapper.h"
 
 winp::menu::popup_wrapper::popup_wrapper()
 	: popup_wrapper(app::collection::get_main()->get_thread()){}
@@ -21,8 +21,7 @@ winp::menu::popup_wrapper::~popup_wrapper(){
 
 winp::utility::error_code winp::menu::popup_wrapper::set_handle(HMENU value, bool is_system, const std::function<void(popup_wrapper &, utility::error_code)> &callback){
 	return compute_or_post_task_inside_thread_context([=]{
-		is_system_value_ = is_system;
-		return pass_return_value_to_callback(callback, *this, set_handle_(value));
+		return pass_return_value_to_callback(callback, *this, set_handle_(value, is_system));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
@@ -54,12 +53,9 @@ winp::utility::error_code winp::menu::popup_wrapper::do_erase_child_(ui::object 
 	return utility::error_code::nil;
 }
 
-bool winp::menu::popup_wrapper::is_system_() const{
-	return is_system_value_;
-}
-
-winp::utility::error_code winp::menu::popup_wrapper::set_handle_(HMENU value){
+winp::utility::error_code winp::menu::popup_wrapper::set_handle_(HMENU value, bool is_system){
 	destroy_();
+	is_system_value_ = is_system;
 	resolve_handle_(value);
 	return utility::error_code::nil;
 }
