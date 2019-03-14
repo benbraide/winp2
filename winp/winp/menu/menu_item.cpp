@@ -131,7 +131,7 @@ winp::utility::error_code winp::menu::item::create_(){
 	if (object_parent == nullptr || !object_parent->is_created())
 		return utility::error_code::parent_not_created;
 
-	if ((id_ = thread_.get_item_manager().generate_menu_item_id(*this, id_)) == 0u)
+	if ((id_ = thread_.get_item_manager().generate_menu_item_id(*this, object_parent->is_system(), id_)) == 0u)
 		return utility::error_code::action_could_not_be_completed;
 
 	if ((handle_ = create_handle_(*object_parent)) == nullptr)
@@ -193,50 +193,26 @@ winp::utility::error_code winp::menu::item::set_index_value_(std::size_t value, 
 	return ui::object::set_index_value_(value, false);
 }
 
-HMENU winp::menu::item::create_handle_(menu::object &parent){
-	UINT mask = MIIM_ID;
-	auto types = get_types_();
-	if (types != 0u)//Type set
-		mask |= MIIM_FTYPE;
-
-	auto states = get_states_();
-	if (states != 0u)//States set
-		mask |= MIIM_STATE;
-
-	if (bitmap_ != nullptr)//Bitmap set
-		mask |= MIIM_BITMAP;
-
-	MENUITEMINFOW info{
-		sizeof(MENUITEMINFOW),
-		mask,
-		types,
-		states,
-		id_,
-		nullptr,
-		nullptr,
-		nullptr,
-		0u,
-		nullptr,
-		0u,
-		bitmap_
-	};
+UINT winp::menu::item::fill_basic_info_(menu::object &parent, MENUITEMINFOW &info){
+	info.cbSize = sizeof(MENUITEMINFOW);
+	info.fMask = (MIIM_FTYPE | MIIM_STATE | MIIM_ID | MIIM_BITMAP);
+	info.fType = get_types_();
+	info.fState = get_states_();
+	info.wID = id_;
+	info.hbmpItem = bitmap_;
 
 	UINT index = 0;
 	auto absolute_index = get_absolute_index_();
 
-	if (absolute_index != static_cast<std::size_t>(-1)){
-		parent.traverse_items([&](item &child){
-			if (&child == this || absolute_index <= child.get_absolute_index())
-				return false;
+	parent.traverse_items([&](item &child){
+		if (&child == this || absolute_index <= child.get_absolute_index())
+			return false;
 
-			++index;
-			return true;
-		}, true);
-	}
-	else//Append
-		index = static_cast<UINT>(absolute_index);
+		++index;
+		return true;
+	}, true);
 
-	return ((InsertMenuItemW(parent.get_handle(), index, TRUE, &info) == FALSE) ? nullptr : parent.get_handle());
+	return index;
 }
 
 UINT winp::menu::item::get_id_() const{

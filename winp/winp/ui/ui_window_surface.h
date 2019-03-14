@@ -1,13 +1,16 @@
 #pragma once
 
-#include "../menu/menu_object.h"
+#include "../menu/menu_object_wrapper.h"
 
 #include "ui_tree.h"
 #include "ui_visible_surface.h"
+#include "ui_object_collection.h"
 
 namespace winp::ui{
 	class window_surface : public tree, public visible_surface{
 	public:
+		using menu_type = object_collection<menu::popup_wrapper>;
+
 		window_surface();
 
 		explicit window_surface(thread::object &thread);
@@ -45,6 +48,10 @@ namespace winp::ui{
 		virtual bool has_styles(DWORD value, bool is_extended, bool has_all, const std::function<void(bool)> &callback = nullptr) const;
 
 		virtual HWND get_handle(const std::function<void(HWND)> &callback = nullptr) const;
+
+		virtual const menu_type &get_system_menu(const std::function<void(const menu_type &)> &callback = nullptr) const;
+
+		virtual menu_type &get_system_menu(const std::function<void(menu_type &)> &callback = nullptr);
 
 		virtual const std::wstring &get_class_name(const std::function<void(const std::wstring &)> &callback = nullptr) const;
 
@@ -109,6 +116,10 @@ namespace winp::ui{
 
 		virtual HWND get_handle_() const;
 
+		virtual const menu_type &get_system_menu_() const;
+
+		virtual menu_type &get_system_menu_();
+
 		virtual const std::wstring &get_class_name_() const;
 
 		virtual const wchar_t *get_window_text_() const;
@@ -122,5 +133,7 @@ namespace winp::ui{
 
 		DWORD styles_ = 0;
 		DWORD extended_styles_ = 0;
+
+		mutable menu_type system_menu_;
 	};
 }

@@ -15,6 +15,8 @@ namespace winp::menu{
 
 		virtual ~object();
 
+		virtual bool is_system(const std::function<void(bool)> &callback = nullptr) const;
+
 		virtual HMENU get_handle(const std::function<void(HMENU)> &callback = nullptr) const;
 
 	protected:
@@ -27,6 +29,8 @@ namespace winp::menu{
 		virtual utility::error_code set_parent_value_(ui::tree *value, bool changing) override;
 
 		virtual std::size_t get_items_count_before_() const override;
+
+		virtual bool is_system_() const;
 
 		virtual HMENU create_handle_() = 0;
 

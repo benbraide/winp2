@@ -6,7 +6,7 @@
 winp::menu::action_item_wrapper::action_item_wrapper(menu::object &parent, std::size_t index, const MENUITEMINFOW &info)
 	: action_item(parent.get_thread()){
 	set_parent(&parent, index);
-	resolve_info_(parent, info);
+	resolve_info_(parent, static_cast<UINT>(index), info);
 }
 
 winp::menu::action_item_wrapper::~action_item_wrapper(){
@@ -26,19 +26,24 @@ winp::utility::error_code winp::menu::action_item_wrapper::create_(){
 		(MIIM_ID | MIIM_STRING | MIIM_FTYPE | MIIM_STATE | MIIM_BITMAP)
 	};
 
-	if (GetMenuItemInfoW(object_parent->get_handle(), static_cast<UINT>(get_index_()), TRUE, &info) == FALSE)
+	auto index = static_cast<UINT>(get_index_());
+	if (GetMenuItemInfoW(object_parent->get_handle(), index, TRUE, &info) == FALSE)
 		return utility::error_code::action_could_not_be_completed;
 
-	resolve_info_(*object_parent, info);
+	resolve_info_(*object_parent, index, info);
 	return utility::error_code::nil;
 }
 
 winp::utility::error_code winp::menu::action_item_wrapper::destroy_(){
-	handle_ = nullptr;
+	if (handle_ != nullptr){
+		handle_ = nullptr;
+		thread_.get_item_manager().remove_generated_item_id(*this);
+	}
+
 	return utility::error_code::nil;
 }
 
-void winp::menu::action_item_wrapper::resolve_info_(menu::object &parent, const MENUITEMINFOW &info){
+void winp::menu::action_item_wrapper::resolve_info_(menu::object &parent, UINT index, const MENUITEMINFOW &info){
 	if (0u < info.cch){//Retrieve text
 		text_.resize(info.cch);
 
@@ -50,7 +55,7 @@ void winp::menu::action_item_wrapper::resolve_info_(menu::object &parent, const 
 		text_info.dwTypeData = text_.data();
 		text_info.cch = (info.cch + 1u);
 
-		GetMenuItemInfoW(parent.get_handle(), static_cast<UINT>(get_index_()), TRUE, &text_info);
+		GetMenuItemInfoW(parent.get_handle(), index, TRUE, &text_info);
 	}
 
 	id_ = info.wID;
@@ -59,12 +64,14 @@ void winp::menu::action_item_wrapper::resolve_info_(menu::object &parent, const 
 
 	states_ = info.fState;
 	types_ = info.fType;
+
+	thread_.get_item_manager().add_generated_item_id(*this);
 }
 
 winp::menu::link_item_wrapper::link_item_wrapper(menu::object &parent, std::size_t index, const MENUITEMINFOW &info)
 	: link_item(parent.get_thread()){
 	set_parent(&parent, index);
-	resolve_info_(parent, info);
+	resolve_info_(parent, static_cast<UINT>(index), info);
 }
 
 winp::menu::link_item_wrapper::~link_item_wrapper(){
@@ -84,20 +91,25 @@ winp::utility::error_code winp::menu::link_item_wrapper::create_(){
 		(MIIM_ID | MIIM_STRING | MIIM_FTYPE | MIIM_STATE | MIIM_BITMAP | MIIM_SUBMENU)
 	};
 
-	if (GetMenuItemInfoW(object_parent->get_handle(), static_cast<UINT>(get_index_()), TRUE, &info) == FALSE)
+	auto index = static_cast<UINT>(get_index_());
+	if (GetMenuItemInfoW(object_parent->get_handle(), index, TRUE, &info) == FALSE)
 		return utility::error_code::action_could_not_be_completed;
 
-	resolve_info_(*object_parent, info);
+	resolve_info_(*object_parent, index, info);
 	return utility::error_code::nil;
 }
 
 winp::utility::error_code winp::menu::link_item_wrapper::destroy_(){
-	handle_ = nullptr;
-	popup_ = nullptr;
+	if (handle_ != nullptr){
+		handle_ = nullptr;
+		popup_ = nullptr;
+		thread_.get_item_manager().remove_generated_item_id(*this);
+	}
+
 	return utility::error_code::nil;
 }
 
-void winp::menu::link_item_wrapper::resolve_info_(menu::object &parent, const MENUITEMINFOW &info){
+void winp::menu::link_item_wrapper::resolve_info_(menu::object &parent, UINT index, const MENUITEMINFOW &info){
 	if (0u < info.cch){//Retrieve text
 		text_.resize(info.cch);
 
@@ -109,7 +121,7 @@ void winp::menu::link_item_wrapper::resolve_info_(menu::object &parent, const ME
 		text_info.dwTypeData = text_.data();
 		text_info.cch = (info.cch + 1u);
 
-		GetMenuItemInfoW(parent.get_handle(), static_cast<UINT>(get_index_()), TRUE, &text_info);
+		GetMenuItemInfoW(parent.get_handle(), index, TRUE, &text_info);
 	}
 
 	id_ = info.wID;
@@ -120,13 +132,15 @@ void winp::menu::link_item_wrapper::resolve_info_(menu::object &parent, const ME
 	types_ = info.fType;
 
 	if (info.hSubMenu != nullptr)//Wrap sub-menu
-		target_ = (popup_ = std::make_shared<menu::popup_wrapper>(thread_, info.hSubMenu)).get();
+		target_ = (popup_ = std::make_shared<menu::popup_wrapper>(thread_, info.hSubMenu, parent.is_system())).get();
+
+	thread_.get_item_manager().add_generated_item_id(*this);
 }
 
 winp::menu::check_item_wrapper::check_item_wrapper(menu::object &parent, std::size_t index, const MENUITEMINFOW &info)
 	: check_item(parent.get_thread()){
 	set_parent(&parent, index);
-	resolve_info_(parent, info);
+	resolve_info_(parent, static_cast<UINT>(index), info);
 }
 
 winp::menu::check_item_wrapper::~check_item_wrapper(){
@@ -146,19 +160,24 @@ winp::utility::error_code winp::menu::check_item_wrapper::create_(){
 		(MIIM_ID | MIIM_STRING | MIIM_FTYPE | MIIM_STATE | MIIM_BITMAP | MIIM_CHECKMARKS)
 	};
 
-	if (GetMenuItemInfoW(object_parent->get_handle(), static_cast<UINT>(get_index_()), TRUE, &info) == FALSE)
+	auto index = static_cast<UINT>(get_index_());
+	if (GetMenuItemInfoW(object_parent->get_handle(), index, TRUE, &info) == FALSE)
 		return utility::error_code::action_could_not_be_completed;
 
-	resolve_info_(*object_parent, info);
+	resolve_info_(*object_parent, index, info);
 	return utility::error_code::nil;
 }
 
 winp::utility::error_code winp::menu::check_item_wrapper::destroy_(){
-	handle_ = nullptr;
+	if (handle_ != nullptr){
+		handle_ = nullptr;
+		thread_.get_item_manager().remove_generated_item_id(*this);
+	}
+
 	return utility::error_code::nil;
 }
 
-void winp::menu::check_item_wrapper::resolve_info_(menu::object &parent, const MENUITEMINFOW &info){
+void winp::menu::check_item_wrapper::resolve_info_(menu::object &parent, UINT index, const MENUITEMINFOW &info){
 	if (0u < info.cch){//Retrieve text
 		text_.resize(info.cch);
 
@@ -170,7 +189,7 @@ void winp::menu::check_item_wrapper::resolve_info_(menu::object &parent, const M
 		text_info.dwTypeData = text_.data();
 		text_info.cch = (info.cch + 1u);
 
-		GetMenuItemInfoW(parent.get_handle(), static_cast<UINT>(get_index_()), TRUE, &text_info);
+		GetMenuItemInfoW(parent.get_handle(), index, TRUE, &text_info);
 	}
 
 	id_ = info.wID;
@@ -182,12 +201,14 @@ void winp::menu::check_item_wrapper::resolve_info_(menu::object &parent, const M
 
 	checked_bitmap_ = info.hbmpChecked;
 	unchecked_bitmap_ = info.hbmpUnchecked;
+
+	thread_.get_item_manager().add_generated_item_id(*this);
 }
 
 winp::menu::separator_wrapper::separator_wrapper(menu::object &parent, std::size_t index, const MENUITEMINFOW &info)
 	: separator(parent.get_thread()){
 	set_parent(&parent, index);
-	resolve_info_(parent, info);
+	resolve_info_(parent, static_cast<UINT>(index), info);
 }
 
 winp::menu::separator_wrapper::~separator_wrapper(){
@@ -207,23 +228,30 @@ winp::utility::error_code winp::menu::separator_wrapper::create_(){
 		(MIIM_ID | MIIM_FTYPE | MIIM_STATE | MIIM_BITMAP)
 	};
 
-	if (GetMenuItemInfoW(object_parent->get_handle(), static_cast<UINT>(get_index_()), TRUE, &info) == FALSE)
+	auto index = static_cast<UINT>(get_index_());
+	if (GetMenuItemInfoW(object_parent->get_handle(), index, TRUE, &info) == FALSE)
 		return utility::error_code::action_could_not_be_completed;
 
-	resolve_info_(*object_parent, info);
+	resolve_info_(*object_parent, index, info);
 	return utility::error_code::nil;
 }
 
 winp::utility::error_code winp::menu::separator_wrapper::destroy_(){
-	handle_ = nullptr;
+	if (handle_ != nullptr){
+		handle_ = nullptr;
+		thread_.get_item_manager().remove_generated_item_id(*this);
+	}
+
 	return utility::error_code::nil;
 }
 
-void winp::menu::separator_wrapper::resolve_info_(menu::object &parent, const MENUITEMINFOW &info){
+void winp::menu::separator_wrapper::resolve_info_(menu::object &parent, UINT index, const MENUITEMINFOW &info){
 	id_ = info.wID;
 	handle_ = parent.get_handle();
 	bitmap_ = info.hbmpItem;
 
 	states_ = info.fState;
 	types_ = info.fType;
+
+	thread_.get_item_manager().add_generated_item_id(*this);
 }

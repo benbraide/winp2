@@ -19,7 +19,7 @@ namespace winp::menu{
 
 		virtual utility::error_code destroy_() override;
 
-		virtual void resolve_info_(menu::object &parent, const MENUITEMINFOW &info);
+		virtual void resolve_info_(menu::object &parent, UINT index, const MENUITEMINFOW &info);
 	};
 
 	class link_item_wrapper : public link_item{
@@ -33,7 +33,7 @@ namespace winp::menu{
 
 		virtual utility::error_code destroy_() override;
 
-		virtual void resolve_info_(menu::object &parent, const MENUITEMINFOW &info);
+		virtual void resolve_info_(menu::object &parent, UINT index, const MENUITEMINFOW &info);
 
 		std::shared_ptr<menu::popup> popup_;
 	};
@@ -49,7 +49,7 @@ namespace winp::menu{
 
 		virtual utility::error_code destroy_() override;
 
-		virtual void resolve_info_(menu::object &parent, const MENUITEMINFOW &info);
+		virtual void resolve_info_(menu::object &parent, UINT index, const MENUITEMINFOW &info);
 	};
 
 	class separator_wrapper : public separator{
@@ -63,6 +63,6 @@ namespace winp::menu{
 
 		virtual utility::error_code destroy_() override;
 
-		virtual void resolve_info_(menu::object &parent, const MENUITEMINFOW &info);
+		virtual void resolve_info_(menu::object &parent, UINT index, const MENUITEMINFOW &info);
 	};
 }

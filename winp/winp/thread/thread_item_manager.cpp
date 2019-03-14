@@ -86,7 +86,7 @@ void winp::thread::item_manager::remove_menu(menu::object &owner){
 		menu_items_.erase(handle);
 }
 
-UINT winp::thread::item_manager::generate_menu_item_id(menu::item &target, UINT id, std::size_t max_tries){
+UINT winp::thread::item_manager::generate_menu_item_id(menu::item &target, bool is_system_menu, UINT id, std::size_t max_tries){
 	if (!is_thread_context())
 		throw utility::error_code::outside_thread_context;
 
@@ -100,7 +100,11 @@ UINT winp::thread::item_manager::generate_menu_item_id(menu::item &target, UINT 
 
 	if (id == 0u || it->second.find(id) != it->second.end()){//Generate new
 		for (; max_tries > 0u; --max_tries){
-			id = thread_.generate_random_integer(static_cast<UINT>(1), std::numeric_limits<UINT>::max());
+			if (is_system_menu)
+				id = (thread_.generate_random_integer(1u, 0xEFFFu) & 0xFF00u);
+			else
+				id = thread_.generate_random_integer(1u, std::numeric_limits<UINT>::max());
+
 			if (!menu_item_id_is_reserved_(id) && it->second.find(id) == it->second.end())
 				break;//ID is unique
 		}
@@ -427,8 +431,10 @@ LRESULT winp::thread::item_manager::menu_select_(item &target, MSG &msg){
 	menu::item *menu_item_target = nullptr;
 	if ((flags & MF_POPUP) != 0u)//By index
 		menu_item_target = menu->second->get_item_at(static_cast<UINT>(msg.wParam));
-	else if (static_cast<UINT>(msg.wParam) != 0u)//By ID
+	else if ((flags & MF_SYSMENU) == 0u)
 		menu_item_target = find_menu_item_(*menu->second, static_cast<UINT>(msg.wParam));
+	else//System menu item
+		menu_item_target = find_menu_item_(*menu->second, (static_cast<UINT>(msg.wParam) & 0xFFF0u));
 
 	if (menu_item_target == nullptr)
 		return trigger_event_<events::unhandled>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;

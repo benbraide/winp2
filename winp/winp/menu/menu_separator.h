@@ -16,6 +16,10 @@ namespace winp::menu{
 		virtual ~separator();
 
 	protected:
+		virtual utility::error_code create_() override;
+
+		virtual HMENU create_handle_(menu::object &parent) override;
+
 		virtual UINT get_filtered_states_() const override;
 
 		virtual UINT get_types_() const override;

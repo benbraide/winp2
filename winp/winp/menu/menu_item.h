@@ -66,7 +66,9 @@ namespace winp::menu{
 
 		virtual utility::error_code set_index_value_(std::size_t value, bool changing) override;
 
-		virtual HMENU create_handle_(menu::object &parent);
+		virtual HMENU create_handle_(menu::object &parent) = 0;
+
+		virtual UINT fill_basic_info_(menu::object &parent, MENUITEMINFOW &info);
 
 		virtual UINT get_id_() const;
 

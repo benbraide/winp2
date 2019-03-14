@@ -44,25 +44,21 @@ const std::wstring &winp::menu::link_item::get_text(const std::function<void(con
 }
 
 winp::utility::error_code winp::menu::link_item::create_(){
+	if (text_.empty())
+		return utility::error_code::menu_item_empty_text;
 	return (target_->is_created() ? item::create_() : utility::error_code::menu_link_target_not_created);
 }
 
 HMENU winp::menu::link_item::create_handle_(menu::object &parent){
-	auto value = item::create_handle_(parent);
-	if (value == nullptr)
-		return value;//Failed to create handle
+	MENUITEMINFOW info{};
+	auto index = fill_basic_info_(parent, info);
 
-	MENUITEMINFOW info{
-		sizeof(MENUITEMINFOW)
-	};
-
-	info.fMask = (MIIM_SUBMENU | MIIM_STRING);
+	info.fMask |= (MIIM_SUBMENU | MIIM_STRING);
 	info.hSubMenu = target_->get_handle();
 	info.dwTypeData = text_.data();
 	info.cch = static_cast<UINT>(text_.size());
 
-	SetMenuItemInfoW(handle_, id_, FALSE, &info);//Update menu item
-	return value;
+	return ((InsertMenuItemW(parent.get_handle(), index, TRUE, &info) == FALSE) ? nullptr : parent.get_handle());
 }
 
 winp::utility::error_code winp::menu::link_item::set_text_(const std::wstring &value){

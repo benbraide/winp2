@@ -20,6 +20,8 @@ namespace winp::menu{
 		virtual const std::wstring &get_text(const std::function<void(const std::wstring &)> &callback = nullptr) const;
 
 	protected:
+		virtual utility::error_code create_() override;
+
 		virtual HMENU create_handle_(menu::object &parent) override;
 
 		virtual utility::error_code set_text_(const std::wstring &value);

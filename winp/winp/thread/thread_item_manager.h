@@ -63,7 +63,7 @@ namespace winp::thread{
 
 		void remove_menu(menu::object &owner);
 
-		UINT generate_menu_item_id(menu::item &target, UINT id = 0u, std::size_t max_tries = 0xFFFFu);
+		UINT generate_menu_item_id(menu::item &target, bool is_system_menu, UINT id = 0u, std::size_t max_tries = 0xFFFFu);
 
 		void add_generated_item_id(menu::item &target);
 

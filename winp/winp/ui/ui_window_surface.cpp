@@ -6,7 +6,7 @@ winp::ui::window_surface::window_surface()
 	: window_surface(app::collection::get_main()->get_thread()){}
 
 winp::ui::window_surface::window_surface(thread::object &thread)
-	: tree(thread){
+	: tree(thread), system_menu_(thread){
 	styles_ = (WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
 	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
 }
@@ -99,6 +99,18 @@ HWND winp::ui::window_surface::get_handle(const std::function<void(HWND)> &callb
 	return compute_or_post_task_inside_thread_context([=]{
 		return pass_return_value_to_callback(callback, get_handle_());
 	}, (callback != nullptr), nullptr);
+}
+
+const winp::ui::window_surface::menu_type & winp::ui::window_surface::get_system_menu(const std::function<void(const menu_type &)> &callback) const{
+	return *compute_or_post_task_inside_thread_context([=]{
+		return &pass_return_ref_value_to_callback(callback, &get_system_menu_());
+	}, (callback != nullptr), &system_menu_);
+}
+
+winp::ui::window_surface::menu_type &winp::ui::window_surface::get_system_menu(const std::function<void(menu_type &)> &callback){
+	return *compute_or_post_task_inside_thread_context([=]{
+		return &pass_return_ref_value_to_callback(callback, &get_system_menu_());
+	}, (callback != nullptr), &system_menu_);
 }
 
 const std::wstring &winp::ui::window_surface::get_class_name(const std::function<void(const std::wstring &)> &callback) const{
@@ -347,6 +359,18 @@ DWORD winp::ui::window_surface::get_persistent_styles_(bool is_extended) const{
 
 DWORD winp::ui::window_surface::get_filtered_styles_(bool is_extended) const{
 	return (is_extended ? 0u : ((parent_ == nullptr) ? WS_CHILD : (WS_CHILD | WS_POPUP)));
+}
+
+const winp::ui::window_surface::menu_type &winp::ui::window_surface::get_system_menu_() const{
+	if (handle_ != nullptr && !system_menu_.is_created())
+		system_menu_.set_handle(GetSystemMenu(handle_, FALSE), true);
+	return system_menu_;
+}
+
+winp::ui::window_surface::menu_type &winp::ui::window_surface::get_system_menu_(){
+	if (handle_ != nullptr && !system_menu_.is_created())
+		system_menu_.set_handle(GetSystemMenu(handle_, FALSE), true);
+	return system_menu_;
 }
 
 HWND winp::ui::window_surface::get_handle_() const{

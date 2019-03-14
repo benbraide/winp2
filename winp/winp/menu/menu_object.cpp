@@ -13,6 +13,12 @@ winp::menu::object::~object(){
 	destruct();
 }
 
+bool winp::menu::object::is_system(const std::function<void(bool)> &callback) const{
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, is_system_());
+	}, (callback != nullptr), false);
+}
+
 HMENU winp::menu::object::get_handle(const std::function<void(HMENU)> &callback) const{
 	return compute_or_post_task_inside_thread_context([=]{
 		return pass_return_value_to_callback(callback, handle_);
@@ -58,6 +64,10 @@ winp::utility::error_code winp::menu::object::set_parent_value_(ui::tree *value,
 
 std::size_t winp::menu::object::get_items_count_before_() const{
 	return 0u;
+}
+
+bool winp::menu::object::is_system_() const{
+	return false;
 }
 
 winp::menu::popup::popup()

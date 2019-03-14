@@ -3,8 +3,15 @@
 
 #include "menu_object_wrapper.h"
 
-winp::menu::popup_wrapper::popup_wrapper(thread::object &thread, HMENU handle)
-	: popup(thread){
+winp::menu::popup_wrapper::popup_wrapper()
+	: popup_wrapper(app::collection::get_main()->get_thread()){}
+
+winp::menu::popup_wrapper::popup_wrapper(thread::object &thread)
+	: popup(thread){}
+
+winp::menu::popup_wrapper::popup_wrapper(thread::object &thread, HMENU handle, bool is_system)
+	: popup_wrapper(thread){
+	is_system_value_ = is_system;
 	resolve_handle_(handle);
 }
 
@@ -12,15 +19,27 @@ winp::menu::popup_wrapper::~popup_wrapper(){
 	destruct();
 }
 
+winp::utility::error_code winp::menu::popup_wrapper::set_handle(HMENU value, bool is_system, const std::function<void(popup_wrapper &, utility::error_code)> &callback){
+	return compute_or_post_task_inside_thread_context([=]{
+		is_system_value_ = is_system;
+		return pass_return_value_to_callback(callback, *this, set_handle_(value));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
 winp::utility::error_code winp::menu::popup_wrapper::create_(){
 	return utility::error_code::not_supported;
 }
 
 winp::utility::error_code winp::menu::popup_wrapper::destroy_(){
+	if (handle_ == nullptr)
+		return utility::error_code::nil;
+	
 	auto items_copy = items_;//Extend items lifetime
-
 	items_.clear();
+
 	handle_ = nullptr;
+	is_system_value_ = false;
+	thread_.get_item_manager().remove_menu(*this);
 
 	return utility::error_code::nil;
 }
@@ -35,10 +54,21 @@ winp::utility::error_code winp::menu::popup_wrapper::do_erase_child_(ui::object 
 	return utility::error_code::nil;
 }
 
+bool winp::menu::popup_wrapper::is_system_() const{
+	return is_system_value_;
+}
+
+winp::utility::error_code winp::menu::popup_wrapper::set_handle_(HMENU value){
+	destroy_();
+	resolve_handle_(value);
+	return utility::error_code::nil;
+}
+
 void winp::menu::popup_wrapper::resolve_handle_(HMENU handle){
-	if (handle == nullptr)
+	if ((handle_ = handle) == nullptr)
 		return;
 
+	thread_.get_item_manager().add_menu(*this);
 	MENUITEMINFOW info{
 		sizeof(MENUITEMINFOW),
 		(MIIM_ID | MIIM_STRING | MIIM_FTYPE | MIIM_STATE | MIIM_BITMAP | MIIM_CHECKMARKS | MIIM_SUBMENU)

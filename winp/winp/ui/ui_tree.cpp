@@ -75,8 +75,8 @@ winp::utility::error_code winp::ui::tree::destruct_(){
 }
 
 winp::utility::error_code winp::ui::tree::insert_child_(object &child, std::size_t index){
-	if (index != static_cast<std::size_t>(-1) && children_.size() <= index)
-		return utility::error_code::index_out_of_range;
+	if (children_.size() < index)
+		index = children_.size();
 
 	if (&child.thread_ != &thread_)
 		return utility::error_code::thread_context_mismatch;
