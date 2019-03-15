@@ -7,9 +7,7 @@ winp::menu::link_item::link_item(thread::object &thread)
 	: item(thread), target_(nullptr){}
 
 winp::menu::link_item::link_item(popup &target)
-	: item(target.get_thread()), target_(&target){
-	target.link_item_ = this;
-}
+	: item(target.get_thread()), target_(&target){}
 
 winp::menu::link_item::link_item(popup &target, tree &parent)
 	: link_item(target, parent, static_cast<std::size_t>(-1)){}
@@ -77,8 +75,4 @@ winp::utility::error_code winp::menu::link_item::set_text_(const std::wstring &v
 	info.cch = static_cast<UINT>(text_.size());
 
 	return ((SetMenuItemInfoW(handle_, id_, FALSE, &info) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
-}
-
-void winp::menu::link_item::set_popup_item_link_(){
-	target_->link_item_ = this;
 }

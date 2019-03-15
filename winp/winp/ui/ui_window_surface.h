@@ -9,7 +9,7 @@
 namespace winp::ui{
 	class window_surface : public tree, public visible_surface{
 	public:
-		using menu_type = object_collection<menu::popup_wrapper>;
+		using menu_type = object_collection<menu::system_popup_wrapper>;
 
 		window_surface();
 

@@ -6,7 +6,7 @@ winp::ui::window_surface::window_surface()
 	: window_surface(app::collection::get_main()->get_thread()){}
 
 winp::ui::window_surface::window_surface(thread::object &thread)
-	: tree(thread), system_menu_(thread){
+	: tree(thread), system_menu_(*this){
 	styles_ = (WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
 	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
 }
@@ -164,10 +164,11 @@ winp::utility::error_code winp::ui::window_surface::destroy_(){
 	if (handle_ == nullptr)
 		return utility::error_code::nil;
 
-	if (DestroyWindow(handle_) == FALSE)
+	if (DestroyWindow(handle_) == FALSE || handle_ != nullptr)
 		return utility::error_code::action_could_not_be_completed;
 
-	return ((handle_ == nullptr) ? utility::error_code::nil : utility::error_code::action_could_not_be_completed);
+	system_menu_.destroy();
+	return utility::error_code::nil;
 }
 
 bool winp::ui::window_surface::is_created_() const{
@@ -363,13 +364,13 @@ DWORD winp::ui::window_surface::get_filtered_styles_(bool is_extended) const{
 
 const winp::ui::window_surface::menu_type &winp::ui::window_surface::get_system_menu_() const{
 	if (handle_ != nullptr && !system_menu_.is_created())
-		system_menu_.set_handle(GetSystemMenu(handle_, FALSE), true);
+		system_menu_.set_handle(GetSystemMenu(handle_, FALSE));
 	return system_menu_;
 }
 
 winp::ui::window_surface::menu_type &winp::ui::window_surface::get_system_menu_(){
 	if (handle_ != nullptr && !system_menu_.is_created())
-		system_menu_.set_handle(GetSystemMenu(handle_, FALSE), true);
+		system_menu_.set_handle(GetSystemMenu(handle_, FALSE));
 	return system_menu_;
 }
 

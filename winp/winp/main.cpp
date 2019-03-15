@@ -26,12 +26,16 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 		return winp::ui::add_result_type::confirm;
 	});
 
-	smn.add_object([](winp::menu::link_item_with_popup &item){
-		item.set_text(L"Link Item");
-		item.create();
+	smn.add_object([](winp::menu::link_item_with_popup &link){
+		link.set_text(L"Link Item");
+		link.create();
 
-		item.add_object([](winp::menu::action_item &item){
+		link.add_object([](winp::menu::action_item &item){
 			item.set_text(L"Link Action Item");
+			item.events().bind([](winp::events::menu_item_select &e){
+				auto &target = e.get_target();
+				auto &context = e.get_context();
+			});
 			return winp::ui::add_result_type::confirm;
 		});
 

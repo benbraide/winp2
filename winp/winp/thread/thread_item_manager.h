@@ -63,7 +63,7 @@ namespace winp::thread{
 
 		void remove_menu(menu::object &owner);
 
-		UINT generate_menu_item_id(menu::item &target, bool is_system_menu, UINT id = 0u, std::size_t max_tries = 0xFFFFu);
+		UINT generate_menu_item_id(menu::item &target, UINT id = 0u, std::size_t max_tries = 0xFFFFu);
 
 		void add_generated_item_id(menu::item &target);
 
@@ -75,6 +75,10 @@ namespace winp::thread{
 		explicit item_manager(object &thread, DWORD thread_id);
 
 		menu::item *find_menu_item_(menu::object &menu, UINT id) const;
+
+		menu::item *find_menu_item_(HMENU handle, UINT id) const;
+
+		menu::item *find_sub_menu_item_(HMENU handle, UINT id) const;
 
 		bool is_dialog_message_(MSG &msg) const;
 

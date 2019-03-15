@@ -14,34 +14,10 @@ winp::menu::object::~object(){
 	destruct();
 }
 
-winp::utility::error_code winp::menu::object::set_system_state(bool is_system, const std::function<void(object &, utility::error_code)> &callback){
-	return compute_or_post_task_inside_thread_context([=]{
-		return pass_return_value_to_callback(callback, *this, set_system_state_(is_system));
-	}, (callback != nullptr), utility::error_code::nil);
-}
-
-bool winp::menu::object::is_system(const std::function<void(bool)> &callback) const{
-	return compute_or_post_task_inside_thread_context([=]{
-		return pass_return_value_to_callback(callback, is_system_());
-	}, (callback != nullptr), false);
-}
-
 HMENU winp::menu::object::get_handle(const std::function<void(HMENU)> &callback) const{
 	return compute_or_post_task_inside_thread_context([=]{
 		return pass_return_value_to_callback(callback, handle_);
 	}, (callback != nullptr), nullptr);
-}
-
-const winp::menu::object &winp::menu::object::get_top_menu(const std::function<void(const object &)> &callback) const{
-	return *compute_or_post_task_inside_thread_context([=]{
-		return &pass_return_ref_value_to_callback(callback, get_top_menu_());
-	}, (callback != nullptr), this);
-}
-
-winp::menu::object &winp::menu::object::get_top_menu(const std::function<void(object &)> &callback){
-	return *compute_or_post_task_inside_thread_context([=]{
-		return &pass_return_ref_value_to_callback(callback, get_top_menu_());
-	}, (callback != nullptr), this);
 }
 
 winp::utility::error_code winp::menu::object::create_(){
@@ -92,55 +68,27 @@ std::size_t winp::menu::object::get_items_count_before_() const{
 	return 0u;
 }
 
-winp::utility::error_code winp::menu::object::set_system_state_(bool is_system){
-	return utility::error_code::not_supported;
-}
+winp::menu::system_object::system_object() = default;
 
-bool winp::menu::object::is_system_() const{
-	return false;
-}
+winp::menu::system_object::system_object(ui::window_surface &target_window)
+	: target_window_(&target_window){}
 
-const winp::menu::object *winp::menu::object::get_top_menu_() const{
-	return this;
-}
+winp::menu::system_object::~system_object() = default;
 
-winp::menu::object *winp::menu::object::get_top_menu_(){
-	return this;
+winp::ui::window_surface *winp::menu::system_object::get_target_window(const std::function<void(ui::window_surface *)> &callback) const{
+	return dynamic_cast<const thread::item *>(this)->compute_or_post_task_inside_thread_context([=]{
+		return dynamic_cast<const thread::item *>(this)->pass_return_value_to_callback(callback, target_window_);
+	}, (callback != nullptr), nullptr);
 }
 
 winp::menu::popup::popup()
 	: popup(app::collection::get_main()->get_thread()){}
 
-winp::menu::popup::popup(bool is_system)
-	: popup(app::collection::get_main()->get_thread(), is_system){}
-
 winp::menu::popup::popup(thread::object &thread)
-	: popup(thread, false){}
-
-winp::menu::popup::popup(thread::object &thread, bool is_system)
-	: object(thread), is_system_value_(is_system){}
+	: object(thread){}
 
 winp::menu::popup::~popup(){
 	destruct();
-}
-
-winp::utility::error_code winp::menu::popup::set_system_state_(bool is_system){
-	is_system_value_ = is_system;
-	return utility::error_code::nil;
-}
-
-bool winp::menu::popup::is_system_() const{
-	return is_system_value_;
-}
-
-const winp::menu::object *winp::menu::popup::get_top_menu_() const{
-	auto link_parent = ((link_item_ == nullptr) ? nullptr : dynamic_cast<object *>(link_item_->get_parent()));
-	return ((link_parent == nullptr) ? this : link_parent->get_top_menu_());
-}
-
-winp::menu::object *winp::menu::popup::get_top_menu_(){
-	auto link_parent = ((link_item_ == nullptr) ? nullptr : dynamic_cast<object *>(link_item_->get_parent()));
-	return ((link_parent == nullptr) ? this : link_parent->get_top_menu_());
 }
 
 HMENU winp::menu::popup::create_handle_(){
@@ -150,6 +98,19 @@ HMENU winp::menu::popup::create_handle_(){
 winp::utility::error_code winp::menu::popup::destroy_handle_(){
 	return (thread_.get_item_manager().destroy_menu(handle_, nullptr) ? utility::error_code::nil : utility::error_code::action_could_not_be_completed);
 }
+
+winp::menu::system_popup::system_popup()
+	: system_popup(app::collection::get_main()->get_thread()){}
+
+winp::menu::system_popup::system_popup(thread::object &thread)
+	: popup(thread){}
+
+winp::menu::system_popup::system_popup(ui::window_surface &target_window)
+	: system_popup(target_window.get_thread()){
+	target_window_ = &target_window;
+}
+
+winp::menu::system_popup::~system_popup() = default;
 
 winp::menu::bar::bar(ui::window_surface &owner)
 	: object(owner.get_thread()), owner_(owner){}

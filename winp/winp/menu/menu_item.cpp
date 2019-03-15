@@ -131,8 +131,8 @@ winp::utility::error_code winp::menu::item::create_(){
 	if (object_parent == nullptr || !object_parent->is_created())
 		return utility::error_code::parent_not_created;
 
-	if ((id_ = thread_.get_item_manager().generate_menu_item_id(*this, object_parent->is_system(), id_)) == 0u)
-		return utility::error_code::action_could_not_be_completed;
+	if (auto error_code = generate_id_(); error_code != utility::error_code::nil)
+		return error_code;
 
 	if ((handle_ = create_handle_(*object_parent)) == nullptr)
 		return utility::error_code::action_could_not_be_completed;
@@ -191,6 +191,12 @@ winp::utility::error_code winp::menu::item::set_index_value_(std::size_t value, 
 	}
 
 	return ui::object::set_index_value_(value, false);
+}
+
+winp::utility::error_code winp::menu::item::generate_id_(){
+	if ((id_ = thread_.get_item_manager().generate_menu_item_id(*this, id_)) == 0u)
+		return utility::error_code::action_could_not_be_completed;
+	return utility::error_code::nil;
 }
 
 UINT winp::menu::item::fill_basic_info_(menu::object &parent, MENUITEMINFOW &info){

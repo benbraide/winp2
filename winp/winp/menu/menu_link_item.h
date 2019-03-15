@@ -34,9 +34,16 @@ namespace winp::menu{
 
 		virtual utility::error_code set_text_(const std::wstring &value);
 
-		virtual void set_popup_item_link_();
-
 		popup *target_;
 		std::wstring text_;
+	};
+
+	class system_link_item : public link_item{
+	public:
+		template <typename... args_types>
+		explicit system_link_item(args_types &&... args)
+			: link_item(std::forward<args_types>(args)...){}
+
+		virtual ~system_link_item() = default;
 	};
 }

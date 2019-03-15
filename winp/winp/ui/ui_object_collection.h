@@ -17,6 +17,8 @@ namespace winp::ui{
 		explicit object_collection(args_types &&... args)
 			: base_type(std::forward<args_types>(args)...){}
 
+		virtual ~object_collection() = default;
+
 		template <typename callback_type, typename... args_types>
 		auto add_object(const callback_type &callback, args_types &&... args){
 			return base_type::compute_task_inside_thread_context([&]{

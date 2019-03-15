@@ -9,9 +9,8 @@ winp::menu::popup_wrapper::popup_wrapper()
 winp::menu::popup_wrapper::popup_wrapper(thread::object &thread)
 	: popup(thread){}
 
-winp::menu::popup_wrapper::popup_wrapper(thread::object &thread, HMENU handle, bool is_system)
+winp::menu::popup_wrapper::popup_wrapper(thread::object &thread, HMENU handle)
 	: popup_wrapper(thread){
-	is_system_value_ = is_system;
 	resolve_handle_(handle);
 }
 
@@ -19,9 +18,9 @@ winp::menu::popup_wrapper::~popup_wrapper(){
 	destruct();
 }
 
-winp::utility::error_code winp::menu::popup_wrapper::set_handle(HMENU value, bool is_system, const std::function<void(popup_wrapper &, utility::error_code)> &callback){
+winp::utility::error_code winp::menu::popup_wrapper::set_handle(HMENU value, const std::function<void(popup_wrapper &, utility::error_code)> &callback){
 	return compute_or_post_task_inside_thread_context([=]{
-		return pass_return_value_to_callback(callback, *this, set_handle_(value, is_system));
+		return pass_return_value_to_callback(callback, *this, set_handle_(value));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
@@ -37,7 +36,6 @@ winp::utility::error_code winp::menu::popup_wrapper::destroy_(){
 	items_.clear();
 
 	handle_ = nullptr;
-	is_system_value_ = false;
 	thread_.get_item_manager().remove_menu(*this);
 
 	return utility::error_code::nil;
@@ -53,9 +51,8 @@ winp::utility::error_code winp::menu::popup_wrapper::do_erase_child_(ui::object 
 	return utility::error_code::nil;
 }
 
-winp::utility::error_code winp::menu::popup_wrapper::set_handle_(HMENU value, bool is_system){
+winp::utility::error_code winp::menu::popup_wrapper::set_handle_(HMENU value){
 	destroy_();
-	is_system_value_ = is_system;
 	resolve_handle_(value);
 	return utility::error_code::nil;
 }
@@ -77,14 +74,45 @@ void winp::menu::popup_wrapper::resolve_handle_(HMENU handle){
 		if (GetMenuItemInfoW(handle, index, TRUE, &info) == FALSE)
 			continue;
 
-		if (info.hSubMenu != nullptr)
-			item = std::make_shared<menu::link_item_wrapper>(*this, index, info);
-		else if ((info.fType & MFT_SEPARATOR) == 0u)
-			item = std::make_shared<menu::action_item_wrapper>(*this, index, info);
-		else//Separator
-			item = std::make_shared<menu::separator_wrapper>(*this, index, info);
-
-		if (item != nullptr)
+		if ((item = create_item_(info, index)) != nullptr)
 			items_[item.get()] = item;
 	}
+}
+
+std::shared_ptr<winp::menu::item> winp::menu::popup_wrapper::create_item_(const MENUITEMINFOW &info, UINT index){
+	if (info.hSubMenu != nullptr)
+		return std::make_shared<menu::link_item_wrapper>(*this, index, info);
+
+	if ((info.fType & MFT_SEPARATOR) == 0u)
+		return std::make_shared<menu::action_item_wrapper>(*this, index, info);
+	
+	return std::make_shared<menu::separator_wrapper>(*this, index, info);
+}
+
+winp::menu::system_popup_wrapper::system_popup_wrapper()
+	: system_popup_wrapper(app::collection::get_main()->get_thread()){}
+
+winp::menu::system_popup_wrapper::system_popup_wrapper(thread::object &thread)
+	: popup_wrapper(thread){}
+
+winp::menu::system_popup_wrapper::system_popup_wrapper(thread::object &thread, HMENU handle)
+	: system_popup_wrapper(thread){
+	resolve_handle_(handle);
+}
+
+winp::menu::system_popup_wrapper::system_popup_wrapper(ui::window_surface &target_window)
+	: system_popup_wrapper(target_window.get_thread()){
+	resolve_handle_(GetSystemMenu((target_window_ = &target_window)->get_handle(), FALSE));
+}
+
+winp::menu::system_popup_wrapper::~system_popup_wrapper() = default;
+
+std::shared_ptr<winp::menu::item> winp::menu::system_popup_wrapper::create_item_(const MENUITEMINFOW &info, UINT index){
+	if (info.hSubMenu != nullptr)
+		return std::make_shared<menu::system_link_item_wrapper>(*this, index, info);
+
+	if ((info.fType & MFT_SEPARATOR) == 0u)
+		return std::make_shared<menu::system_action_item_wrapper>(*this, index, info);
+
+	return std::make_shared<menu::system_separator_wrapper>(*this, index, info);
 }

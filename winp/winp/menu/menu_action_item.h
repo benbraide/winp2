@@ -28,4 +28,13 @@ namespace winp::menu{
 
 		std::wstring text_;
 	};
+
+	class system_action_item : public action_item{
+	public:
+		template <typename... args_types>
+		explicit system_action_item(args_types &&... args)
+			: action_item(std::forward<args_types>(args)...){}
+
+		virtual ~system_action_item() = default;
+	};
 }
