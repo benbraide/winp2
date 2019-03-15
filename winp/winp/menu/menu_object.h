@@ -7,6 +7,9 @@ namespace winp::ui{
 }
 
 namespace winp::menu{
+	class link_item;
+	class popup;
+
 	class object : public tree, public ui::surface{
 	public:
 		object();
@@ -21,7 +24,13 @@ namespace winp::menu{
 
 		virtual HMENU get_handle(const std::function<void(HMENU)> &callback = nullptr) const;
 
+		virtual const object &get_top_menu(const std::function<void(const object &)> &callback = nullptr) const;
+
+		virtual object &get_top_menu(const std::function<void(object &)> &callback = nullptr);
+
 	protected:
+		friend class popup;
+
 		virtual utility::error_code create_() override;
 
 		virtual utility::error_code destroy_() override;
@@ -35,6 +44,10 @@ namespace winp::menu{
 		virtual utility::error_code set_system_state_(bool is_system);
 
 		virtual bool is_system_() const;
+
+		virtual const object *get_top_menu_() const;
+
+		virtual object *get_top_menu_();
 
 		virtual HMENU create_handle_() = 0;
 
@@ -56,15 +69,22 @@ namespace winp::menu{
 		virtual ~popup();
 
 	protected:
+		friend class link_item;
+
 		virtual utility::error_code set_system_state_(bool is_system) override;
 
 		virtual bool is_system_() const override;
+
+		virtual const object *get_top_menu_() const override;
+
+		virtual object *get_top_menu_() override;
 
 		virtual HMENU create_handle_() override;
 
 		virtual utility::error_code destroy_handle_() override;
 
 		bool is_system_value_ = false;
+		link_item *link_item_ = nullptr;
 	};
 
 	class bar : public object{

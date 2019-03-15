@@ -114,14 +114,18 @@ winp::menu::item *winp::menu::tree::find_item_(UINT id) const{
 }
 
 winp::menu::item *winp::menu::tree::get_item_at_(std::size_t index) const{
-	if (children_.size() <= index)
-		return nullptr;
+	menu::item *target_item = nullptr;
+	traverse_items_([&](menu::item &item){
+		if (index == 0u){//Target reached
+			target_item = &item;
+			return false;
+		}
 
-	auto child = *std::next(children_.begin(), index);
-	if (auto tree_child = dynamic_cast<tree *>(child); tree_child != nullptr)
-		return tree_child->get_item_at_(0u);
+		--index;
+		return true;
+	});
 
-	return dynamic_cast<menu::item *>(child);
+	return target_item;
 }
 
 UINT winp::menu::tree::get_states_(std::size_t index) const{

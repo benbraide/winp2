@@ -8,6 +8,7 @@ winp::menu::link_item_with_popup::link_item_with_popup()
 winp::menu::link_item_with_popup::link_item_with_popup(thread::object &thread)
 	: link_item(thread){
 	target_ = (popup_ = std::make_shared<ui::object_collection<menu::popup>>(thread)).get();
+	set_popup_item_link_();
 }
 
 winp::menu::link_item_with_popup::link_item_with_popup(tree &parent)

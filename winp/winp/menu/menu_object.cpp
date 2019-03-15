@@ -2,6 +2,7 @@
 #include "../app/app_collection.h"
 
 #include "menu_object.h"
+#include "menu_link_item.h"
 
 winp::menu::object::object() 
 	: object(app::collection::get_main()->get_thread()){}
@@ -31,6 +32,18 @@ HMENU winp::menu::object::get_handle(const std::function<void(HMENU)> &callback)
 	}, (callback != nullptr), nullptr);
 }
 
+const winp::menu::object &winp::menu::object::get_top_menu(const std::function<void(const object &)> &callback) const{
+	return *compute_or_post_task_inside_thread_context([=]{
+		return &pass_return_ref_value_to_callback(callback, get_top_menu_());
+	}, (callback != nullptr), this);
+}
+
+winp::menu::object &winp::menu::object::get_top_menu(const std::function<void(object &)> &callback){
+	return *compute_or_post_task_inside_thread_context([=]{
+		return &pass_return_ref_value_to_callback(callback, get_top_menu_());
+	}, (callback != nullptr), this);
+}
+
 winp::utility::error_code winp::menu::object::create_(){
 	if (handle_ != nullptr)
 		return utility::error_code::nil;
@@ -42,6 +55,13 @@ winp::utility::error_code winp::menu::object::create_(){
 		destroy_();
 		return utility::error_code::action_prevented;
 	}
+
+	MENUINFO info{
+		sizeof(MENUINFO),
+		MIM_STYLE,
+		MNS_NOTIFYBYPOS
+	};
+	SetMenuInfo(handle_, &info);
 
 	return utility::error_code::nil;
 }
@@ -80,6 +100,14 @@ bool winp::menu::object::is_system_() const{
 	return false;
 }
 
+const winp::menu::object *winp::menu::object::get_top_menu_() const{
+	return this;
+}
+
+winp::menu::object *winp::menu::object::get_top_menu_(){
+	return this;
+}
+
 winp::menu::popup::popup()
 	: popup(app::collection::get_main()->get_thread()){}
 
@@ -103,6 +131,16 @@ winp::utility::error_code winp::menu::popup::set_system_state_(bool is_system){
 
 bool winp::menu::popup::is_system_() const{
 	return is_system_value_;
+}
+
+const winp::menu::object *winp::menu::popup::get_top_menu_() const{
+	auto link_parent = ((link_item_ == nullptr) ? nullptr : dynamic_cast<object *>(link_item_->get_parent()));
+	return ((link_parent == nullptr) ? this : link_parent->get_top_menu_());
+}
+
+winp::menu::object *winp::menu::popup::get_top_menu_(){
+	auto link_parent = ((link_item_ == nullptr) ? nullptr : dynamic_cast<object *>(link_item_->get_parent()));
+	return ((link_parent == nullptr) ? this : link_parent->get_top_menu_());
 }
 
 HMENU winp::menu::popup::create_handle_(){

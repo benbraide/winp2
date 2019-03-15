@@ -118,6 +118,10 @@ namespace winp::thread{
 
 		LRESULT menu_select_(item &target, MSG &msg);
 
+		LRESULT menu_command_(item &target, MSG &msg);
+
+		LRESULT system_command_(item &target, MSG &msg);
+
 		static bool menu_item_id_is_reserved_(UINT id);
 
 		static HCURSOR get_default_cursor_(const MSG &msg);

@@ -34,6 +34,8 @@ namespace winp::menu{
 
 		virtual utility::error_code set_text_(const std::wstring &value);
 
+		virtual void set_popup_item_link_();
+
 		popup *target_;
 		std::wstring text_;
 	};

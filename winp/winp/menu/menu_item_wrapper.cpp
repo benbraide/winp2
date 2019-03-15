@@ -71,6 +71,8 @@ void winp::menu::action_item_wrapper::resolve_info_(menu::object &parent, UINT i
 winp::menu::link_item_wrapper::link_item_wrapper(menu::object &parent, std::size_t index, const MENUITEMINFOW &info)
 	: link_item(parent.get_thread()){
 	target_ = (popup_ = std::make_shared<ui::object_collection<menu::popup_wrapper>>(thread_)).get();
+	set_popup_item_link_();
+
 	set_parent(&parent, index);
 	resolve_info_(parent, static_cast<UINT>(index), info);
 }

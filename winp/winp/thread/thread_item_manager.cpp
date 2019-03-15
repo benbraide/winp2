@@ -94,7 +94,7 @@ UINT winp::thread::item_manager::generate_menu_item_id(menu::item &target, bool 
 	if (menu_object_parent == nullptr || menu_object_parent->get_handle() == nullptr)
 		return 0u;
 
-	auto it = menu_items_.find(menu_object_parent->get_handle());
+	auto it = (is_system_menu ? menu_items_.find(menu_object_parent->get_top_menu().get_handle()) : menu_items_.find(menu_object_parent->get_handle()));
 	if (it == menu_items_.end())
 		return 0u;
 
@@ -270,6 +270,10 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return trigger_event_<events::menu_item_check>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
 	case WINP_WM_MENU_ITEM_HIGHLIGHT:
 		return trigger_event_<events::menu_item_highlight>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+	case WM_MENUCOMMAND:
+		return menu_command_(target, msg);
+	case WM_SYSCOMMAND:
+		return system_command_(target, msg);
 	default:
 		break;
 	}
@@ -434,12 +438,45 @@ LRESULT winp::thread::item_manager::menu_select_(item &target, MSG &msg){
 	else if ((flags & MF_SYSMENU) == 0u)
 		menu_item_target = find_menu_item_(*menu->second, static_cast<UINT>(msg.wParam));
 	else//System menu item
-		menu_item_target = find_menu_item_(*menu->second, (static_cast<UINT>(msg.wParam) & 0xFFF0u));
+		menu_item_target = find_menu_item_(menu->second->get_top_menu(), (static_cast<UINT>(msg.wParam) & 0xFFF0u));
 
 	if (menu_item_target == nullptr)
 		return trigger_event_<events::unhandled>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
 
 	return trigger_event_<events::menu_item_highlight>(*menu_item_target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+}
+
+LRESULT winp::thread::item_manager::menu_command_(item &target, MSG &msg){
+	auto window_target = dynamic_cast<ui::window_surface *>(&target);
+
+	auto menu = menus_.find(reinterpret_cast<HMENU>(msg.lParam));
+	if (menu == menus_.end())
+		return trigger_event_<events::unhandled>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+
+	auto menu_item_target = menu->second->get_item_at(static_cast<UINT>(msg.wParam));
+	if (menu_item_target == nullptr)
+		return trigger_event_<events::unhandled>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+
+	return trigger_event_<events::menu_item_select>(*menu_item_target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+}
+
+LRESULT winp::thread::item_manager::system_command_(item &target, MSG &msg){
+	auto window_target = dynamic_cast<ui::window_surface *>(&target);
+	if (window_target == nullptr)
+		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
+
+	if (msg.lParam == -1 || msg.lParam == 0)//Accelerator or mnemonic
+		return trigger_event_<events::unhandled>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+
+	auto menu = menus_.find(GetSystemMenu(window_target->handle_, FALSE));
+	if (menu == menus_.end())
+		return trigger_event_<events::unhandled>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+
+	auto menu_item_target = find_menu_item_(*menu->second, (static_cast<UINT>(msg.wParam) & 0xFFF0u));
+	if (menu_item_target == nullptr)
+		return trigger_event_<events::unhandled>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+
+	return trigger_event_<events::menu_item_select>(*menu_item_target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
 }
 
 bool winp::thread::item_manager::menu_item_id_is_reserved_(UINT id){
