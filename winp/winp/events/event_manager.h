@@ -11,6 +11,8 @@ namespace winp::events{
 	class handler_base{
 	public:
 		virtual void call(object &object) const = 0;
+
+		virtual const std::type_info *get_type_info() const = 0;
 	};
 
 	template <class object_type>
@@ -24,6 +26,10 @@ namespace winp::events{
 
 		virtual void call(object &object) const override{
 			callback_(dynamic_cast<std::remove_cv_t<std::remove_reference_t<m_object_type>> &>(object));
+		}
+
+		virtual const std::type_info *get_type_info() const override{
+			return &typeid(object_type);
 		}
 
 	private:
@@ -42,6 +48,7 @@ namespace winp::events{
 
 		using list_type = std::list<handler_info>;
 		using map_type = std::unordered_map<const std::type_info *, list_type>;
+		using change_map_type = std::unordered_map<const std::type_info *, std::list<std::function<void(std::size_t, std::size_t)>>>;
 
 		explicit manager(m_owner_type &owner)
 			: owner_(owner){}
@@ -88,7 +95,12 @@ namespace winp::events{
 				id,
 				std::make_shared<events::handler<object_type &>>(handler)
 			});
+
 			++count_;
+			if (auto it = change_handlers_.find(&typeid(object_type)); it != change_handlers_.end()){//Call handlers
+				for (auto &handler : it->second)
+					handler(handlers_.size(), (handlers_.size() - 1u));
+			}
 
 			return id;
 		}
@@ -96,11 +108,18 @@ namespace winp::events{
 		template <typename object_type>
 		unsigned __int64 bind_(const std::function<void(const object_type &)> &handler){
 			unsigned __int64 id = random_generator_;
-			handlers_[&typeid(object_type)].push_back(handler_info{
+			auto &list = handlers_[&typeid(object_type)];
+
+			list.push_back(handler_info{
 				id,
 				std::make_shared<events::handler<const object_type &>>(handler)
 			});
+
 			++count_;
+			if (auto it = change_handlers_.find(&typeid(object_type)); it != change_handlers_.end()){//Call handlers
+				for (auto &handler : it->second)
+					handler(list.size(), (list.size() - 1u));
+			}
 
 			return id;
 		}
@@ -111,11 +130,18 @@ namespace winp::events{
 
 			for (auto &info : handlers_){
 				for (auto it = info.second.begin(); it != info.second.end(); ++it){
-					if (it->id == id){//Handler found
-						info.second.erase(it);
-						--count_;
-						return;
+					if (it->id != id)
+						continue;
+
+					info.second.erase(it);
+					--count_;
+
+					if (auto it = change_handlers_.find(info.first); it != change_handlers_.end()){//Call handlers
+						for (auto &handler : it->second)
+							handler(info.second.size(), (info.second.size() + 1u));
 					}
+
+					return;
 				}
 			}
 		}
@@ -133,9 +159,17 @@ namespace winp::events{
 			}
 		}
 
+		template <typename object_type>
+		void add_change_handler_(const std::function<void(std::size_t, std::size_t)> &handler){
+			change_handlers_[&typeid(object_type)].push_back(handler);
+		}
+
 		m_owner_type &owner_;
-		map_type handlers_;
 		std::size_t count_ = 0u;
+
+		map_type handlers_;
+		change_map_type change_handlers_;
+		
 		utility::random_integral_number_generator random_generator_;
 	};
 }

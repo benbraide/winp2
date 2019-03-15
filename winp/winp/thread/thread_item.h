@@ -123,6 +123,11 @@ namespace winp::thread{
 
 		virtual utility::error_code destruct_();
 
+		template <typename event_type>
+		void add_event_change_handler_(const std::function<void(std::size_t, std::size_t)> &handler){
+			events_manager_.add_change_handler_<event_type>(handler);
+		}
+
 		template <typename handler_type>
 		unsigned __int64 add_event_handler_(const handler_type &handler){
 			return event_handlers_.bind(handler);
