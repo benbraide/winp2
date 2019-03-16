@@ -414,7 +414,11 @@ winp::utility::error_code winp::events::paint::begin_(){
 		return utility::error_code::action_could_not_be_completed;
 
 	auto window_context = dynamic_cast<ui::window_surface *>(context_);
-	if ((states_ & state_default_done) != 0u || window_context == nullptr){
+	if (message_.message == WM_PRINTCLIENT){
+		info_.hdc = reinterpret_cast<HDC>(message_.wParam);
+		GetClipBox(info_.hdc, &info_.rcPaint);
+	}
+	else if ((states_ & state_default_done) != 0u || window_context == nullptr){
 		if ((info_.hdc = GetDC(original_message_.hwnd)) == nullptr)
 			return utility::error_code::action_could_not_be_completed;
 		info_.rcPaint = target_.get_thread().get_item_manager().get_update_rect();

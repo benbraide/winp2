@@ -452,8 +452,12 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 	auto object_context = dynamic_cast<ui::object *>(&context);
 	auto window_context = dynamic_cast<ui::window_surface *>(&context);
 
-	if (window_context != nullptr && msg.hwnd != nullptr)
-		GetUpdateRect(msg.hwnd, &update_rect_, FALSE);
+	if (window_context != nullptr && msg.hwnd != nullptr){
+		if (msg.message == WM_PRINTCLIENT)
+			GetClipBox(reinterpret_cast<HDC>(msg.wParam), &update_rect_);
+		else//Paint
+			GetUpdateRect(msg.hwnd, &update_rect_, FALSE);
+	}
 	else if (window_context == nullptr && (!visible_context->is_visible() || (object_context != nullptr && !object_context->is_created())))
 		return 0;//Surface is not visible
 
@@ -583,6 +587,9 @@ LRESULT winp::thread::item_manager::context_menu_(item &target, MSG &msg){
 	if (window_target == nullptr)
 		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
 
+	active_context_menu_object_ = nullptr;
+	active_context_menu_ = nullptr;
+
 	auto actual_target = find_window_(reinterpret_cast<HWND>(msg.wParam), false);
 	auto &event_target = ((actual_target == nullptr) ? target : *actual_target);
 
@@ -600,8 +607,6 @@ LRESULT winp::thread::item_manager::context_menu_(item &target, MSG &msg){
 		auto menu = menus_.find(handle);
 		if (menu != menus_.end())
 			active_context_menu_object_ = menu->second;
-		else
-			active_context_menu_object_ = nullptr;
 
 		if (position.x == -1 && position.y == -1){//Retrieve position
 			auto value = thread_.send_message(target, WINP_WM_GET_CONTEXT_MENU_POSITION, 0, msg.lParam);
@@ -651,8 +656,7 @@ LRESULT winp::thread::item_manager::menu_init_(item &target, MSG &msg){
 	MSG init_msg{ msg.hwnd, WINP_WM_INIT_MENU_ITEM };
 	active_context_menu_object_->traverse_all_items([&](menu::item &item){
 		if (dynamic_cast<menu::separator *>(&item) == nullptr){
-			auto result_info = trigger_event_with_target_and_value_<events::menu_init_item>(*active_context_menu_object_, item, TRUE, init_msg, nullptr);
-			if ((result_info.first & events::object::state_default_prevented) != 0u || result_info.second == FALSE)
+			if (get_result_(trigger_event_with_target_and_value_<events::menu_init_item>(*active_context_menu_object_, item, TRUE, init_msg, nullptr), FALSE) == FALSE)
 				item.set_enabled_state(false);
 			else
 				item.set_enabled_state(true);
