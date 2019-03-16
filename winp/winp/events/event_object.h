@@ -382,6 +382,29 @@ namespace winp::events{
 		bool began_paint_ = false;
 	};
 
+	class owner_draw : public draw{
+	public:
+		template <typename... args_types>
+		explicit owner_draw(args_types &&... args)
+			: draw(std::forward<args_types>(args)...){}
+
+		virtual ~owner_draw();
+
+	protected:
+		virtual bool should_call_call_default_() const override;
+
+		virtual utility::error_code begin_() override;
+
+		virtual void end_() override;
+	};
+
+	class measure_item : public object_with_message{
+	public:
+		template <typename... args_types>
+		explicit measure_item(args_types &&... args)
+			: object_with_message(std::forward<args_types>(args)...){}
+	};
+
 	class mouse : public object_with_message{
 	public:
 		template <typename... args_types>

@@ -440,6 +440,26 @@ void winp::events::paint::end_(){
 		ReleaseDC(original_message_.hwnd, info_.hdc);
 }
 
+winp::events::owner_draw::~owner_draw(){
+	end();
+}
+
+bool winp::events::owner_draw::should_call_call_default_() const{
+	return false;
+}
+
+winp::utility::error_code winp::events::owner_draw::begin_(){
+	if (original_message_.message == WM_DRAWITEM){
+		auto info = reinterpret_cast<DRAWITEMSTRUCT *>(original_message_.lParam);
+		info_.hdc = info->hDC;
+		info_.rcPaint = info->rcItem;
+	}
+
+	return utility::error_code::nil;
+}
+
+void winp::events::owner_draw::end_(){}
+
 bool winp::events::mouse::is_non_client() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
