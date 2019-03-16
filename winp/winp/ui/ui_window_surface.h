@@ -9,7 +9,9 @@
 namespace winp::ui{
 	class window_surface : public tree, public visible_surface{
 	public:
-		using menu_type = object_collection<menu::system_popup_wrapper>;
+		using system_menu_type = object_collection<menu::system_popup_wrapper>;
+		using popup_menu_type = object_collection<menu::popup>;
+		using bar_menu_type = object_collection<menu::bar>;
 
 		window_surface();
 
@@ -49,9 +51,11 @@ namespace winp::ui{
 
 		virtual HWND get_handle(const std::function<void(HWND)> &callback = nullptr) const;
 
-		virtual const menu_type &get_system_menu(const std::function<void(const menu_type &)> &callback = nullptr) const;
+		virtual system_menu_type &get_system_menu(const std::function<void(const system_menu_type &)> &callback = nullptr) const;
 
-		virtual menu_type &get_system_menu(const std::function<void(menu_type &)> &callback = nullptr);
+		virtual popup_menu_type &get_context_menu(const std::function<void(const popup_menu_type &)> &callback = nullptr) const;
+
+		virtual bar_menu_type &get_menu_bar(const std::function<void(const bar_menu_type &)> &callback = nullptr) const;
 
 		virtual const std::wstring &get_class_name(const std::function<void(const std::wstring &)> &callback = nullptr) const;
 
@@ -116,9 +120,11 @@ namespace winp::ui{
 
 		virtual HWND get_handle_() const;
 
-		virtual const menu_type &get_system_menu_() const;
+		virtual system_menu_type &get_system_menu_() const;
 
-		virtual menu_type &get_system_menu_();
+		virtual popup_menu_type &get_context_menu_() const;
+
+		virtual bar_menu_type &get_menu_bar_() const;
 
 		virtual const std::wstring &get_class_name_() const;
 
@@ -134,6 +140,8 @@ namespace winp::ui{
 		DWORD styles_ = 0;
 		DWORD extended_styles_ = 0;
 
-		mutable menu_type system_menu_;
+		mutable system_menu_type system_menu_;
+		mutable popup_menu_type context_menu_;
+		mutable bar_menu_type menu_bar_;
 	};
 }

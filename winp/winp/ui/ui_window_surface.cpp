@@ -6,9 +6,20 @@ winp::ui::window_surface::window_surface()
 	: window_surface(app::collection::get_main()->get_thread()){}
 
 winp::ui::window_surface::window_surface(thread::object &thread)
-	: tree(thread), system_menu_(*this){
+	: tree(thread), system_menu_(*this), context_menu_(thread), menu_bar_(*this){
 	styles_ = (WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
 	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
+
+	add_event_handler_([this](events::get_context_menu_handle &e){
+		auto &position = e.get_position();
+		if ((position.x == -1 && position.y == -1) || absolute_hit_test_(position.x, position.y) == HTCLIENT)
+			e.set_result_if_not_set(context_menu_.get_handle());
+	});
+
+	add_event_handler_([this](events::get_context_menu_position &e){
+		auto position = convert_position_to_absolute_value_(0, 0);
+		e.set_result_if_not_set(MAKELONG(position.x, position.y));
+	});
 }
 
 winp::ui::window_surface::window_surface(tree &parent)
@@ -101,16 +112,22 @@ HWND winp::ui::window_surface::get_handle(const std::function<void(HWND)> &callb
 	}, (callback != nullptr), nullptr);
 }
 
-const winp::ui::window_surface::menu_type & winp::ui::window_surface::get_system_menu(const std::function<void(const menu_type &)> &callback) const{
+winp::ui::window_surface::system_menu_type &winp::ui::window_surface::get_system_menu(const std::function<void(const system_menu_type &)> &callback) const{
 	return *compute_or_post_task_inside_thread_context([=]{
 		return &pass_return_ref_value_to_callback(callback, &get_system_menu_());
 	}, (callback != nullptr), &system_menu_);
 }
 
-winp::ui::window_surface::menu_type &winp::ui::window_surface::get_system_menu(const std::function<void(menu_type &)> &callback){
+winp::ui::window_surface::popup_menu_type &winp::ui::window_surface::get_context_menu(const std::function<void(const popup_menu_type &)> &callback) const{
 	return *compute_or_post_task_inside_thread_context([=]{
-		return &pass_return_ref_value_to_callback(callback, &get_system_menu_());
-	}, (callback != nullptr), &system_menu_);
+		return &pass_return_ref_value_to_callback(callback, &get_context_menu_());
+	}, (callback != nullptr), &context_menu_);
+}
+
+winp::ui::window_surface::bar_menu_type &winp::ui::window_surface::get_menu_bar(const std::function<void(const bar_menu_type &)> &callback) const{
+	return *compute_or_post_task_inside_thread_context([=]{
+		return &pass_return_ref_value_to_callback(callback, &get_menu_bar_());
+	}, (callback != nullptr), &menu_bar_);
 }
 
 const std::wstring &winp::ui::window_surface::get_class_name(const std::function<void(const std::wstring &)> &callback) const{
@@ -362,16 +379,18 @@ DWORD winp::ui::window_surface::get_filtered_styles_(bool is_extended) const{
 	return (is_extended ? 0u : ((parent_ == nullptr) ? WS_CHILD : (WS_CHILD | WS_POPUP)));
 }
 
-const winp::ui::window_surface::menu_type &winp::ui::window_surface::get_system_menu_() const{
+winp::ui::window_surface::system_menu_type &winp::ui::window_surface::get_system_menu_() const{
 	if (handle_ != nullptr && !system_menu_.is_created())
 		system_menu_.set_handle(GetSystemMenu(handle_, FALSE));
 	return system_menu_;
 }
 
-winp::ui::window_surface::menu_type &winp::ui::window_surface::get_system_menu_(){
-	if (handle_ != nullptr && !system_menu_.is_created())
-		system_menu_.set_handle(GetSystemMenu(handle_, FALSE));
-	return system_menu_;
+winp::ui::window_surface::popup_menu_type &winp::ui::window_surface::get_context_menu_() const{
+	return context_menu_;
+}
+
+winp::ui::window_surface::bar_menu_type &winp::ui::window_surface::get_menu_bar_() const{
+	return menu_bar_;
 }
 
 HWND winp::ui::window_surface::get_handle_() const{

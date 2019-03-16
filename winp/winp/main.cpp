@@ -84,12 +84,27 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 	});
 
 	ws.events().bind([&](winp::events::close &e){
-		if (!rand)
-			e.prevent_default();
+		//if (!rand)
+			//e.prevent_default();
 	});
 
 	ws.events().bind([&](winp::events::mouse_leave &e){
 		e.prevent_default();
+	});
+
+	ws.events().bind([&](winp::events::allow_context_menu &e){
+		e.set_result(true);
+	});
+
+	ws.events().bind([&](winp::events::context_menu &e){
+		e.get_popup().add_object([&](winp::menu::action_item &item){
+			if (&e.get_target() == &wsc)
+				item.set_text(L"Child Context Menu Action Item");
+			else
+				item.set_text(L"Context Menu Action Item");
+
+			return winp::ui::add_result_type::confirm;
+		});
 	});
 
 	wsc.events().bind([&](winp::events::mouse_leave &e){

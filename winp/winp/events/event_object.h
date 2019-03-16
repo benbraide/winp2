@@ -11,6 +11,13 @@ namespace winp::thread{
 namespace winp::ui{
 	class object;
 	class tree;
+
+	template <class base_type>
+	class object_collection;
+}
+
+namespace winp::menu{
+	class popup;
 }
 
 namespace winp::events{
@@ -33,22 +40,30 @@ namespace winp::events{
 		virtual thread::item &get_context();
 
 		template <typename result_type>
-		void set_result(const result_type &result){
+		void set_result(result_type result){
 			if (!is_thread_context())
 				throw utility::error_code::outside_thread_context;
 
-			states_ |= state_result_set;
-			result_ = result;
+			if ((states_ & state_doing_default) == 0u)
+				states_ |= state_result_set;
+			else
+				states_ |= state_default_result_set;
+
+			result_ = (LRESULT)result;
 		}
 
 		template <typename result_type>
-		void set_result_if_not_set(const result_type &result){
+		void set_result_if_not_set(result_type result){
 			if (!is_thread_context())
 				throw utility::error_code::outside_thread_context;
 
 			if ((states_ & state_result_set) == 0u){
-				states_ |= state_result_set;
-				result_ = result;
+				if ((states_ & state_doing_default) == 0u)
+					states_ |= state_result_set;
+				else
+					states_ |= state_default_result_set;
+
+				result_ = (LRESULT)result;
 			}
 		}
 
@@ -581,5 +596,58 @@ namespace winp::events{
 			: menu(std::forward<args_types>(args)...){}
 
 		virtual bool is_checked() const;
+	};
+
+	class menu_init_item : public menu{
+	public:
+		template <typename... args_types>
+		explicit menu_init_item(args_types &&... args)
+			: menu(std::forward<args_types>(args)...){}
+	};
+
+	class context_menu_base : public object_with_message{
+	public:
+		template <typename... args_types>
+		explicit context_menu_base(args_types &&... args)
+			: object_with_message(std::forward<args_types>(args)...){
+			position_ = POINT{ GET_X_LPARAM(original_message_.lParam), GET_Y_LPARAM(original_message_.lParam) };
+		}
+
+		virtual const POINT &get_position() const;
+
+	protected:
+		virtual bool should_call_call_default_() const override;
+
+		POINT position_{};
+	};
+
+	class get_context_menu_position : public context_menu_base{
+	public:
+		template <typename... args_types>
+		explicit get_context_menu_position(args_types &&... args)
+			: context_menu_base(std::forward<args_types>(args)...){}
+	};
+
+	class get_context_menu_handle : public context_menu_base{
+	public:
+		template <typename... args_types>
+		explicit get_context_menu_handle(args_types &&... args)
+			: context_menu_base(std::forward<args_types>(args)...){}
+	};
+
+	class allow_context_menu : public context_menu_base{
+	public:
+		template <typename... args_types>
+		explicit allow_context_menu(args_types &&... args)
+			: context_menu_base(std::forward<args_types>(args)...){}
+	};
+
+	class context_menu : public context_menu_base{
+	public:
+		template <typename... args_types>
+		explicit context_menu(args_types &&... args)
+			: context_menu_base(std::forward<args_types>(args)...){}
+
+		virtual ui::object_collection<winp::menu::popup> &get_popup() const;
 	};
 }

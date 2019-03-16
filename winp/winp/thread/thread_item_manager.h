@@ -1,6 +1,6 @@
 #pragma once
 
-#include "thread_item.h"
+#include "../ui/ui_object_collection.h"
 
 #define WINP_WM_SEND_MESSAGE					(WM_APP + 0x00)
 #define WINP_WM_POST_MESSAGE					(WM_APP + 0x01)
@@ -11,6 +11,12 @@
 #define WINP_WM_MENU_ITEM_CHECK					(WM_APP + 0x04)
 #define WINP_WM_MENU_ITEM_HIGHLIGHT				(WM_APP + 0x05)
 
+#define WINP_WM_GET_CONTEXT_MENU_POSITION		(WM_APP + 0x06)
+#define WINP_WM_GET_CONTEXT_MENU_HANDLE			(WM_APP + 0x07)
+#define WINP_WM_ALLOW_CONTEXT_MENU				(WM_APP + 0x08)
+
+#define WINP_WM_INIT_MENU_ITEM					(WM_APP + 0x09)
+
 namespace winp::ui{
 	class interactive_surface;
 	class window_surface;
@@ -19,6 +25,7 @@ namespace winp::ui{
 namespace winp::menu{
 	class item;
 	class object;
+	class popup;
 }
 
 namespace winp::thread{
@@ -74,6 +81,8 @@ namespace winp::thread{
 
 		explicit item_manager(object &thread, DWORD thread_id);
 
+		ui::window_surface *find_window_(HWND handle, bool cache) const;
+
 		menu::item *find_menu_item_(menu::object &menu, UINT id) const;
 
 		menu::item *find_menu_item_(HMENU handle, UINT id) const;
@@ -126,6 +135,10 @@ namespace winp::thread{
 
 		LRESULT system_command_(item &target, MSG &msg);
 
+		LRESULT context_menu_(item &target, MSG &msg);
+
+		LRESULT menu_init_(item &target, MSG &msg);
+
 		static bool menu_item_id_is_reserved_(UINT id);
 
 		static HCURSOR get_default_cursor_(const MSG &msg);
@@ -171,9 +184,11 @@ namespace winp::thread{
 		std::unordered_map<HWND, ui::window_surface *> windows_;
 		std::unordered_map<HWND, ui::window_surface *> top_level_windows_;
 
-		window_cache_info window_cache_{};
+		mutable window_cache_info window_cache_{};
 		RECT update_rect_{};
 
 		item *tracking_mouse_leave_ = nullptr;
+		std::shared_ptr<ui::object_collection<menu::popup>> active_context_menu_;
+		menu::object *active_context_menu_object_ = nullptr;
 	};
 }

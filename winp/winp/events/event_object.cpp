@@ -37,8 +37,11 @@ bool winp::events::object::do_default(){
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
 
-	if ((states_ & (state_default_prevented | state_doing_default | state_default_done)) != 0u)
+	if ((states_ & (state_default_prevented | state_default_done)) != 0u)
 		return false;//Default prevented or done
+
+	if ((states_ & state_doing_default) != 0u)
+		return true;//Default prevented or done
 
 	auto propagation_stopped = false;
 	if ((states_ & state_propagation_stopped) != 0u){
@@ -571,4 +574,22 @@ bool winp::events::menu_item_check::is_checked() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
 	return (original_message_.wParam != FALSE);
+}
+
+const POINT &winp::events::context_menu_base::get_position() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return position_;
+}
+
+bool winp::events::context_menu_base::should_call_call_default_() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return false;
+}
+
+winp::ui::object_collection<winp::menu::popup> &winp::events::context_menu::get_popup() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return *reinterpret_cast<ui::object_collection<winp::menu::popup> *>(original_message_.wParam);
 }

@@ -1,6 +1,9 @@
 #include "../app/app_collection.h"
+
 #include "../ui/ui_window_surface.h"
 #include "../ui/ui_non_window_surface.h"
+
+#include "../menu/menu_separator.h"
 #include "../menu/menu_link_item.h"
 
 winp::thread::item_manager::item_manager(object &thread)
@@ -172,6 +175,25 @@ void winp::thread::item_manager::remove_generated_item_id(menu::item &target){
 		it->second.erase(target.get_id());
 }
 
+winp::ui::window_surface *winp::thread::item_manager::find_window_(HWND handle, bool cache) const{
+	if (windows_.empty())
+		return nullptr;
+
+	if (handle == window_cache_.handle)
+		return window_cache_.object;
+
+	auto it = windows_.find(handle);
+	if (it == windows_.end())
+		return nullptr;
+
+	if (cache){
+		window_cache_.handle = handle;
+		window_cache_.object = it->second;
+	}
+
+	return it->second;
+}
+
 winp::menu::item *winp::thread::item_manager::find_menu_item_(menu::object &menu, UINT id) const{
 	HMENU handle;
 	if (auto system_parent = dynamic_cast<menu::system_object *>(&menu); system_parent != nullptr){
@@ -333,6 +355,16 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return menu_command_(target, msg);
 	case WM_SYSCOMMAND:
 		return system_command_(target, msg);
+	case WM_CONTEXTMENU:
+		return context_menu_(target, msg);
+	case WINP_WM_GET_CONTEXT_MENU_POSITION:
+		return trigger_event_<events::get_context_menu_position>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+	case WINP_WM_GET_CONTEXT_MENU_HANDLE:
+		return trigger_event_<events::get_context_menu_handle>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+	case WINP_WM_ALLOW_CONTEXT_MENU:
+		return trigger_event_<events::allow_context_menu>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+	case WM_INITMENUPOPUP:
+		return menu_init_(target, msg);
 	default:
 		break;
 	}
@@ -524,7 +556,11 @@ LRESULT winp::thread::item_manager::menu_command_(item &target, MSG &msg){
 	if (menu_item_target == nullptr)
 		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
 
-	return trigger_event_<events::menu_item_select>(*menu_item_target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+	auto result = trigger_event_<events::menu_item_select>(*menu_item_target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+	if (menu->second == active_context_menu_.get())
+		active_context_menu_ = nullptr;
+
+	return result;
 }
 
 LRESULT winp::thread::item_manager::system_command_(item &target, MSG &msg){
@@ -540,6 +576,91 @@ LRESULT winp::thread::item_manager::system_command_(item &target, MSG &msg){
 		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
 
 	return trigger_event_<events::menu_item_select>(*menu_item_target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+}
+
+LRESULT winp::thread::item_manager::context_menu_(item &target, MSG &msg){
+	auto window_target = dynamic_cast<ui::window_surface *>(&target);
+	if (window_target == nullptr)
+		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
+
+	auto actual_target = find_window_(reinterpret_cast<HWND>(msg.wParam), false);
+	auto &event_target = ((actual_target == nullptr) ? target : *actual_target);
+
+	MSG menu_handle_msg{ msg.hwnd, WINP_WM_GET_CONTEXT_MENU_HANDLE, 0, msg.lParam };
+	auto result_info = trigger_event_with_target_<events::get_context_menu_handle>(target, event_target, menu_handle_msg, thread_.get_app().get_class_entry(window_target->get_class_name()));
+
+	if ((result_info.first & events::object::state_default_prevented) != 0u)//Default prevented
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+
+	POINT position{ GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam) };
+	if (auto handle = reinterpret_cast<HMENU>(result_info.second); handle != nullptr){//Use menu
+		if (GetMenuItemCount(handle) == 0)
+			return 0;//Empty menu
+
+		auto menu = menus_.find(handle);
+		if (menu != menus_.end())
+			active_context_menu_object_ = menu->second;
+		else
+			active_context_menu_object_ = nullptr;
+
+		if (position.x == -1 && position.y == -1){//Retrieve position
+			auto value = thread_.send_message(target, WINP_WM_GET_CONTEXT_MENU_POSITION, 0, msg.lParam);
+			position = POINT{ GET_X_LPARAM(value), GET_Y_LPARAM(value) };
+		}
+
+		TrackPopupMenu(handle, (GetSystemMetrics(SM_MENUDROPALIGNMENT) | TPM_RIGHTBUTTON), position.x, position.y, 0, window_target->handle_, nullptr);
+		return 0;
+	}
+	
+	if ((position.x != -1 || position.y != -1) && window_target->absolute_hit_test(position) != HTCLIENT)
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+
+	if (thread_.send_message(target, WINP_WM_ALLOW_CONTEXT_MENU, 0, msg.lParam) == FALSE)//Context menu blocked
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+
+	if ((active_context_menu_ = std::make_shared<ui::object_collection<menu::popup>>(thread_)) == nullptr || active_context_menu_->create() != utility::error_code::nil)
+		return 0;
+
+	MSG context_msg{ msg.hwnd, WM_CONTEXTMENU, reinterpret_cast<WPARAM>(active_context_menu_.get()), msg.lParam };
+	if ((trigger_event_with_target_<events::context_menu>(target, event_target, context_msg, nullptr).first & events::object::state_default_prevented) != 0u || GetMenuItemCount(active_context_menu_->get_handle()) == 0){
+		active_context_menu_ = nullptr;
+		return 0;//Default prevented or empty menu
+	}
+
+	if (position.x == -1 && position.y == -1){//Retrieve position
+		auto value = thread_.send_message(target, WINP_WM_GET_CONTEXT_MENU_POSITION, 0, msg.lParam);
+		position = POINT{ GET_X_LPARAM(value), GET_Y_LPARAM(value) };
+	}
+
+	TrackPopupMenu(active_context_menu_->get_handle(), (GetSystemMetrics(SM_MENUDROPALIGNMENT) | TPM_RIGHTBUTTON), position.x, position.y, 0, window_target->handle_, nullptr);
+	return 0;
+}
+
+LRESULT winp::thread::item_manager::menu_init_(item &target, MSG &msg){
+	auto window_target = dynamic_cast<ui::window_surface *>(&target);
+	if (window_target == nullptr)
+		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
+
+	if (active_context_menu_object_ == nullptr)
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+
+	auto menu = menus_.find(reinterpret_cast<HMENU>(msg.wParam));
+	if (menu == menus_.end() || menu->second != active_context_menu_object_)
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+
+	MSG init_msg{ msg.hwnd, WINP_WM_INIT_MENU_ITEM };
+	active_context_menu_object_->traverse_all_items([&](menu::item &item){
+		if (dynamic_cast<menu::separator *>(&item) == nullptr){
+			auto result_info = trigger_event_with_target_and_value_<events::menu_init_item>(*active_context_menu_object_, item, TRUE, init_msg, nullptr);
+			if ((result_info.first & events::object::state_default_prevented) != 0u || result_info.second == FALSE)
+				item.set_enabled_state(false);
+			else
+				item.set_enabled_state(true);
+		}
+	}, true);
+
+	active_context_menu_object_ = nullptr;
+	return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
 }
 
 bool winp::thread::item_manager::menu_item_id_is_reserved_(UINT id){
@@ -603,18 +724,16 @@ LRESULT winp::thread::item_manager::get_result_(const std::pair<unsigned int, LR
 }
 
 LRESULT CALLBACK winp::thread::item_manager::entry_(HWND handle, UINT message, WPARAM wparam, LPARAM lparam){
-	auto &manager = app::collection::get_current_thread()->get_item_manager();
+	auto current_thread = app::collection::get_current_thread();
+	if (current_thread == nullptr)
+		return CallWindowProcW(DefWindowProcW, handle, message, wparam, lparam);
+
+	auto &manager = current_thread->get_item_manager();
 	if (handle == manager.thread_.get_message_handle())
 		return manager.handle_thread_message_(handle, message, wparam, lparam);
 
-	if (handle == manager.window_cache_.handle)
-		return manager.dispatch_message_(*manager.window_cache_.object, handle, message, wparam, lparam);
-
-	if (auto it = manager.windows_.find(handle); it != manager.windows_.end()){
-		manager.window_cache_.handle = handle;
-		manager.window_cache_.object = it->second;
-		return manager.dispatch_message_(*it->second, handle, message, wparam, lparam);
-	}
+	if (auto target = manager.find_window_(handle, true); target != nullptr)
+		return manager.dispatch_message_(*target, handle, message, wparam, lparam);
 
 	return CallWindowProcW(DefWindowProcW, handle, message, wparam, lparam);
 }
