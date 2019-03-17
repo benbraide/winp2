@@ -111,22 +111,22 @@ namespace winp::thread{
 
 		LRESULT mouse_move_(item &target, MSG &msg);
 
-		template <typename window_type, typename event_type, typename app_type>
-		LRESULT mouse_(item &target, MSG &msg, unsigned int button, bool is_non_client, app_type &app){
+		template <typename window_type, typename event_type, typename thread_type>
+		LRESULT mouse_(item &target, MSG &msg, unsigned int button, bool is_non_client, thread_type &thread){
 			auto window_target = dynamic_cast<window_type *>(&target);
 			if (window_target == nullptr)//Window surface required
 				return 0;
 
-			return trigger_event_<event_type>(target, button, is_non_client, msg, app.get_class_entry(window_target->get_class_name())).second;
+			return trigger_event_<event_type>(target, button, is_non_client, msg, thread.get_class_entry_(window_target->get_class_name())).second;
 		}
 
-		template <typename window_type, typename event_type, typename app_type>
-		LRESULT key_(item &target, MSG &msg, app_type &app){
+		template <typename window_type, typename event_type, typename thread_type>
+		LRESULT key_(item &target, MSG &msg, thread_type &thread){
 			auto window_target = dynamic_cast<window_type *>(&target);
 			if (window_target == nullptr)//Window surface required
 				return 0;
 
-			return trigger_event_<event_type>(target, msg, app.get_class_entry(window_target->get_class_name())).second;
+			return trigger_event_<event_type>(target, msg, thread.get_class_entry_(window_target->get_class_name())).second;
 		}
 
 		LRESULT menu_select_(item &target, MSG &msg);

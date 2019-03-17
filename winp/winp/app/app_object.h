@@ -16,8 +16,6 @@ namespace winp::app{
 
 		virtual DWORD get_local_id() const;
 
-		virtual WNDPROC get_class_entry(const std::wstring &class_name) const;
-
 		virtual const WNDCLASSEXW &get_class_info() const;
 
 		virtual const std::wstring &get_class_name() const;
@@ -50,8 +48,6 @@ namespace winp::app{
 		WNDCLASSEXW class_info_;
 
 		std::unordered_map<DWORD, thread::object *> threads_;
-		mutable std::unordered_map<std::wstring, WNDPROC> class_info_map_;
-
 		mutable std::mutex lock_;
 
 		static thread_local thread::object *current_thread_;

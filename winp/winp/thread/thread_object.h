@@ -113,6 +113,10 @@ namespace winp::thread{
 			}, queue::default_task_priority, queue::default_task_id);
 		}
 
+		void init_control(const std::wstring &class_name, DWORD control_id);
+
+		WNDPROC get_class_entry(const std::wstring &class_name) const;
+
 		static WNDPROC get_message_entry();
 
 	private:
@@ -123,6 +127,8 @@ namespace winp::thread{
 		void add_item_(item &item);
 
 		void remove_item_(unsigned __int64 id);
+		WNDPROC get_class_entry_(const std::wstring &class_name) const;
+
 
 		app::object &app_;
 		queue queue_;
@@ -141,5 +147,8 @@ namespace winp::thread{
 
 		mutable ID2D1DCRenderTarget *device_render_target_ = nullptr;
 		mutable ID2D1SolidColorBrush *color_brush_ = nullptr;
+
+		DWORD control_ids_ = 0;
+		mutable std::unordered_map<std::wstring, WNDPROC> class_info_map_;
 	};
 }

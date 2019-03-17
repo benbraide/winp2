@@ -265,11 +265,11 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 	auto window_target = dynamic_cast<ui::window_surface *>(&target);
 	switch (msg.message){
 	case WM_NCCREATE:
-		return get_result_(trigger_event_with_value_<events::create>(target, TRUE, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))), FALSE);
+		return get_result_(trigger_event_with_value_<events::create>(target, TRUE, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))), FALSE);
 	case WM_NCDESTROY:
 		return window_destroyed_(target, msg);
 	case WM_CLOSE:
-		return trigger_event_<events::close>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+		return trigger_event_<events::close>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_SETCURSOR:
 		return set_cursor_(target, msg);
 	case WINP_WM_GET_BACKGROUND_COLOR:
@@ -289,68 +289,68 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 	case WM_MOUSEMOVE:
 		return mouse_move_(target, msg);
 	case WM_NCLBUTTONDOWN:
-		return mouse_<ui::window_surface, events::mouse_down>(target, msg, events::mouse::button_type_left, true, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_down>(target, msg, events::mouse::button_type_left, true, thread_);
 	case WM_LBUTTONDOWN:
-		return mouse_<ui::window_surface, events::mouse_down>(target, msg, events::mouse::button_type_left, false, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_down>(target, msg, events::mouse::button_type_left, false, thread_);
 	case WM_NCMBUTTONDOWN:
-		return mouse_<ui::window_surface, events::mouse_down>(target, msg, events::mouse::button_type_middle, true, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_down>(target, msg, events::mouse::button_type_middle, true, thread_);
 	case WM_MBUTTONDOWN:
-		return mouse_<ui::window_surface, events::mouse_down>(target, msg, events::mouse::button_type_middle, false, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_down>(target, msg, events::mouse::button_type_middle, false, thread_);
 	case WM_NCRBUTTONDOWN:
-		return mouse_<ui::window_surface, events::mouse_down>(target, msg, events::mouse::button_type_right, true, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_down>(target, msg, events::mouse::button_type_right, true, thread_);
 	case WM_RBUTTONDOWN:
-		return mouse_<ui::window_surface, events::mouse_down>(target, msg, events::mouse::button_type_right, false, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_down>(target, msg, events::mouse::button_type_right, false, thread_);
 	case WM_NCLBUTTONUP:
-		return mouse_<ui::window_surface, events::mouse_up>(target, msg, events::mouse::button_type_left, true, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_up>(target, msg, events::mouse::button_type_left, true, thread_);
 	case WM_LBUTTONUP:
-		return mouse_<ui::window_surface, events::mouse_up>(target, msg, events::mouse::button_type_left, false, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_up>(target, msg, events::mouse::button_type_left, false, thread_);
 	case WM_NCMBUTTONUP:
-		return mouse_<ui::window_surface, events::mouse_up>(target, msg, events::mouse::button_type_middle, true, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_up>(target, msg, events::mouse::button_type_middle, true, thread_);
 	case WM_MBUTTONUP:
-		return mouse_<ui::window_surface, events::mouse_up>(target, msg, events::mouse::button_type_middle, false, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_up>(target, msg, events::mouse::button_type_middle, false, thread_);
 	case WM_NCRBUTTONUP:
-		return mouse_<ui::window_surface, events::mouse_up>(target, msg, events::mouse::button_type_right, true, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_up>(target, msg, events::mouse::button_type_right, true, thread_);
 	case WM_RBUTTONUP:
-		return mouse_<ui::window_surface, events::mouse_up>(target, msg, events::mouse::button_type_right, false, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_up>(target, msg, events::mouse::button_type_right, false, thread_);
 	case WM_NCLBUTTONDBLCLK:
-		return mouse_<ui::window_surface, events::mouse_dbl_clk>(target, msg, events::mouse::button_type_left, true, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_dbl_clk>(target, msg, events::mouse::button_type_left, true, thread_);
 	case WM_LBUTTONDBLCLK:
-		return mouse_<ui::window_surface, events::mouse_dbl_clk>(target, msg, events::mouse::button_type_left, false, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_dbl_clk>(target, msg, events::mouse::button_type_left, false, thread_);
 	case WM_NCMBUTTONDBLCLK:
-		return mouse_<ui::window_surface, events::mouse_dbl_clk>(target, msg, events::mouse::button_type_middle, true, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_dbl_clk>(target, msg, events::mouse::button_type_middle, true, thread_);
 	case WM_MBUTTONDBLCLK:
-		return mouse_<ui::window_surface, events::mouse_dbl_clk>(target, msg, events::mouse::button_type_middle, false, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_dbl_clk>(target, msg, events::mouse::button_type_middle, false, thread_);
 	case WM_NCRBUTTONDBLCLK:
-		return mouse_<ui::window_surface, events::mouse_dbl_clk>(target, msg, events::mouse::button_type_right, true, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_dbl_clk>(target, msg, events::mouse::button_type_right, true, thread_);
 	case WM_RBUTTONDBLCLK:
-		return mouse_<ui::window_surface, events::mouse_dbl_clk>(target, msg, events::mouse::button_type_right, false, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_dbl_clk>(target, msg, events::mouse::button_type_right, false, thread_);
 	case WM_MOUSEWHEEL:
 	case WM_MOUSEHWHEEL:
-		return mouse_<ui::window_surface, events::mouse_wheel>(target, msg, events::mouse::button_type_right, false, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_wheel>(target, msg, events::mouse::button_type_right, false, thread_);
 	case WM_KEYDOWN:
-		return key_<ui::window_surface, events::key_down>(target, msg, thread_.get_app());
+		return key_<ui::window_surface, events::key_down>(target, msg, thread_);
 	case WM_KEYUP:
-		return key_<ui::window_surface, events::key_up>(target, msg, thread_.get_app());
+		return key_<ui::window_surface, events::key_up>(target, msg, thread_);
 	case WM_CHAR:
-		return key_<ui::window_surface, events::key_press>(target, msg, thread_.get_app());
+		return key_<ui::window_surface, events::key_press>(target, msg, thread_);
 	case WM_SETFOCUS:
-		return trigger_event_<events::set_focus>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+		return trigger_event_<events::set_focus>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_KILLFOCUS:
-		return trigger_event_<events::kill_focus>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+		return trigger_event_<events::kill_focus>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_ACTIVATE:
-		return trigger_event_<events::activate>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+		return trigger_event_<events::activate>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_MOUSEACTIVATE:
-		return trigger_event_<events::mouse_activate>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+		return trigger_event_<events::mouse_activate>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_ENABLE:
-		return trigger_event_<events::enable>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+		return trigger_event_<events::enable>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_MENUSELECT:
 		return menu_select_(target, msg);
 	case WINP_WM_MENU_ITEM_SELECT:
-		return trigger_event_<events::menu_item_select>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+		return trigger_event_<events::menu_item_select>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WINP_WM_MENU_ITEM_CHECK:
-		return trigger_event_<events::menu_item_check>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+		return trigger_event_<events::menu_item_check>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WINP_WM_MENU_ITEM_HIGHLIGHT:
-		return trigger_event_<events::menu_item_highlight>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+		return trigger_event_<events::menu_item_highlight>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_MENUCOMMAND:
 		return menu_command_(target, msg);
 	case WM_SYSCOMMAND:
@@ -358,18 +358,18 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 	case WM_CONTEXTMENU:
 		return context_menu_(target, msg);
 	case WINP_WM_GET_CONTEXT_MENU_POSITION:
-		return trigger_event_<events::get_context_menu_position>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+		return trigger_event_<events::get_context_menu_position>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WINP_WM_GET_CONTEXT_MENU_HANDLE:
-		return trigger_event_<events::get_context_menu_handle>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+		return trigger_event_<events::get_context_menu_handle>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WINP_WM_ALLOW_CONTEXT_MENU:
-		return trigger_event_<events::allow_context_menu>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+		return trigger_event_<events::allow_context_menu>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_INITMENUPOPUP:
 		return menu_init_(target, msg);
 	default:
 		break;
 	}
 
-	return trigger_event_<events::unhandled>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+	return trigger_event_<events::unhandled>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 }
 
 LRESULT winp::thread::item_manager::dispatch_message_(item &target, HWND handle, UINT message, WPARAM wparam, LPARAM lparam){
@@ -406,12 +406,12 @@ LRESULT winp::thread::item_manager::window_destroyed_(item &target, MSG &msg){
 		}, true);
 	}
 
-	return trigger_event_<events::destroy>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+	return trigger_event_<events::destroy>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 }
 
 LRESULT winp::thread::item_manager::set_cursor_(item &target, MSG &msg){
 	auto window_target = dynamic_cast<ui::window_surface *>(&target);
-	auto result = trigger_event_<events::cursor>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name())));
+	auto result = trigger_event_<events::cursor>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name())));
 
 	if ((result.first & events::object::state_default_prevented) != 0u)
 		return TRUE;//Default prevented
@@ -433,7 +433,7 @@ LRESULT winp::thread::item_manager::erase_background_(item &context, item &targe
 	if (window_context == nullptr && (!visible_context->is_visible() || (object_context != nullptr && !object_context->is_created())))
 		return 0;//Surface is not visible
 
-	auto result = trigger_event_with_target_<events::erase_background>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_context->get_class_name()))).second;
+	auto result = trigger_event_with_target_<events::erase_background>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_class_entry_(window_context->get_class_name()))).second;
 	if (auto tree_context = dynamic_cast<ui::tree *>(&context); tree_context != nullptr){
 		tree_context->traverse_all_children([&](ui::object &child){
 			if (dynamic_cast<ui::window_surface *>(&child) == nullptr)
@@ -461,7 +461,7 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 	else if (window_context == nullptr && (!visible_context->is_visible() || (object_context != nullptr && !object_context->is_created())))
 		return 0;//Surface is not visible
 
-	auto result = trigger_event_with_target_<events::paint>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_context->get_class_name()))).second;
+	auto result = trigger_event_with_target_<events::paint>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_class_entry_(window_context->get_class_name()))).second;
 	if (auto tree_context = dynamic_cast<ui::tree *>(&context); tree_context != nullptr){
 		tree_context->traverse_all_children([&](ui::object &child){
 			if (dynamic_cast<ui::window_surface *>(&child) == nullptr)
@@ -476,14 +476,14 @@ LRESULT winp::thread::item_manager::position_change_(item &target, MSG &msg, boo
 	LRESULT result = 0;
 	auto window_target = dynamic_cast<ui::window_surface *>(&target);
 	if (changing){
-		auto result_info = trigger_event_<events::position_change>(target, true, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name())));
+		auto result_info = trigger_event_<events::position_change>(target, true, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name())));
 		if ((result_info.first & events::object::state_default_prevented) != 0u)
 			reinterpret_cast<WINDOWPOS *>(msg.lParam)->flags |= (SWP_NOMOVE | SWP_NOSIZE);
 		result = result_info.second;
 	}
 	else if (auto non_window_target = dynamic_cast<ui::non_window_surface *>(&target); non_window_target != nullptr && (reinterpret_cast<WINDOWPOS *>(msg.lParam)->flags & (SWP_NOMOVE | SWP_NOSIZE)) != (SWP_NOMOVE | SWP_NOSIZE)){
 		non_window_target->resize_handle_();
-		result = trigger_event_<events::position_change>(target, false, msg, ((window_target == nullptr) ? nullptr : thread_.get_app().get_class_entry(window_target->get_class_name()))).second;
+		result = trigger_event_<events::position_change>(target, false, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	}
 
 	return result;
@@ -498,10 +498,10 @@ LRESULT winp::thread::item_manager::mouse_leave_(item &target, MSG &msg){
 	if (window_target->absolute_hit_test(GET_X_LPARAM(position), GET_Y_LPARAM(position)) == HTNOWHERE){
 		if (tracking_mouse_leave_ == &target)
 			tracking_mouse_leave_ = nullptr;
-		return mouse_<ui::window_surface, events::mouse_leave>(target, msg, events::mouse::button_type_nil, false, thread_.get_app());
+		return mouse_<ui::window_surface, events::mouse_leave>(target, msg, events::mouse::button_type_nil, false, thread_);
 	}
 
-	return CallWindowProcW(thread_.get_app().get_class_entry(window_target->get_class_name()), msg.hwnd, msg.message, msg.wParam, msg.lParam);
+	return CallWindowProcW(thread_.get_class_entry_(window_target->get_class_name()), msg.hwnd, msg.message, msg.wParam, msg.lParam);
 }
 
 LRESULT winp::thread::item_manager::mouse_move_(item &target, MSG &msg){
@@ -513,7 +513,7 @@ LRESULT winp::thread::item_manager::mouse_move_(item &target, MSG &msg){
 		tracking_mouse_leave_ = &target;
 	}
 
-	return mouse_<ui::window_surface, events::mouse_move>(target, msg, events::mouse::button_type_nil, false, thread_.get_app());
+	return mouse_<ui::window_surface, events::mouse_move>(target, msg, events::mouse::button_type_nil, false, thread_);
 }
 
 LRESULT winp::thread::item_manager::menu_select_(item &target, MSG &msg){
@@ -523,13 +523,13 @@ LRESULT winp::thread::item_manager::menu_select_(item &target, MSG &msg){
 
 	auto flags = HIWORD(msg.wParam);
 	if ((flags & MF_HILITE) == 0u || menus_.empty())
-		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
 	menu::item *menu_item_target = nullptr;
 	if ((flags & MF_SYSMENU) == 0u){
 		auto menu = menus_.find(reinterpret_cast<HMENU>(msg.lParam));
 		if (menu == menus_.end())
-			return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+			return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
 		if ((flags & MF_POPUP) != 0u)//By index
 			menu_item_target = menu->second->get_item_at(static_cast<UINT>(msg.wParam));
@@ -542,9 +542,9 @@ LRESULT winp::thread::item_manager::menu_select_(item &target, MSG &msg){
 		menu_item_target = find_sub_menu_item_(GetSystemMenu(window_target->handle_, FALSE), (static_cast<UINT>(msg.wParam) & 0xFFF0u));
 
 	if (menu_item_target == nullptr)//find_sub_menu_item_
-		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
-	return trigger_event_<events::menu_item_highlight>(*menu_item_target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+	return trigger_event_<events::menu_item_highlight>(*menu_item_target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 }
 
 LRESULT winp::thread::item_manager::menu_command_(item &target, MSG &msg){
@@ -554,13 +554,13 @@ LRESULT winp::thread::item_manager::menu_command_(item &target, MSG &msg){
 
 	auto menu = menus_.find(reinterpret_cast<HMENU>(msg.lParam));
 	if (menu == menus_.end())
-		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
 	auto menu_item_target = menu->second->get_item_at(static_cast<UINT>(msg.wParam));
 	if (menu_item_target == nullptr)
-		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
-	auto result = trigger_event_<events::menu_item_select>(*menu_item_target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+	auto result = trigger_event_<events::menu_item_select>(*menu_item_target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 	if (menu->second == active_context_menu_.get())
 		active_context_menu_ = nullptr;
 
@@ -573,13 +573,13 @@ LRESULT winp::thread::item_manager::system_command_(item &target, MSG &msg){
 		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
 
 	if (msg.lParam == -1 || msg.lParam == 0)//Accelerator or mnemonic
-		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
 	auto menu_item_target = find_menu_item_(GetSystemMenu(window_target->handle_, FALSE), (static_cast<UINT>(msg.wParam) & 0xFFF0u));
 	if (menu_item_target == nullptr && (menu_item_target = find_sub_menu_item_(GetSystemMenu(window_target->handle_, FALSE), (static_cast<UINT>(msg.wParam) & 0xFFF0u))) == nullptr)
-		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
-	return trigger_event_<events::menu_item_select>(*menu_item_target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+	return trigger_event_<events::menu_item_select>(*menu_item_target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 }
 
 LRESULT winp::thread::item_manager::context_menu_(item &target, MSG &msg){
@@ -594,10 +594,10 @@ LRESULT winp::thread::item_manager::context_menu_(item &target, MSG &msg){
 	auto &event_target = ((actual_target == nullptr) ? target : *actual_target);
 
 	MSG menu_handle_msg{ msg.hwnd, WINP_WM_GET_CONTEXT_MENU_HANDLE, 0, msg.lParam };
-	auto result_info = trigger_event_with_target_<events::get_context_menu_handle>(target, event_target, menu_handle_msg, thread_.get_app().get_class_entry(window_target->get_class_name()));
+	auto result_info = trigger_event_with_target_<events::get_context_menu_handle>(target, event_target, menu_handle_msg, thread_.get_class_entry_(window_target->get_class_name()));
 
 	if ((result_info.first & events::object::state_default_prevented) != 0u)//Default prevented
-		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
 	POINT position{ GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam) };
 	if (auto handle = reinterpret_cast<HMENU>(result_info.second); handle != nullptr){//Use menu
@@ -618,10 +618,10 @@ LRESULT winp::thread::item_manager::context_menu_(item &target, MSG &msg){
 	}
 	
 	if ((position.x != -1 || position.y != -1) && window_target->absolute_hit_test(position) != HTCLIENT)
-		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
 	if (thread_.send_message(target, WINP_WM_ALLOW_CONTEXT_MENU, 0, msg.lParam) == FALSE)//Context menu blocked
-		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
 	if ((active_context_menu_ = std::make_shared<ui::object_collection<menu::popup>>(thread_)) == nullptr || active_context_menu_->create() != utility::error_code::nil)
 		return 0;
@@ -647,11 +647,11 @@ LRESULT winp::thread::item_manager::menu_init_(item &target, MSG &msg){
 		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
 
 	if (active_context_menu_object_ == nullptr)
-		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
 	auto menu = menus_.find(reinterpret_cast<HMENU>(msg.wParam));
 	if (menu == menus_.end() || menu->second != active_context_menu_object_)
-		return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
 	MSG init_msg{ msg.hwnd, WINP_WM_INIT_MENU_ITEM };
 	active_context_menu_object_->traverse_all_items([&](menu::item &item){
@@ -664,7 +664,7 @@ LRESULT winp::thread::item_manager::menu_init_(item &target, MSG &msg){
 	}, true);
 
 	active_context_menu_object_ = nullptr;
-	return trigger_event_<events::unhandled>(target, msg, thread_.get_app().get_class_entry(window_target->get_class_name())).second;
+	return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 }
 
 bool winp::thread::item_manager::menu_item_id_is_reserved_(UINT id){
@@ -765,7 +765,7 @@ LRESULT CALLBACK winp::thread::item_manager::hook_entry_(int code, WPARAM wparam
 	if (manager.window_cache_.object->is_top_level_())
 		manager.top_level_windows_[manager.window_cache_.handle] = manager.window_cache_.object;
 
-	if (auto class_entry = manager.thread_.get_app().get_class_entry(manager.window_cache_.object->get_class_name()); class_entry != nullptr && class_entry != DefWindowProcW)
+	if (auto class_entry = manager.thread_.get_class_entry_(manager.window_cache_.object->get_class_name()); class_entry != nullptr && class_entry != DefWindowProcW)
 		SetWindowLongPtrW(manager.window_cache_.handle, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(class_entry));//Subclass window
 
 	return CallNextHookEx(nullptr, code, wparam, lparam);

@@ -175,6 +175,32 @@ bool winp::thread::object::post_message(item &target, const MSG &msg) const{
 	return (PostMessageW(message_hwnd_, WINP_WM_POST_MESSAGE, reinterpret_cast<WPARAM>(new MSG(msg)), reinterpret_cast<LPARAM>(&target)) != FALSE);
 }
 
+void winp::thread::object::init_control(const std::wstring &class_name, DWORD control_id){
+	queue_.execute_task([&]{
+		if (class_info_map_.find(class_name) == class_info_map_.end()){
+			WNDCLASSEXW class_info{ sizeof(WNDCLASSEXW) };
+			if (GetClassInfoExW(nullptr, class_name.data(), &class_info) != FALSE)
+				class_info_map_[class_name] = class_info.lpfnWndProc;
+		}
+
+		if ((control_ids_ & control_id) == 0u){
+			INITCOMMONCONTROLSEX info{
+				sizeof(INITCOMMONCONTROLSEX),
+				control_id
+			};
+
+			if (InitCommonControlsEx(&info) != FALSE)
+				control_ids_ |= control_id;
+		}
+	}, queue::urgent_task_priority, 0);
+}
+
+WNDPROC winp::thread::object::get_class_entry(const std::wstring &class_name) const{
+	return queue_.compute_task([&]() -> WNDPROC{
+		return get_class_entry_(class_name);
+	}, queue::urgent_task_priority, 0);
+}
+
 WNDPROC winp::thread::object::get_message_entry(){
 	return item_manager::entry_;
 }
@@ -192,4 +218,19 @@ void winp::thread::object::remove_item_(unsigned __int64 id){
 
 	if (!items_.empty())//Inside thread context
 		items_.erase(id);
+}
+
+WNDPROC winp::thread::object::get_class_entry_(const std::wstring &class_name) const{
+	if (&class_name == &app_.get_class_name())
+		return DefWindowProcW;
+
+	if (auto it = class_info_map_.find(class_name); it != class_info_map_.end())
+		return it->second;
+
+	if (WNDCLASSEXW class_info{ sizeof(WNDCLASSEXW) }; GetClassInfoExW(nullptr, class_name.data(), &class_info) != FALSE){
+		class_info_map_[class_name] = class_info.lpfnWndProc;
+		return class_info.lpfnWndProc;
+	}
+
+	return nullptr;
 }

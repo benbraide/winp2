@@ -382,7 +382,7 @@ bool winp::events::erase_background::should_call_call_default_() const{
 
 LRESULT winp::events::erase_background::get_called_default_value_(){
 	auto window_context = dynamic_cast<ui::window_surface *>(context_);
-	if (window_context != nullptr && window_context->get_thread().get_app().get_class_entry(window_context->get_class_name()) != DefWindowProcW)
+	if (window_context != nullptr && window_context->get_thread().get_class_entry(window_context->get_class_name()) != DefWindowProcW)
 		return object_with_message::get_called_default_value_();
 
 	auto background_color = ui::visible_surface::convert_colorref_to_colorf(static_cast<COLORREF>(context_->get_thread().send_message(*context_, WINP_WM_GET_BACKGROUND_COLOR)));
