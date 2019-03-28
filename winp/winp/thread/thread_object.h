@@ -127,8 +127,8 @@ namespace winp::thread{
 		void add_item_(item &item);
 
 		void remove_item_(unsigned __int64 id);
-		WNDPROC get_class_entry_(const std::wstring &class_name) const;
 
+		WNDPROC get_class_entry_(const std::wstring &class_name) const;
 
 		app::object &app_;
 		queue queue_;

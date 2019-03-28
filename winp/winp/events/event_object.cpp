@@ -607,8 +607,6 @@ const POINT &winp::events::context_menu_base::get_position() const{
 }
 
 bool winp::events::context_menu_base::should_call_call_default_() const{
-	if (!target_.get_thread().is_thread_context())
-		throw utility::error_code::outside_thread_context;
 	return false;
 }
 

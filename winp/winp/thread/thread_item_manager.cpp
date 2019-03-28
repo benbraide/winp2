@@ -243,7 +243,7 @@ winp::menu::item *winp::thread::item_manager::find_sub_menu_item_(HMENU handle, 
 }
 
 bool winp::thread::item_manager::is_dialog_message_(MSG &msg) const{
-	return false;
+	return (focused_window_ != nullptr && focused_window_->is_dialog_message_(msg));
 }
 
 LRESULT winp::thread::item_manager::handle_thread_message_(HWND handle, UINT message, WPARAM wparam, LPARAM lparam){
@@ -334,8 +334,11 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 	case WM_CHAR:
 		return key_<ui::window_surface, events::key_press>(target, msg, thread_);
 	case WM_SETFOCUS:
+		focused_window_ = window_target;
 		return trigger_event_<events::set_focus>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_KILLFOCUS:
+		if (focused_window_ == window_target)
+			focused_window_ = nullptr;
 		return trigger_event_<events::kill_focus>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_ACTIVATE:
 		return trigger_event_<events::activate>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
@@ -356,6 +359,7 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 	case WM_SYSCOMMAND:
 		return system_command_(target, msg);
 	case WM_CONTEXTMENU:
+	case WINP_WM_SPLIT_BUTTON_DROPDOWN:
 		return context_menu_(target, msg);
 	case WINP_WM_GET_CONTEXT_MENU_POSITION:
 		return trigger_event_<events::get_context_menu_position>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
@@ -365,6 +369,8 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return trigger_event_<events::allow_context_menu>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_INITMENUPOPUP:
 		return menu_init_(target, msg);
+	case WM_NOTIFY:
+		return notify_(target, msg);
 	default:
 		break;
 	}
@@ -593,9 +599,7 @@ LRESULT winp::thread::item_manager::context_menu_(item &target, MSG &msg){
 	auto actual_target = find_window_(reinterpret_cast<HWND>(msg.wParam), false);
 	auto &event_target = ((actual_target == nullptr) ? target : *actual_target);
 
-	MSG menu_handle_msg{ msg.hwnd, WINP_WM_GET_CONTEXT_MENU_HANDLE, 0, msg.lParam };
-	auto result_info = trigger_event_with_target_<events::get_context_menu_handle>(target, event_target, menu_handle_msg, thread_.get_class_entry_(window_target->get_class_name()));
-
+	auto result_info = trigger_event_with_target_<events::get_context_menu_handle>(target, event_target, msg, thread_.get_class_entry_(window_target->get_class_name()));
 	if ((result_info.first & events::object::state_default_prevented) != 0u)//Default prevented
 		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
@@ -626,7 +630,7 @@ LRESULT winp::thread::item_manager::context_menu_(item &target, MSG &msg){
 	if ((active_context_menu_ = std::make_shared<ui::object_collection<menu::popup>>(thread_)) == nullptr || active_context_menu_->create() != utility::error_code::nil)
 		return 0;
 
-	MSG context_msg{ msg.hwnd, WM_CONTEXTMENU, reinterpret_cast<WPARAM>(active_context_menu_.get()), msg.lParam };
+	MSG context_msg{ msg.hwnd, msg.message, reinterpret_cast<WPARAM>(active_context_menu_.get()), msg.lParam };
 	if ((trigger_event_with_target_<events::context_menu>(target, event_target, context_msg, nullptr).first & events::object::state_default_prevented) != 0u || GetMenuItemCount(active_context_menu_->get_handle()) == 0){
 		active_context_menu_ = nullptr;
 		return 0;//Default prevented or empty menu
@@ -665,6 +669,23 @@ LRESULT winp::thread::item_manager::menu_init_(item &target, MSG &msg){
 
 	active_context_menu_object_ = nullptr;
 	return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
+}
+
+LRESULT winp::thread::item_manager::notify_(item &target, MSG &msg){
+	auto info = reinterpret_cast<NMHDR *>(msg.lParam);
+
+	auto actual_target = find_window_(info->hwndFrom, false);
+	if (actual_target == nullptr)
+		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
+
+	switch (info->code){
+	case BCN_DROPDOWN:
+		return SendMessageW(info->hwndFrom, WINP_WM_SPLIT_BUTTON_DROPDOWN, static_cast<WPARAM>(msg.lParam), static_cast<LPARAM>(MAKELONG(-1, -1)));
+	default:
+		break;
+	}
+
+	return trigger_event_<events::unhandled>(target, msg, nullptr).second;
 }
 
 bool winp::thread::item_manager::menu_item_id_is_reserved_(UINT id){
@@ -766,7 +787,7 @@ LRESULT CALLBACK winp::thread::item_manager::hook_entry_(int code, WPARAM wparam
 		manager.top_level_windows_[manager.window_cache_.handle] = manager.window_cache_.object;
 
 	if (auto class_entry = manager.thread_.get_class_entry_(manager.window_cache_.object->get_class_name()); class_entry != nullptr && class_entry != DefWindowProcW)
-		SetWindowLongPtrW(manager.window_cache_.handle, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(class_entry));//Subclass window
+		SetWindowLongPtrW(manager.window_cache_.handle, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(entry_));//Subclass window
 
 	return CallNextHookEx(nullptr, code, wparam, lparam);
 }

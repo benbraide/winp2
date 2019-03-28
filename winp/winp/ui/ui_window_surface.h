@@ -23,6 +23,8 @@ namespace winp::ui{
 
 		virtual ~window_surface();
 
+		virtual bool is_dialog_message(MSG &msg) const;
+
 		using visible_surface::show;
 
 		virtual utility::error_code show(int how, const std::function<void(window_surface &, utility::error_code)> &callback = nullptr);
@@ -58,6 +60,10 @@ namespace winp::ui{
 		virtual bar_menu_type &get_menu_bar(const std::function<void(const bar_menu_type &)> &callback = nullptr) const;
 
 		virtual const std::wstring &get_class_name(const std::function<void(const std::wstring &)> &callback = nullptr) const;
+
+		virtual void traverse_child_windows(const std::function<bool(window_surface &)> &callback, bool block = false) const;
+
+		virtual void traverse_all_child_windows(const std::function<void(window_surface &)> &callback, bool block = false) const;
 
 	protected:
 		friend class thread::item_manager;
@@ -126,6 +132,10 @@ namespace winp::ui{
 
 		virtual bar_menu_type &get_menu_bar_() const;
 
+		virtual HMENU get_context_menu_handle_(events::get_context_menu_handle &e) const;
+
+		virtual POINT get_context_menu_position_() const;
+
 		virtual const std::wstring &get_class_name_() const;
 
 		virtual const wchar_t *get_window_text_() const;
@@ -133,6 +143,8 @@ namespace winp::ui{
 		virtual HINSTANCE get_instance_() const;
 
 		virtual bool is_top_level_() const;
+
+		virtual bool traverse_child_windows_(const tree &parent, const std::function<bool(window_surface &)> &callback) const;
 
 		HWND handle_ = nullptr;
 		WNDPROC entry_ = DefWindowProcW;

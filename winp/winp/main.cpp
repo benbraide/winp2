@@ -1,10 +1,14 @@
 #include "app/app_object.h"
+#include "utility/random_bool_generator.h"
+
 #include "window/window_object.h"
 #include "non_window/rectangular_non_window.h"
-#include "utility/random_bool_generator.h"
 
 #include "menu/menu_item_wrapper.h"
 #include "menu/menu_link_item_with_popup.h"
+
+#include "control/push_button_control.h"
+#include "control/split_button_control.h"
 
 int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_show){
 	winp::app::main_object main_app;
@@ -42,14 +46,6 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 		return winp::ui::add_result_type::dont_create;
 	});
 
-	winp::window::object wsc;
-	wsc.set_parent(ws);
-	wsc.set_caption(L"Child Window");
-	wsc.set_position(30, 200);
-	wsc.set_size(300, 120);
-	wsc.create();
-	wsc.show();
-
 	winp::utility::random_bool_generator rand;
 	ws.add_object([&](winp::non_window::rectangle &nwo){
 		nwo.events().bind([&](winp::events::paint &e){
@@ -83,6 +79,35 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 		return winp::ui::add_result_type::confirm;
 	});
 
+	ws.add_object([&](winp::control::push_button &btn){
+		btn.set_position(350, 30);
+		btn.set_text(L"Button");
+		return winp::ui::add_result_type::confirm;
+	});
+
+	ws.add_object([&](winp::control::split_button &btn){
+		btn.set_position(350, 70);
+		btn.set_text(L"Split Button");
+
+		btn.events().bind([&](winp::events::allow_context_menu &e){
+			e.set_result(true);
+		});
+
+		btn.events().bind([&](winp::events::context_menu &e){
+			e.get_popup().add_object([&](winp::menu::action_item &item){
+				item.set_text(L"Split Button Action Item");
+				return winp::ui::add_result_type::confirm;
+			});
+
+			e.get_popup().add_object([&](winp::menu::action_item &item){
+				item.set_text(L"Split Button Action Item 2");
+				return winp::ui::add_result_type::confirm;
+			});
+		});
+
+		return winp::ui::add_result_type::confirm;
+	});
+
 	ws.events().bind([&](winp::events::close &e){
 		//if (!rand)
 			//e.prevent_default();
@@ -95,6 +120,14 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 	ws.events().bind([&](winp::events::allow_context_menu &e){
 		e.set_result(true);
 	});
+
+	winp::window::object wsc;
+	wsc.set_parent(ws);
+	wsc.set_caption(L"Child Window");
+	wsc.set_position(30, 200);
+	wsc.set_size(300, 120);
+	wsc.create();
+	wsc.show();
 
 	ws.events().bind([&](winp::events::context_menu &e){
 		e.get_popup().add_object([&](winp::menu::action_item &item){

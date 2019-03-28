@@ -82,13 +82,13 @@ namespace winp::events{
 
 		virtual bool is_thread_context() const;
 
-		static constexpr unsigned int state_nil							= (0 << 0x0000);
-		static constexpr unsigned int state_default_prevented			= (1 << 0x0000);
-		static constexpr unsigned int state_propagation_stopped			= (1 << 0x0001);
-		static constexpr unsigned int state_doing_default				= (1 << 0x0002);
-		static constexpr unsigned int state_default_done				= (1 << 0x0003);
-		static constexpr unsigned int state_result_set					= (1 << 0x0004);
-		static constexpr unsigned int state_default_result_set			= (1 << 0x0005);
+		static constexpr unsigned int state_nil							= (0u << 0x0000);
+		static constexpr unsigned int state_default_prevented			= (1u << 0x0000);
+		static constexpr unsigned int state_propagation_stopped			= (1u << 0x0001);
+		static constexpr unsigned int state_doing_default				= (1u << 0x0002);
+		static constexpr unsigned int state_default_done				= (1u << 0x0003);
+		static constexpr unsigned int state_result_set					= (1u << 0x0004);
+		static constexpr unsigned int state_default_result_set			= (1u << 0x0005);
 
 	protected:
 		friend class thread::item;

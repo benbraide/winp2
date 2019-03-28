@@ -17,6 +17,8 @@
 
 #define WINP_WM_INIT_MENU_ITEM					(WM_APP + 0x09)
 
+#define WINP_WM_SPLIT_BUTTON_DROPDOWN			(WM_APP + 0x0A)
+
 namespace winp::ui{
 	class interactive_surface;
 	class window_surface;
@@ -139,6 +141,8 @@ namespace winp::thread{
 
 		LRESULT menu_init_(item &target, MSG &msg);
 
+		LRESULT notify_(item &target, MSG &msg);
+
 		static bool menu_item_id_is_reserved_(UINT id);
 
 		static HCURSOR get_default_cursor_(const MSG &msg);
@@ -187,7 +191,9 @@ namespace winp::thread{
 		mutable window_cache_info window_cache_{};
 		RECT update_rect_{};
 
+		ui::window_surface *focused_window_ = nullptr;
 		item *tracking_mouse_leave_ = nullptr;
+
 		std::shared_ptr<ui::object_collection<menu::popup>> active_context_menu_;
 		menu::object *active_context_menu_object_ = nullptr;
 	};

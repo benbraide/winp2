@@ -12,6 +12,10 @@ namespace winp::control{
 
 		virtual bool is_dialog_message_(MSG &msg) const override;
 
+		virtual system_menu_type &get_system_menu_() const override;
+
+		virtual bar_menu_type &get_menu_bar_() const override;
+
 		virtual const std::wstring &get_class_name_() const override;
 
 		virtual HINSTANCE get_instance_() const override;

@@ -38,7 +38,7 @@ winp::menu::check_item::check_item(tree &parent, std::size_t index)
 
 winp::menu::check_item::~check_item() = default;
 
-winp::utility::error_code winp::menu::check_item::set_checked_bitmap(HBITMAP value, const std::function<void(item &, utility::error_code)> &callback){
+winp::utility::error_code winp::menu::check_item::set_checked_bitmap(HBITMAP value, const std::function<void(check_item &, utility::error_code)> &callback){
 	return compute_or_post_task_inside_thread_context([=]{
 		return pass_return_value_to_callback(callback, *this, set_bitmap_(value));
 	}, (callback != nullptr), utility::error_code::nil);
@@ -50,7 +50,7 @@ HBITMAP winp::menu::check_item::get_checked_bitmap(const std::function<void(HBIT
 	}, (callback != nullptr), nullptr);
 }
 
-winp::utility::error_code winp::menu::check_item::set_unchecked_bitmap(HBITMAP value, const std::function<void(item &, utility::error_code)> &callback){
+winp::utility::error_code winp::menu::check_item::set_unchecked_bitmap(HBITMAP value, const std::function<void(check_item &, utility::error_code)> &callback){
 	return compute_or_post_task_inside_thread_context([=]{
 		return pass_return_value_to_callback(callback, *this, set_bitmap_(value));
 	}, (callback != nullptr), utility::error_code::nil);
@@ -62,7 +62,7 @@ HBITMAP winp::menu::check_item::get_unchecked_bitmap(const std::function<void(HB
 	}, (callback != nullptr), nullptr);
 }
 
-winp::utility::error_code winp::menu::check_item::set_checked_state(bool is_checked, const std::function<void(item &, utility::error_code)> &callback){
+winp::utility::error_code winp::menu::check_item::set_checked_state(bool is_checked, const std::function<void(check_item &, utility::error_code)> &callback){
 	return compute_or_post_task_inside_thread_context([=]{
 		return pass_return_value_to_callback(callback, *this, set_checked_state_(is_checked));
 	}, (callback != nullptr), utility::error_code::nil);

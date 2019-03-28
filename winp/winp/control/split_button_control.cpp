@@ -1,0 +1,60 @@
+#include "../app/app_collection.h"
+
+#include "split_button_control.h"
+
+winp::control::split_button::split_button()
+	: split_button(app::collection::get_main()->get_thread()){}
+
+winp::control::split_button::split_button(thread::object &thread)
+	: button(thread){}
+
+winp::control::split_button::split_button(tree &parent)
+	: split_button(parent, static_cast<std::size_t>(-1)){}
+
+winp::control::split_button::split_button(tree &parent, std::size_t index)
+	: split_button(parent.get_thread()){
+	set_parent(&parent, index);
+}
+
+winp::control::split_button::~split_button() = default;
+
+DWORD winp::control::split_button::get_persistent_styles_(bool is_extended) const{
+	return (button::get_persistent_styles_(is_extended) | (is_extended ? 0u : BS_SPLITBUTTON));
+}
+
+HMENU winp::control::split_button::get_context_menu_handle_(events::get_context_menu_handle &e) const{
+	if (e.get_message().message == WINP_WM_SPLIT_BUTTON_DROPDOWN)
+		return button::get_context_menu_handle_(e);
+
+	e.prevent_default();
+	return nullptr;
+}
+
+POINT winp::control::split_button::get_context_menu_position_() const{
+	auto dimension = get_absolute_dimension_();
+	return POINT{ dimension.left, dimension.bottom };
+}
+
+SIZE winp::control::split_button::compute_additional_size_() const{
+	return SIZE{ 20, 0 };
+}
+
+winp::control::default_split_button::default_split_button()
+	: default_split_button(app::collection::get_main()->get_thread()){}
+
+winp::control::default_split_button::default_split_button(thread::object &thread)
+	: split_button(thread){}
+
+winp::control::default_split_button::default_split_button(tree &parent)
+	: default_split_button(parent, static_cast<std::size_t>(-1)){}
+
+winp::control::default_split_button::default_split_button(tree &parent, std::size_t index)
+	: default_split_button(parent.get_thread()){
+	set_parent(&parent, index);
+}
+
+winp::control::default_split_button::~default_split_button() = default;
+
+DWORD winp::control::default_split_button::get_persistent_styles_(bool is_extended) const{
+	return (button::get_persistent_styles_(is_extended) | (is_extended ? 0u : BS_DEFSPLITBUTTON));
+}

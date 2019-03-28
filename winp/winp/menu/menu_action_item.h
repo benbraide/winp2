@@ -15,7 +15,7 @@ namespace winp::menu{
 
 		virtual ~action_item();
 
-		virtual utility::error_code set_text(const std::wstring &value, const std::function<void(object &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_text(const std::wstring &value, const std::function<void(action_item &, utility::error_code)> &callback = nullptr);
 
 		virtual const std::wstring &get_text(const std::function<void(const std::wstring &)> &callback = nullptr) const;
 

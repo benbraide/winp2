@@ -15,15 +15,15 @@ namespace winp::menu{
 
 		virtual ~check_item();
 
-		virtual utility::error_code set_checked_bitmap(HBITMAP value, const std::function<void(item &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_checked_bitmap(HBITMAP value, const std::function<void(check_item &, utility::error_code)> &callback = nullptr);
 
 		virtual HBITMAP get_checked_bitmap(const std::function<void(HBITMAP)> &callback = nullptr) const;
 
-		virtual utility::error_code set_unchecked_bitmap(HBITMAP value, const std::function<void(item &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_unchecked_bitmap(HBITMAP value, const std::function<void(check_item &, utility::error_code)> &callback = nullptr);
 
 		virtual HBITMAP get_unchecked_bitmap(const std::function<void(HBITMAP)> &callback = nullptr) const;
 
-		virtual utility::error_code set_checked_state(bool is_checked, const std::function<void(item &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_checked_state(bool is_checked, const std::function<void(check_item &, utility::error_code)> &callback = nullptr);
 
 		virtual bool is_checked(const std::function<void(bool)> &callback = nullptr) const;
 

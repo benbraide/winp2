@@ -11,13 +11,13 @@ winp::ui::window_surface::window_surface(thread::object &thread)
 	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
 
 	add_event_handler_([this](events::get_context_menu_handle &e){
-		auto &position = e.get_position();
-		if ((position.x == -1 && position.y == -1) || absolute_hit_test_(position.x, position.y) == HTCLIENT)
-			e.set_result_if_not_set(context_menu_.get_handle());
+		auto context_menu_handle = get_context_menu_handle_(e);
+		if (context_menu_handle != nullptr && (e.get_states() & events::object::state_default_prevented) == 0u)
+			e.set_result_if_not_set(context_menu_handle);
 	});
 
 	add_event_handler_([this](events::get_context_menu_position &e){
-		auto position = convert_position_to_absolute_value_(0, 0);
+		auto position = get_context_menu_position_();
 		e.set_result_if_not_set(MAKELONG(position.x, position.y));
 	});
 }
@@ -32,6 +32,12 @@ winp::ui::window_surface::window_surface(tree &parent, std::size_t index)
 
 winp::ui::window_surface::~window_surface(){
 	destruct();
+}
+
+bool winp::ui::window_surface::is_dialog_message(MSG &msg) const{
+	return compute_task_inside_thread_context([&]{
+		return is_dialog_message_(msg);
+	});
 }
 
 winp::utility::error_code winp::ui::window_surface::show(int how, const std::function<void(window_surface &, utility::error_code)> &callback){
@@ -134,6 +140,19 @@ const std::wstring &winp::ui::window_surface::get_class_name(const std::function
 	return *compute_or_post_task_inside_thread_context([=]{
 		return &pass_return_ref_value_to_callback(callback, &get_class_name_());
 	}, (callback != nullptr), &thread_.get_app().get_class_name());
+}
+
+void winp::ui::window_surface::traverse_child_windows(const std::function<bool(window_surface &)> &callback, bool block) const{
+	execute_or_post_task_inside_thread_context([&]{
+		traverse_child_windows_(*this, callback);
+	}, !block);
+}
+
+void winp::ui::window_surface::traverse_all_child_windows(const std::function<void(window_surface &)> &callback, bool block) const{
+	traverse_child_windows([callback](window_surface &value){
+		callback(value);
+		return true;
+	}, block);
 }
 
 winp::utility::error_code winp::ui::window_surface::create_(){
@@ -379,6 +398,10 @@ DWORD winp::ui::window_surface::get_filtered_styles_(bool is_extended) const{
 	return (is_extended ? 0u : ((parent_ == nullptr) ? WS_CHILD : (WS_CHILD | WS_POPUP)));
 }
 
+HWND winp::ui::window_surface::get_handle_() const{
+	return handle_;
+}
+
 winp::ui::window_surface::system_menu_type &winp::ui::window_surface::get_system_menu_() const{
 	if (handle_ != nullptr && !system_menu_.is_created())
 		system_menu_.set_handle(GetSystemMenu(handle_, FALSE));
@@ -393,8 +416,15 @@ winp::ui::window_surface::bar_menu_type &winp::ui::window_surface::get_menu_bar_
 	return menu_bar_;
 }
 
-HWND winp::ui::window_surface::get_handle_() const{
-	return handle_;
+HMENU winp::ui::window_surface::get_context_menu_handle_(events::get_context_menu_handle &e) const{
+	auto &position = e.get_position();
+	if (auto context_menu_handle = context_menu_.get_handle(); (context_menu_handle != nullptr && (position.x == -1 && position.y == -1) || absolute_hit_test_(position.x, position.y) == HTCLIENT))
+		return context_menu_handle;
+	return nullptr;
+}
+
+POINT winp::ui::window_surface::get_context_menu_position_() const{
+	return convert_position_to_absolute_value_(0, 0);
 }
 
 const std::wstring &winp::ui::window_surface::get_class_name_() const{
@@ -411,4 +441,21 @@ HINSTANCE winp::ui::window_surface::get_instance_() const{
 
 bool winp::ui::window_surface::is_top_level_() const{
 	return (parent_ == nullptr);
+}
+
+bool winp::ui::window_surface::traverse_child_windows_(const tree &parent, const std::function<bool(window_surface &)> &callback) const{
+	auto &children = parent.get_children();
+	if (children.empty())
+		return true;
+
+	for (auto child : children){
+		if (auto item_child = dynamic_cast<window_surface *>(child); item_child != nullptr){
+			if (!callback(*item_child))
+				return false;
+		}
+		else if (auto tree_child = dynamic_cast<tree *>(child); tree_child != nullptr && !traverse_child_windows_(*tree_child, callback))
+			return false;
+	}
+
+	return true;
 }

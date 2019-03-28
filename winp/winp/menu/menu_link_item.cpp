@@ -31,7 +31,7 @@ winp::menu::popup &winp::menu::link_item::get_target(const std::function<void(co
 	}, (callback != nullptr), target_);
 }
 
-winp::utility::error_code winp::menu::link_item::set_text(const std::wstring &value, const std::function<void(object &, utility::error_code)> &callback){
+winp::utility::error_code winp::menu::link_item::set_text(const std::wstring &value, const std::function<void(link_item &, utility::error_code)> &callback){
 	return compute_or_post_task_inside_thread_context([=]{
 		return pass_return_value_to_callback(callback, *this, set_text_(value));
 	}, (callback != nullptr), utility::error_code::nil);
