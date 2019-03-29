@@ -82,6 +82,11 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 	ws.add_object([&](winp::control::push_button &btn){
 		btn.set_position(350, 30);
 		btn.set_text(L"Button");
+
+		btn.events().bind([&](winp::events::click &e){
+			auto &t = e.get_target();
+		});
+
 		return winp::ui::add_result_type::confirm;
 	});
 
@@ -104,6 +109,10 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 				item.set_text(L"Split Button Action Item 2");
 				return winp::ui::add_result_type::confirm;
 			});
+		});
+
+		btn.events().bind([&](winp::events::click &e){
+			auto &t = e.get_target();
 		});
 
 		return winp::ui::add_result_type::confirm;

@@ -1,7 +1,7 @@
 #include "../app/app_collection.h"
 
-#include "../ui/ui_window_surface.h"
 #include "../ui/ui_non_window_surface.h"
+#include "../control/control_object.h"
 
 #include "../menu/menu_separator.h"
 #include "../menu/menu_link_item.h"
@@ -350,8 +350,8 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return menu_select_(target, msg);
 	case WINP_WM_MENU_ITEM_SELECT:
 		return trigger_event_<events::menu_item_select>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
-	case WINP_WM_MENU_ITEM_CHECK:
-		return trigger_event_<events::menu_item_check>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
+	case WINP_WM_ITEM_CHECK:
+		return trigger_event_<events::item_check>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WINP_WM_MENU_ITEM_HIGHLIGHT:
 		return trigger_event_<events::menu_item_highlight>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_MENUCOMMAND:
@@ -369,6 +369,8 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return trigger_event_<events::allow_context_menu>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_INITMENUPOPUP:
 		return menu_init_(target, msg);
+	case WM_COMMAND:
+		return command_(target, msg);
 	case WM_NOTIFY:
 		return notify_(target, msg);
 	default:
@@ -671,21 +673,30 @@ LRESULT winp::thread::item_manager::menu_init_(item &target, MSG &msg){
 	return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 }
 
-LRESULT winp::thread::item_manager::notify_(item &target, MSG &msg){
-	auto info = reinterpret_cast<NMHDR *>(msg.lParam);
-
-	auto actual_target = find_window_(info->hwndFrom, false);
-	if (actual_target == nullptr)
+LRESULT winp::thread::item_manager::command_(item &target, MSG &msg){
+	auto window_target = dynamic_cast<ui::window_surface *>(&target);
+	if (window_target == nullptr)
 		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
 
-	switch (info->code){
-	case BCN_DROPDOWN:
-		return SendMessageW(info->hwndFrom, WINP_WM_SPLIT_BUTTON_DROPDOWN, static_cast<WPARAM>(msg.lParam), static_cast<LPARAM>(MAKELONG(-1, -1)));
-	default:
-		break;
+	if (msg.lParam != 0){//Control command
+		auto control_target = dynamic_cast<control::object *>(find_window_(reinterpret_cast<HWND>(msg.lParam), false));
+		return ((control_target == nullptr) ? trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second : control_target->dispatch_command(msg));
 	}
 
-	return trigger_event_<events::unhandled>(target, msg, nullptr).second;
+	if (HIWORD(msg.wParam) != 0u){//Accelerator command
+
+	}
+
+	return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
+}
+
+LRESULT winp::thread::item_manager::notify_(item &target, MSG &msg){
+	auto window_target = dynamic_cast<ui::window_surface *>(&target);
+	if (window_target == nullptr)
+		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
+
+	auto control_target = dynamic_cast<control::object *>(find_window_(reinterpret_cast<NMHDR *>(msg.lParam)->hwndFrom, false));
+	return ((control_target == nullptr) ? trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second : control_target->dispatch_notification(msg));
 }
 
 bool winp::thread::item_manager::menu_item_id_is_reserved_(UINT id){

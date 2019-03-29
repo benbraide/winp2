@@ -15,6 +15,10 @@ namespace winp::control{
 
 		virtual ~push_button();
 
+		virtual LRESULT dispatch_command(MSG &msg) const override;
+
+		virtual utility::error_code click() const;
+
 	protected:
 		virtual DWORD get_persistent_styles_(bool is_extended) const override;
 	};

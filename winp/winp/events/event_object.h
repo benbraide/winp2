@@ -612,15 +612,6 @@ namespace winp::events{
 			: menu(std::forward<args_types>(args)...){}
 	};
 
-	class menu_item_check : public menu{
-	public:
-		template <typename... args_types>
-		explicit menu_item_check(args_types &&... args)
-			: menu(std::forward<args_types>(args)...){}
-
-		virtual bool is_checked() const;
-	};
-
 	class menu_init_item : public menu{
 	public:
 		template <typename... args_types>
@@ -672,5 +663,21 @@ namespace winp::events{
 			: context_menu_base(std::forward<args_types>(args)...){}
 
 		virtual ui::object_collection<winp::menu::popup> &get_popup() const;
+	};
+
+	class click : public object_with_message{
+	public:
+		template <typename... args_types>
+		explicit click(args_types &&... args)
+			: object_with_message(std::forward<args_types>(args)...){}
+	};
+
+	class item_check : public object_with_message{
+	public:
+		template <typename... args_types>
+		explicit item_check(args_types &&... args)
+			: object_with_message(std::forward<args_types>(args)...){}
+
+		virtual bool is_checked() const;
 	};
 }

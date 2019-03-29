@@ -37,6 +37,13 @@ namespace winp::ui{
 
 		virtual tree *get_top_ancestor(const std::function<void(tree *)> &callback = nullptr) const;
 
+		template <typename target_type>
+		target_type *get_ancestor(const std::function<void(target_type *)> &callback = nullptr) const{
+			return compute_or_post_task_inside_thread_context([=]{
+				return pass_return_value_to_callback(callback, get_ancestor_<target_type>());
+			}, (callback != nullptr), nullptr);
+		}
+
 		virtual bool is_ancestor(const tree &target, const std::function<void(bool)> &callback = nullptr) const;
 
 		virtual utility::error_code set_index(std::size_t value, const std::function<void(object &, utility::error_code)> &callback = nullptr);
@@ -69,6 +76,16 @@ namespace winp::ui{
 		virtual tree *get_parent_() const;
 
 		virtual tree *get_top_ancestor_() const;
+
+		template <typename target_type>
+		target_type *get_ancestor_() const{
+			for (auto ancestor = parent_; ancestor != nullptr; ancestor = dynamic_cast<object *>(ancestor)->parent_){
+				if (auto target_ancestor = dynamic_cast<target_type *>(ancestor); target_ancestor != nullptr)
+					return target_ancestor;
+			}
+
+			return nullptr;
+		}
 
 		virtual bool is_ancestor_(const tree &target) const;
 

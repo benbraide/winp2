@@ -7,6 +7,10 @@ namespace winp::control{
 	public:
 		virtual ~object();
 
+		virtual LRESULT dispatch_command(MSG &msg) const;
+
+		virtual LRESULT dispatch_notification(MSG &msg) const;
+
 	protected:
 		object(thread::object &thread, const std::wstring &class_name, DWORD common_id);
 

@@ -6,7 +6,7 @@ winp::control::split_button::split_button()
 	: split_button(app::collection::get_main()->get_thread()){}
 
 winp::control::split_button::split_button(thread::object &thread)
-	: button(thread){}
+	: push_button(thread){}
 
 winp::control::split_button::split_button(tree &parent)
 	: split_button(parent, static_cast<std::size_t>(-1)){}
@@ -18,13 +18,19 @@ winp::control::split_button::split_button(tree &parent, std::size_t index)
 
 winp::control::split_button::~split_button() = default;
 
+LRESULT winp::control::split_button::dispatch_notification(MSG &msg) const{
+	if (reinterpret_cast<NMHDR *>(msg.lParam)->code == BCN_DROPDOWN)
+		return SendMessageW(handle_, WINP_WM_SPLIT_BUTTON_DROPDOWN, static_cast<WPARAM>(msg.lParam), static_cast<LPARAM>(MAKELONG(-1, -1)));
+	return push_button::dispatch_notification(msg);
+}
+
 DWORD winp::control::split_button::get_persistent_styles_(bool is_extended) const{
-	return (button::get_persistent_styles_(is_extended) | (is_extended ? 0u : BS_SPLITBUTTON));
+	return (push_button::get_persistent_styles_(is_extended) | (is_extended ? 0u : BS_SPLITBUTTON));
 }
 
 HMENU winp::control::split_button::get_context_menu_handle_(events::get_context_menu_handle &e) const{
 	if (e.get_message().message == WINP_WM_SPLIT_BUTTON_DROPDOWN)
-		return button::get_context_menu_handle_(e);
+		return push_button::get_context_menu_handle_(e);
 
 	e.prevent_default();
 	return nullptr;

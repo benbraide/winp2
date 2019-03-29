@@ -15,7 +15,7 @@ winp::menu::check_item::check_item(thread::object &thread)
 			set_checked_state_(true);
 	});
 
-	add_event_handler_([this](events::menu_item_check &e){
+	add_event_handler_([this](events::item_check &e){
 		if (!e.is_checked())
 			return;
 

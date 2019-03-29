@@ -293,7 +293,7 @@ winp::utility::error_code winp::menu::item::set_states_(UINT value){
 		thread_.send_message(*this, WM_ENABLE, (was_enabled ? FALSE : TRUE));
 
 	if (was_checked != ((states_ & MFS_CHECKED) != 0u))//Checked state changed
-		thread_.send_message(*this, WINP_WM_MENU_ITEM_CHECK, (was_checked ? FALSE : TRUE));
+		thread_.send_message(*this, WINP_WM_ITEM_CHECK, (was_checked ? FALSE : TRUE));
 
 	return utility::error_code::nil;
 }

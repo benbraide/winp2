@@ -8,7 +8,7 @@
 #define WINP_WM_GET_BACKGROUND_COLOR			(WM_APP + 0x02)
 
 #define WINP_WM_MENU_ITEM_SELECT				(WM_APP + 0x03)
-#define WINP_WM_MENU_ITEM_CHECK					(WM_APP + 0x04)
+#define WINP_WM_ITEM_CHECK						(WM_APP + 0x04)
 #define WINP_WM_MENU_ITEM_HIGHLIGHT				(WM_APP + 0x05)
 
 #define WINP_WM_GET_CONTEXT_MENU_POSITION		(WM_APP + 0x06)
@@ -140,6 +140,8 @@ namespace winp::thread{
 		LRESULT context_menu_(item &target, MSG &msg);
 
 		LRESULT menu_init_(item &target, MSG &msg);
+
+		LRESULT command_(item &target, MSG &msg);
 
 		LRESULT notify_(item &target, MSG &msg);
 

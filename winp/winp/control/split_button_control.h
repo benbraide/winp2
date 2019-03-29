@@ -1,9 +1,9 @@
 #pragma once
 
-#include "button_control.h"
+#include "push_button_control.h"
 
 namespace winp::control{
-	class split_button : public button{
+	class split_button : public push_button{
 	public:
 		split_button();
 
@@ -14,6 +14,8 @@ namespace winp::control{
 		split_button(tree &parent, std::size_t index);
 
 		virtual ~split_button();
+
+		virtual LRESULT dispatch_notification(MSG &msg) const override;
 
 	protected:
 		virtual DWORD get_persistent_styles_(bool is_extended) const override;
