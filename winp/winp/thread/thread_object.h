@@ -53,6 +53,13 @@ namespace winp::thread{
 
 		ID2D1SolidColorBrush *get_color_brush() const;
 
+		events::object &get_current_event() const;
+
+		template <typename target_type>
+		target_type &get_current_event_as() const{
+			return dynamic_cast<target_type &>(get_current_event());
+		}
+
 		HWND get_message_handle() const;
 
 		template <typename wparam_type = WPARAM, typename lparam_type = LPARAM>
@@ -122,7 +129,9 @@ namespace winp::thread{
 	private:
 		friend class item;
 		friend class item_manager;
+
 		friend class app::object;
+		friend class events::object;
 
 		void add_item_(item &item);
 
@@ -150,5 +159,7 @@ namespace winp::thread{
 
 		DWORD control_ids_ = 0;
 		mutable std::unordered_map<std::wstring, WNDPROC> class_info_map_;
+
+		events::object *current_event_ = nullptr;
 	};
 }

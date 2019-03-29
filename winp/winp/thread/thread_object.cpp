@@ -167,6 +167,13 @@ ID2D1SolidColorBrush *winp::thread::object::get_color_brush() const{
 	return color_brush_;
 }
 
+winp::events::object &winp::thread::object::get_current_event() const{
+	if (!is_thread_context())
+		throw utility::error_code::outside_thread_context;
+
+	return *current_event_;
+}
+
 HWND winp::thread::object::get_message_handle() const{
 	return message_hwnd_;
 }

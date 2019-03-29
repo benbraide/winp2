@@ -6,9 +6,14 @@ winp::events::object::object(thread::item &target, const std::function<void(obje
 	: object(target, target, default_handler){}
 
 winp::events::object::object(thread::item &target, thread::item &context, const std::function<void(object &)> &default_handler)
-	: target_(target), context_(&context), default_handler_(default_handler){}
+	: target_(target), context_(&context), default_handler_(default_handler){
+	target_.get_thread().current_event_ = this;
+}
 
-winp::events::object::~object() = default;
+winp::events::object::~object(){
+	if (target_.get_thread().current_event_ == this)
+		target_.get_thread().current_event_ = nullptr;
+}
 
 winp::thread::object &winp::events::object::get_thread(){
 	return target_.get_thread();
