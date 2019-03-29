@@ -90,7 +90,7 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 		btn.set_text(L"Split Button");
 
 		btn.events().bind([&](winp::events::allow_context_menu &e){
-			e.set_result(true);
+			return true;
 		});
 
 		btn.events().bind([&](winp::events::context_menu &e){

@@ -15,17 +15,18 @@ namespace winp::events{
 		virtual const std::type_info *get_type_info() const = 0;
 	};
 
-	template <class object_type>
+	template <class object_type, typename return_type>
 	class handler : public handler_base{
 	public:
+		using m_return_type = return_type;
 		using m_object_type = object_type;
-		using callback_type = std::function<void(m_object_type)>;
+		using callback_type = std::function<return_type(m_object_type)>;
 
 		explicit handler(const callback_type &callback)
 			: callback_(callback){}
 
 		virtual void call(object &object) const override{
-			callback_(dynamic_cast<std::remove_cv_t<std::remove_reference_t<m_object_type>> &>(object));
+			call_<return_type>(object, std::bool_constant<std::is_void_v<return_type>>());
 		}
 
 		virtual const std::type_info *get_type_info() const override{
@@ -33,6 +34,16 @@ namespace winp::events{
 		}
 
 	private:
+		template <typename unused>
+		void call_(object &object, std::true_type) const{
+			callback_(dynamic_cast<std::remove_cv_t<std::remove_reference_t<m_object_type>> &>(object));
+		}
+
+		template <typename unused>
+		void call_(object &object, std::false_type) const{
+			object.set_result(callback_(dynamic_cast<std::remove_cv_t<std::remove_reference_t<m_object_type>> &>(object)));
+		}
+
 		callback_type callback_;
 	};
 
@@ -49,6 +60,51 @@ namespace winp::events{
 		using list_type = std::list<handler_info>;
 		using map_type = std::unordered_map<const std::type_info *, list_type>;
 		using change_map_type = std::unordered_map<const std::type_info *, std::list<std::function<void(std::size_t, std::size_t)>>>;
+
+		template <class return_type, class object_type, std::size_t>
+		struct bind_helper;
+
+		template <class return_type, class object_type>
+		struct bind_helper<return_type, object_type, 1u>{
+			static unsigned __int64 bind(manager &m, const std::function<return_type(object_type &)> &handler){
+				return m.bind_<return_type, object_type>(handler);
+			}
+
+			static unsigned __int64 bind(manager &m, const std::function<return_type(const object_type &)> &handler){
+				return m.bind_<return_type, object_type>(handler);
+			}
+		};
+
+		template <class return_type>
+		struct bind_helper<return_type, void, 1u>{
+			template <typename object_type>
+			static unsigned __int64 bind(manager &m, const std::function<return_type(object_type &)> &handler){
+				return m.bind_<return_type, object_type>(handler);
+			}
+
+			template <typename object_type>
+			static unsigned __int64 bind(manager &m, const std::function<return_type(const object_type &)> &handler){
+				return m.bind_<return_type, object_type>(handler);
+			}
+		};
+
+		template <class return_type, class object_type>
+		struct bind_helper<return_type, object_type, 0u>{
+			static unsigned __int64 bind(manager &m, const std::function<return_type()> &handler){
+				return bind_helper<return_type, object_type, 1u>::template bind(m, [handler](object_type &){
+					return handler();
+				});
+			}
+		};
+
+		template <class return_type>
+		struct bind_helper<return_type, void, 0u>{
+			static unsigned __int64 bind(manager &m, const std::function<return_type()> &handler){
+				return bind_helper<return_type, unhandled, 1u>::template bind(m, [handler](unhandled &){
+					return handler();
+				});
+			}
+		};
 
 		explicit manager(m_owner_type &owner)
 			: owner_(owner){}
@@ -68,7 +124,23 @@ namespace winp::events{
 		template <typename handler_type>
 		unsigned __int64 bind(const handler_type &handler){
 			return owner_.compute_task_inside_thread_context([&]{
-				return bind_(utility::object_to_function_traits::get(handler));
+				using traits_type = utility::object_to_function_traits::traits<handler_type>;
+				return bind_helper<typename traits_type::m_return_type, void, traits_type::template arg_count>::template bind(*this, utility::object_to_function_traits::get(handler));
+			});
+		}
+
+		template <typename object_type, typename handler_type>
+		unsigned __int64 bind(const handler_type &handler){
+			return owner_.compute_task_inside_thread_context([&]{
+				using traits_type = utility::object_to_function_traits::traits<handler_type>;
+				return bind_helper<typename traits_type::m_return_type, object_type, traits_type::template arg_count>::template bind(*this, utility::object_to_function_traits::get(handler));
+			});
+		}
+
+		/*template <typename handler_type>
+		unsigned __int64 bind(const handler_type &handler){
+			return owner_.compute_task_inside_thread_context([&]{
+				return bind_<typename utility::object_to_function_traits::traits<handler_type>::m_return_type>(utility::object_to_function_traits::get(handler));
 			});
 		}
 		
@@ -77,7 +149,7 @@ namespace winp::events{
 			return bind([handler](object_type &){
 				handler();
 			});
-		}
+		}*/
 
 		void unbind(unsigned __int64 id){
 			owner_.execute_task_inside_thread_context([&]{
@@ -88,12 +160,12 @@ namespace winp::events{
 	private:
 		friend owner_type;
 		
-		template <typename object_type>
-		unsigned __int64 bind_(const std::function<void(object_type &)> &handler){
+		template <typename return_type, typename object_type>
+		unsigned __int64 bind_(const std::function<return_type(object_type &)> &handler){
 			unsigned __int64 id = random_generator_;
 			handlers_[&typeid(object_type)].push_back(handler_info{
 				id,
-				std::make_shared<events::handler<object_type &>>(handler)
+				std::make_shared<events::handler<object_type &, return_type>>(handler)
 			});
 
 			++count_;
@@ -105,23 +177,11 @@ namespace winp::events{
 			return id;
 		}
 		
-		template <typename object_type>
-		unsigned __int64 bind_(const std::function<void(const object_type &)> &handler){
-			unsigned __int64 id = random_generator_;
-			auto &list = handlers_[&typeid(object_type)];
-
-			list.push_back(handler_info{
-				id,
-				std::make_shared<events::handler<const object_type &>>(handler)
+		template <typename return_type, typename object_type>
+		unsigned __int64 bind_(const std::function<return_type(const object_type &)> &handler){
+			return bind_<return_type, object_type>([handler](object_type &e){
+				return handler(e);
 			});
-
-			++count_;
-			if (auto it = change_handlers_.find(&typeid(object_type)); it != change_handlers_.end()){//Call handlers
-				for (auto &handler : it->second)
-					handler(list.size(), (list.size() - 1u));
-			}
-
-			return id;
 		}
 
 		void unbind_(unsigned __int64 id){
