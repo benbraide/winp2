@@ -136,17 +136,6 @@ UINT winp::menu::tree::get_types_(std::size_t index) const{
 	return 0u;
 }
 
-bool winp::menu::tree::traverse_items_(const std::function<bool(menu::item &)> &callback) const{
-	if (children_.empty())
-		return true;
-
-	for (auto child : children_){
-		if (auto tree_child = dynamic_cast<tree *>(child); tree_child != nullptr && !tree_child->traverse_items_(callback))
-			return false;
-
-		if (auto item_child = dynamic_cast<menu::item *>(child); item_child != nullptr && !callback(*item_child))
-			return false;
-	}
-
-	return true;
+void winp::menu::tree::traverse_items_(const std::function<bool(menu::item &)> &callback) const{
+	traverse_offspring_of_<menu::item>(callback);
 }

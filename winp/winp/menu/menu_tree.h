@@ -25,9 +25,9 @@ namespace winp::menu{
 
 		virtual UINT get_types(std::size_t index, const std::function<void(UINT)> &callback = nullptr) const;
 
-		virtual void traverse_items(const std::function<bool(menu::item &)> &callback, bool block = false) const;
+		virtual void traverse_items(const std::function<bool(menu::item &)> &callback, bool block) const;
 
-		virtual void traverse_all_items(const std::function<void(menu::item &)> &callback, bool block = false) const;
+		virtual void traverse_all_items(const std::function<void(menu::item &)> &callback, bool block) const;
 
 	protected:
 		virtual std::size_t get_items_count_() const;
@@ -42,6 +42,6 @@ namespace winp::menu{
 
 		virtual UINT get_types_(std::size_t index) const;
 
-		virtual bool traverse_items_(const std::function<bool(menu::item &)> &callback) const;
+		virtual void traverse_items_(const std::function<bool(menu::item &)> &callback) const;
 	};
 }

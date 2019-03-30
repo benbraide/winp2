@@ -65,6 +65,19 @@ void winp::ui::tree::traverse_all_children(const std::function<void(object &)> &
 	}, block);
 }
 
+void winp::ui::tree::traverse_offspring(const std::function<bool(object &)> &callback, bool block) const{
+	execute_or_post_task_inside_thread_context([&]{
+		traverse_offspring_(callback);
+	}, !block);
+}
+
+void winp::ui::tree::traverse_all_offspring(const std::function<void(object &)> &callback, bool block) const{
+	traverse_offspring([callback](object &value){
+		callback(value);
+		return true;
+	}, block);
+}
+
 winp::utility::error_code winp::ui::tree::destruct_(){
 	while (!children_.empty()){//Erase all children
 		if (auto error_code = erase_child_(0); error_code != utility::error_code::nil)
@@ -186,4 +199,19 @@ void winp::ui::tree::traverse_children_(const std::function<bool(object &)> &cal
 				break;
 		}
 	}
+}
+
+bool winp::ui::tree::traverse_offspring_(const std::function<bool(object &)> &callback) const{
+	if (children_.empty())
+		return true;
+
+	for (auto child : children_){
+		if (!callback(*child))
+			return false;
+
+		if (auto tree_child = dynamic_cast<tree *>(child); tree_child != nullptr && !tree_child->traverse_offspring_(callback))
+			return false;
+	}
+
+	return true;
 }

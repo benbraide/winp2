@@ -27,9 +27,47 @@ namespace winp::ui{
 
 		virtual const std::list<object *> &get_children(const std::function<void(const std::list<object *> &)> &callback = nullptr) const;
 
-		virtual void traverse_children(const std::function<bool(object &)> &callback, bool block = false) const;
+		virtual void traverse_children(const std::function<bool(object &)> &callback, bool block) const;
 
-		virtual void traverse_all_children(const std::function<void(object &)> &callback, bool block = false) const;
+		virtual void traverse_all_children(const std::function<void(object &)> &callback, bool block) const;
+
+		virtual void traverse_offspring(const std::function<bool(object &)> &callback, bool block) const;
+
+		virtual void traverse_all_offspring(const std::function<void(object &)> &callback, bool block) const;
+
+		template <typename target_type>
+		void traverse_children_of(const std::function<bool(target_type &)> &callback, bool block) const{
+			traverse_children([=](object &child){
+				if (auto target_child = dynamic_cast<target_type *>(&child); target_child != nullptr)
+					return callback(*target_child);
+				return true;
+			}, block);
+		}
+
+		template <typename target_type>
+		void traverse_all_children_of(const std::function<void(target_type &)> &callback, bool block) const{
+			traverse_all_children([=](object &child){
+				if (auto target_child = dynamic_cast<target_type *>(&child); target_child != nullptr)
+					callback(*target_child);
+			}, block);
+		}
+
+		template <typename target_type>
+		void traverse_offspring_of(const std::function<bool(target_type &)> &callback, bool block) const{
+			traverse_offspring([=](object &child){
+				if (auto target_child = dynamic_cast<target_type *>(&child); target_child != nullptr)
+					return callback(*target_child);
+				return true;
+			}, block);
+		}
+
+		template <typename target_type>
+		void traverse_all_offspring_of(const std::function<void(target_type &)> &callback, bool block) const{
+			traverse_all_offspring([=](object &child){
+				if (auto target_child = dynamic_cast<target_type *>(&child); target_child != nullptr)
+					callback(*target_child);
+			}, block);
+		}
 
 	protected:
 		friend class object;
@@ -51,6 +89,26 @@ namespace winp::ui{
 		virtual object *get_child_at_(std::size_t index) const;
 
 		virtual void traverse_children_(const std::function<bool(object &)> &callback) const;
+
+		virtual bool traverse_offspring_(const std::function<bool(object &)> &callback) const;
+
+		template <typename target_type>
+		void traverse_children_of_(const std::function<bool(target_type &)> &callback) const{
+			traverse_children_([=](object &child){
+				if (auto target_child = dynamic_cast<target_type *>(&child); target_child != nullptr)
+					return callback(*target_child);
+				return true;
+			});
+		}
+
+		template <typename target_type>
+		void traverse_offspring_of_(const std::function<bool(target_type &)> &callback) const{
+			traverse_offspring_([=](object &child){
+				if (auto target_child = dynamic_cast<target_type *>(&child); target_child != nullptr)
+					return callback(*target_child);
+				return true;
+			});
+		}
 
 		std::list<object *> children_;
 	};

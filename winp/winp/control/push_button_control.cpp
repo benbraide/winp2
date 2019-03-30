@@ -28,7 +28,7 @@ winp::utility::error_code winp::control::push_button::click() const{
 	if (handle_ == nullptr)
 		return utility::error_code::action_could_not_be_completed;
 
-	if (auto window_ancestor = get_ancestor<ui::window_surface>(); window_ancestor == nullptr){
+	if (auto window_ancestor = get_first_ancestor_of_<ui::window_surface>(nullptr); window_ancestor == nullptr){
 		MSG msg{ nullptr, WM_COMMAND, 0, reinterpret_cast<LPARAM>(handle_) };
 		trigger_event_<events::click>(msg, thread_.get_class_entry(get_class_name()));
 	}

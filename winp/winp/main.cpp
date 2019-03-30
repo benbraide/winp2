@@ -47,7 +47,7 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 	});
 
 	winp::utility::random_bool_generator rand;
-	ws.add_object([&](winp::non_window::rectangle &nwo){
+	ws.add_object([&](winp::ui::object_collection<winp::non_window::rectangle> &nwo){
 		nwo.events().bind([&](winp::events::paint &e){
 			e.begin();
 			if (auto drawer = e.get_render_target(); drawer != nullptr){
@@ -71,6 +71,17 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 				e.prevent_default();
 		});
 
+		nwo.add_object([&](winp::control::push_button &btn){
+			btn.set_position(10, 10);
+			btn.set_text(L"Button");
+
+			btn.events().bind([&](winp::events::click &e){
+				auto &t = e.get_target();
+			});
+
+			return winp::ui::add_result_type::confirm;
+		});
+
 		std::thread([&]{
 			std::this_thread::sleep_for(std::chrono::seconds(3));
 			nwo.set_width(400);
@@ -79,19 +90,8 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 		return winp::ui::add_result_type::confirm;
 	});
 
-	ws.add_object([&](winp::control::push_button &btn){
-		btn.set_position(350, 30);
-		btn.set_text(L"Button");
-
-		btn.events().bind([&](winp::events::click &e){
-			auto &t = e.get_target();
-		});
-
-		return winp::ui::add_result_type::confirm;
-	});
-
 	ws.add_object([&](winp::control::split_button &btn){
-		btn.set_position(350, 70);
+		btn.set_position(350, 40);
 		btn.set_text(L"Split Button");
 
 		btn.events().bind<winp::events::allow_context_menu>([&](){

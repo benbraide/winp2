@@ -159,23 +159,18 @@ winp::utility::error_code winp::ui::window_surface::create_(){
 	if (handle_ != nullptr)
 		return utility::error_code::nil;
 
-	HWND parent_handle = nullptr;
 	auto position = position_;
-
-	for (auto ancestor = parent_; ancestor != nullptr; ancestor = ancestor->get_parent()){
-		if (auto window_ancestor = dynamic_cast<window_surface *>(ancestor); window_ancestor != nullptr){
-			parent_handle = window_ancestor->handle_;
-			break;
-		}
-
-		if (auto surface_ancestor = dynamic_cast<surface *>(ancestor); surface_ancestor != nullptr){
+	auto window_ancestor = get_first_ancestor_of_<window_surface>([&](tree &ancestor){
+		if (auto surface_ancestor = dynamic_cast<surface *>(&ancestor); surface_ancestor != nullptr){
 			auto ancestor_position = surface_ancestor->get_position();
 			position.x += ancestor_position.x;
 			position.y += ancestor_position.y;
 		}
-	}
+		return true;
+	});
 
-	if (parent_ != nullptr && parent_handle == nullptr)
+	auto ancestor_handle = ((window_ancestor == nullptr) ? nullptr : window_ancestor->handle_);
+	if (parent_ != nullptr && ancestor_handle == nullptr)
 		return utility::error_code::parent_not_created;
 
 	handle_ = thread_.get_item_manager().create_window(
@@ -188,7 +183,7 @@ winp::utility::error_code winp::ui::window_surface::create_(){
 		position.y,
 		size_.cx,
 		size_.cy,
-		parent_handle,
+		ancestor_handle,
 		nullptr,
 		get_instance_()
 	);

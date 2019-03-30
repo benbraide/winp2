@@ -61,9 +61,9 @@ namespace winp::ui{
 
 		virtual const std::wstring &get_class_name(const std::function<void(const std::wstring &)> &callback = nullptr) const;
 
-		virtual void traverse_child_windows(const std::function<bool(window_surface &)> &callback, bool block = false) const;
+		virtual void traverse_child_windows(const std::function<bool(window_surface &)> &callback, bool block) const;
 
-		virtual void traverse_all_child_windows(const std::function<void(window_surface &)> &callback, bool block = false) const;
+		virtual void traverse_all_child_windows(const std::function<void(window_surface &)> &callback, bool block) const;
 
 	protected:
 		friend class thread::item_manager;
