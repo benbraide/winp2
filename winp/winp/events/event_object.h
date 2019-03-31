@@ -679,5 +679,7 @@ namespace winp::events{
 			: object_with_message(std::forward<args_types>(args)...){}
 
 		virtual bool is_checked() const;
+
+		virtual bool is_indeterminate() const;
 	};
 }

@@ -18,7 +18,7 @@ namespace winp::utility{
 		index_out_of_range,
 		event_cannot_be_bound,
 		menu_link_target_not_created,
-		menu_check_item_required,
+		check_item_required,
 		menu_item_empty_text,
 	};
 }

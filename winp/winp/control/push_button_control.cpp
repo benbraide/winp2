@@ -25,15 +25,12 @@ LRESULT winp::control::push_button::dispatch_command(MSG &msg) const{
 }
 
 winp::utility::error_code winp::control::push_button::click() const{
-	if (handle_ == nullptr)
-		return utility::error_code::action_could_not_be_completed;
-
-	if (auto window_ancestor = get_first_ancestor_of_<ui::window_surface>(nullptr); window_ancestor == nullptr){
+	if (handle_ == nullptr){
 		MSG msg{ nullptr, WM_COMMAND, 0, reinterpret_cast<LPARAM>(handle_) };
 		trigger_event_<events::click>(msg, thread_.get_class_entry(get_class_name()));
 	}
 	else
-		SendMessageW(window_ancestor->get_handle(), WM_COMMAND, 0, reinterpret_cast<LPARAM>(handle_));
+		SendMessageW(handle_, BM_CLICK, 0, 0);
 
 	return utility::error_code::nil;
 }

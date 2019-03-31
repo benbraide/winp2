@@ -21,7 +21,7 @@ winp::menu::radio_group::~radio_group() = default;
 
 winp::utility::error_code winp::menu::radio_group::insert_child_(object &child, std::size_t index){
 	if (dynamic_cast<check_item *>(&child) == nullptr)
-		return utility::error_code::menu_check_item_required;
+		return utility::error_code::check_item_required;
 	return tree::insert_child_(child, index);
 }
 

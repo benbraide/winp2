@@ -9,6 +9,8 @@
 
 #include "control/push_button_control.h"
 #include "control/split_button_control.h"
+#include "control/check_control.h"
+#include "control/control_group.h"
 
 int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_show){
 	winp::app::main_object main_app;
@@ -131,7 +133,7 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 		e.set_result(true);
 	});
 
-	winp::window::object wsc;
+	winp::ui::object_collection<winp::window::object> wsc;
 	wsc.set_parent(ws);
 	wsc.set_caption(L"Child Window");
 	wsc.set_position(30, 200);
@@ -152,6 +154,79 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 
 	wsc.events().bind([&](winp::events::mouse_leave &e){
 		e.prevent_default();
+	});
+
+	wsc.add_object([&](winp::control::check &chk){
+		chk.set_position(10, 10);
+		chk.set_text(L"Check");
+
+		chk.events().bind([&](winp::events::click &e){
+			auto &t = e.get_target();
+		});
+
+		chk.events().bind([&](winp::events::item_check &e){
+			auto ic = e.is_checked();
+			auto &t = e.get_target();
+		});
+
+		return winp::ui::add_result_type::confirm;
+	});
+
+	wsc.add_object([&](winp::ui::object_collection<winp::control::radio_group> &grp){
+		grp.add_object([&](winp::control::check &chk){
+			chk.set_position(10, 30);
+			chk.set_text(L"Radio 1");
+
+			chk.events().bind([&](winp::events::click &e){
+				auto &t = e.get_target();
+			});
+
+			chk.events().bind([&](winp::events::item_check &e){
+				auto ic = e.is_checked();
+				auto &t = e.get_target();
+			});
+
+			return winp::ui::add_result_type::confirm;
+		});
+
+		grp.add_object([&](winp::control::check &chk){
+			chk.set_position(10, 50);
+			chk.set_text(L"Radio 2");
+
+			chk.events().bind([&](winp::events::click &e){
+				auto &t = e.get_target();
+			});
+
+			chk.events().bind([&](winp::events::item_check &e){
+				auto ic = e.is_checked();
+				auto &t = e.get_target();
+			});
+
+			std::thread([&]{
+				std::this_thread::sleep_for(std::chrono::seconds(7));
+				chk.click();
+			}).detach();
+
+			return winp::ui::add_result_type::confirm;
+		});
+
+		return winp::ui::add_result_type::confirm;
+	});
+
+	wsc.add_object([&](winp::control::three_state_check &chk){
+		chk.set_position(90, 10);
+		chk.set_text(L"Three State Check");
+
+		chk.events().bind([&](winp::events::click &e){
+			auto &t = e.get_target();
+		});
+
+		chk.events().bind([&](winp::events::item_check &e){
+			auto ic = e.is_checked();
+			auto &t = e.get_target();
+		});
+
+		return winp::ui::add_result_type::confirm;
 	});
 
 	return main_app.get_thread().run();

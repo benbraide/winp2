@@ -620,3 +620,9 @@ bool winp::events::item_check::is_checked() const{
 		throw utility::error_code::outside_thread_context;
 	return (original_message_.wParam != FALSE);
 }
+
+bool winp::events::item_check::is_indeterminate() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return (original_message_.wParam == 2);
+}

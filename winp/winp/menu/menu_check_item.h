@@ -36,6 +36,8 @@ namespace winp::menu{
 
 		virtual utility::error_code set_checked_state_(bool is_checked);
 
+		virtual bool is_radio_() const;
+
 		HBITMAP checked_bitmap_ = nullptr;
 		HBITMAP unchecked_bitmap_ = nullptr;
 	};

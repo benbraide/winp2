@@ -1,6 +1,6 @@
 #include "../app/app_collection.h"
 
-#include "menu_tree.h"
+#include "menu_group.h"
 #include "menu_check_item.h"
 
 winp::menu::check_item::check_item()
@@ -19,10 +19,10 @@ winp::menu::check_item::check_item(thread::object &thread)
 		if (!e.is_checked())
 			return;
 
-		if (auto tree_parent = dynamic_cast<tree *>(parent_); tree_parent != nullptr && (get_types_() & MFT_RADIOCHECK) != 0u){
-			tree_parent->traverse_all_items([this](menu::item &child){//Remove check state from siblings
-				if (auto check_item_child = dynamic_cast<check_item *>(&child); check_item_child != nullptr && check_item_child != this)
-					check_item_child->set_checked_state_(false);
+		if (auto radio_group_parent = get_first_ancestor_of_<radio_group>(nullptr); radio_group_parent != nullptr){
+			radio_group_parent->traverse_all_offspring_of<check_item>([this](check_item &offspring){//Remove check state from siblings
+				if (&offspring != this)
+					offspring.set_checked_state_(false);
 			}, true);
 		}
 	});
@@ -115,8 +115,12 @@ winp::utility::error_code winp::menu::check_item::set_unchecked_bitmap_(HBITMAP 
 }
 
 winp::utility::error_code winp::menu::check_item::set_checked_state_(bool is_checked){
-	if ((get_filtered_states_() & MFS_CHECKED) != 0u)
+	if (((get_filtered_states_() & MFS_CHECKED) != 0u) == is_checked)
 		return utility::error_code::nil;
 
 	return set_states_(is_checked ? (states_ | MFS_CHECKED) : (states_ & ~MFS_CHECKED));
+}
+
+bool winp::menu::check_item::is_radio_() const{
+	return (get_first_ancestor_of_<radio_group>(nullptr) != nullptr);
 }
