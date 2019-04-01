@@ -11,6 +11,7 @@
 #include "control/split_button_control.h"
 #include "control/check_control.h"
 #include "control/control_group.h"
+#include "control/command_link_control.h"
 
 int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_show){
 	winp::app::main_object main_app;
@@ -114,6 +115,18 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 		});
 
 		btn.events().bind([&](winp::events::click &e){
+			auto &t = e.get_target();
+		});
+
+		return winp::ui::add_result_type::confirm;
+	});
+
+	ws.add_object([&](winp::control::command_link &cmd){
+		cmd.set_position(350, 70);
+		cmd.set_text(L"Command Link");
+		cmd.set_note(L"Command Note");
+
+		cmd.events().bind([&](winp::events::click &e){
 			auto &t = e.get_target();
 		});
 
