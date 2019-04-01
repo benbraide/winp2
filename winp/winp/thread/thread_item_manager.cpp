@@ -282,6 +282,8 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return position_change_(target, msg, true);
 	case WM_WINDOWPOSCHANGED:
 		return position_change_(target, msg, false);
+	case WM_NCHITTEST:
+		return trigger_event_<events::hit_test>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_NCMOUSELEAVE:
 	case WM_MOUSELEAVE:
 		return mouse_leave_(target, msg);

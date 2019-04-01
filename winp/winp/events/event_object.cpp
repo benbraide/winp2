@@ -465,6 +465,12 @@ winp::utility::error_code winp::events::owner_draw::begin_(){
 
 void winp::events::owner_draw::end_(){}
 
+const POINT &winp::events::hit_test::get_position() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return position_;
+}
+
 bool winp::events::mouse::is_non_client() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;

@@ -75,18 +75,6 @@ namespace winp::thread{
 
 		virtual events::manager<item> &events();
 
-		template <typename handler_type>
-		unsigned __int64 bind_event(const handler_type &handler){
-			return events_manager_.bind(handler);
-		}
-
-		template <typename event_type>
-		unsigned __int64 bind_event(const std::function<void()> &handler){
-			return events_manager_.bind<event_type>(handler);
-		}
-
-		virtual void unbind_event(unsigned __int64 id);
-
 		template <typename value_type, typename function_type>
 		static value_type pass_return_value_to_callback(const function_type &callback, value_type &&value){
 			if (callback)
@@ -123,9 +111,9 @@ namespace winp::thread{
 
 		virtual utility::error_code destruct_();
 
-		template <typename event_type>
+		template <typename event_type, typename... others>
 		void add_event_change_handler_(const std::function<void(std::size_t, std::size_t)> &handler){
-			events_manager_.add_change_handler_<event_type>(handler);
+			events_manager_.add_change_handler_<event_type, others...>(handler);
 		}
 
 		template <typename handler_type>

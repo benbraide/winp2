@@ -405,6 +405,21 @@ namespace winp::events{
 			: object_with_message(std::forward<args_types>(args)...){}
 	};
 
+	class hit_test : public object_with_message{
+	public:
+		template <typename... args_types>
+		explicit hit_test(args_types &&... args)
+			: object_with_message(std::forward<args_types>(args)...){
+			position_.x = GET_X_LPARAM(original_message_.lParam);
+			position_.y = GET_Y_LPARAM(original_message_.lParam);
+		}
+
+		virtual const POINT &get_position() const;
+
+	protected:
+		POINT position_{};
+	};
+
 	class mouse : public object_with_message{
 	public:
 		template <typename... args_types>

@@ -95,10 +95,6 @@ winp::events::manager<winp::thread::item> &winp::thread::item::events(){
 	return events_manager_;
 }
 
-void winp::thread::item::unbind_event(unsigned __int64 id){
-	events_manager_.unbind(id);
-}
-
 winp::utility::error_code winp::thread::item::destruct_(){
 	if (!thread_.is_thread_context())
 		return utility::error_code::outside_thread_context;

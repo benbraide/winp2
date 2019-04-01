@@ -30,6 +30,8 @@ namespace winp::control{
 	protected:
 		explicit button(thread::object &thread);
 
+		explicit button(thread::object &thread, const std::wstring &class_name, DWORD common_id);
+
 		virtual DWORD get_filtered_styles_(bool is_extended) const override;
 
 		virtual const wchar_t *get_window_text_() const override;

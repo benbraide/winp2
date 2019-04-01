@@ -163,7 +163,9 @@ namespace winp::events{
 		template <typename return_type, typename object_type>
 		unsigned __int64 bind_(const std::function<return_type(object_type &)> &handler){
 			unsigned __int64 id = random_generator_;
-			handlers_[&typeid(object_type)].push_back(handler_info{
+			auto &handler_list = handlers_[&typeid(object_type)];
+
+			handler_list.push_back(handler_info{
 				id,
 				std::make_shared<events::handler<object_type &, return_type>>(handler)
 			});
@@ -171,7 +173,7 @@ namespace winp::events{
 			++count_;
 			if (auto it = change_handlers_.find(&typeid(object_type)); it != change_handlers_.end()){//Call handlers
 				for (auto &handler : it->second)
-					handler(handlers_.size(), (handlers_.size() - 1u));
+					handler(handler_list.size(), (handler_list.size() - 1u));
 			}
 
 			return id;
@@ -219,8 +221,19 @@ namespace winp::events{
 			}
 		}
 
-		template <typename object_type>
+		template <typename object_type, typename... others>
 		void add_change_handler_(const std::function<void(std::size_t, std::size_t)> &handler){
+			do_add_change_handler_<object_type, others...>(handler);
+		}
+
+		template <typename first_type, typename second_type, typename... others>
+		void do_add_change_handler_(const std::function<void(std::size_t, std::size_t)> &handler){
+			do_add_change_handler_<first_type>(handler);
+			do_add_change_handler_<second_type, others...>(handler);
+		}
+
+		template <typename object_type>
+		void do_add_change_handler_(const std::function<void(std::size_t, std::size_t)> &handler){
 			change_handlers_[&typeid(object_type)].push_back(handler);
 		}
 
