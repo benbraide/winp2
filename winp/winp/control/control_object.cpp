@@ -10,14 +10,6 @@ winp::control::object::object(thread::object &thread, const std::wstring &class_
 
 winp::control::object::~object() = default;
 
-LRESULT winp::control::object::dispatch_command(MSG &msg) const{
-	return trigger_event_<events::unhandled>(msg, thread_.get_class_entry(get_class_name())).second;
-}
-
-LRESULT winp::control::object::dispatch_notification(MSG &msg) const{
-	return trigger_event_<events::unhandled>(msg, thread_.get_class_entry(get_class_name())).second;
-}
-
 bool winp::control::object::is_dialog_message_(MSG &msg) const{
 	for (auto ancestor = parent_; ancestor != nullptr; ancestor = ancestor->get_parent()){
 		if (auto window_ancestor = dynamic_cast<ui::window_surface *>(ancestor); window_ancestor != nullptr)
@@ -41,4 +33,12 @@ const std::wstring &winp::control::object::get_class_name_() const{
 
 HINSTANCE winp::control::object::get_instance_() const{
 	return nullptr;
+}
+
+LRESULT winp::control::object::dispatch_command_(MSG &msg) const{
+	return trigger_event_<events::unhandled>(msg, thread_.get_class_entry(get_class_name())).second;
+}
+
+LRESULT winp::control::object::dispatch_notification_(MSG &msg) const{
+	return trigger_event_<events::unhandled>(msg, thread_.get_class_entry(get_class_name())).second;
 }

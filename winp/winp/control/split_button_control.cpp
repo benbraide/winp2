@@ -18,12 +18,6 @@ winp::control::split_button::split_button(tree &parent, std::size_t index)
 
 winp::control::split_button::~split_button() = default;
 
-LRESULT winp::control::split_button::dispatch_notification(MSG &msg) const{
-	if (reinterpret_cast<NMHDR *>(msg.lParam)->code == BCN_DROPDOWN)
-		return SendMessageW(handle_, WINP_WM_SPLIT_BUTTON_DROPDOWN, static_cast<WPARAM>(msg.lParam), static_cast<LPARAM>(MAKELONG(-1, -1)));
-	return push_button::dispatch_notification(msg);
-}
-
 DWORD winp::control::split_button::get_persistent_styles_(bool is_extended) const{
 	return (push_button::get_persistent_styles_(is_extended) | (is_extended ? 0u : BS_SPLITBUTTON));
 }
@@ -39,6 +33,12 @@ HMENU winp::control::split_button::get_context_menu_handle_(events::get_context_
 POINT winp::control::split_button::get_context_menu_position_() const{
 	auto dimension = get_absolute_dimension_();
 	return POINT{ dimension.left, dimension.bottom };
+}
+
+LRESULT winp::control::split_button::dispatch_notification_(MSG &msg) const{
+	if (reinterpret_cast<NMHDR *>(msg.lParam)->code == BCN_DROPDOWN)
+		return SendMessageW(handle_, WINP_WM_SPLIT_BUTTON_DROPDOWN, static_cast<WPARAM>(msg.lParam), static_cast<LPARAM>(MAKELONG(-1, -1)));
+	return push_button::dispatch_notification_(msg);
 }
 
 SIZE winp::control::split_button::compute_additional_size_() const{

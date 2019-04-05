@@ -54,10 +54,12 @@ namespace winp::menu{
 		}
 
 		virtual utility::error_code destroy_() override{
+			if (popup_ != nullptr)
+				popup_->destroy();
+
 			if (auto error_code = link_item::destroy_(); error_code != utility::error_code::nil)
 				return error_code;
 
-			popup_->destroy();
 			return utility::error_code::nil;
 		}
 

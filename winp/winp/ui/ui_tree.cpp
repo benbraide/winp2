@@ -80,8 +80,10 @@ void winp::ui::tree::traverse_all_offspring(const std::function<void(object &)> 
 
 winp::utility::error_code winp::ui::tree::destruct_(){
 	while (!children_.empty()){//Erase all children
-		if (auto error_code = erase_child_(0); error_code != utility::error_code::nil)
-			return error_code;
+		if (erase_child_(0) != utility::error_code::nil){//Force erase
+			(*children_.begin())->parent_ = nullptr;
+			children_.erase(children_.begin());
+		}
 	}
 
 	return object::destruct_();

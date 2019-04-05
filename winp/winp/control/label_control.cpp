@@ -8,27 +8,8 @@ winp::control::label::label()
 winp::control::label::label(thread::object &thread)
 	: button(thread, WC_STATICW, ICC_STANDARD_CLASSES){
 	add_event_handler_([this](events::hit_test &e){
-		if (io_event_count_ != 0u){
-			e.prevent_default();
-			e.set_result_if_not_set(surface::absolute_hit_test_(e.get_position().x, e.get_position().y));
-		}
-	});
-
-	add_event_change_handler_<
-		events::mouse_leave,
-		events::mouse_move,
-		events::mouse_down,
-		events::mouse_up,
-		events::mouse_dbl_clk,
-		events::mouse_wheel,
-		events::key_down,
-		events::key_up,
-		events::key_press
-	>([this](std::size_t current, std::size_t previous){
-		if (current < previous)
-			--io_event_count_;
-		else
-			++io_event_count_;
+		e.prevent_default();
+		e.set_result_if_not_set(surface::absolute_hit_test_(e.get_position().x, e.get_position().y));
 	});
 
 	padding_.cx = 0;

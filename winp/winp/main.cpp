@@ -12,6 +12,7 @@
 #include "control/check_control.h"
 #include "control/control_group.h"
 #include "control/label_control.h"
+#include "control/tool_tip_control.h"
 
 int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_show){
 	winp::app::main_object main_app;
@@ -93,6 +94,9 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 		return winp::ui::add_result_type::confirm;
 	});
 
+	winp::ui::object_collection<winp::control::tool_tip> ttc;
+	ttc.create();
+
 	ws.add_object([&](winp::control::split_button &btn){
 		btn.set_position(350, 40);
 		btn.set_text(L"Split Button");
@@ -118,7 +122,14 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 			auto &t = e.get_target();
 		});
 
-		return winp::ui::add_result_type::confirm;
+		btn.create();
+		ttc.add_object([&](winp::control::tool_tip_item &tti){
+			tti.set_target(btn);
+			tti.set_text(L"Split button tip text");
+			return winp::ui::add_result_type::confirm;
+		});
+
+		return winp::ui::add_result_type::dont_create;
 	});
 
 	ws.add_object([&](winp::control::label &cmd){
@@ -129,7 +140,15 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 			auto &t = e.get_target();
 		});
 
-		return winp::ui::add_result_type::confirm;
+		cmd.create();
+		ttc.add_object([&](winp::control::tool_tip_item &tti){
+			tti.set_target(cmd);
+			tti.set_text(L"This should be the label tip text");
+			tti.set_title(L"Label tip title");
+			return winp::ui::add_result_type::confirm;
+		});
+
+		return winp::ui::add_result_type::dont_create;
 	});
 
 	ws.events().bind([&](winp::events::close &e){

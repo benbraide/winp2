@@ -18,12 +18,6 @@ winp::control::push_button::push_button(tree &parent, std::size_t index)
 
 winp::control::push_button::~push_button() = default;
 
-LRESULT winp::control::push_button::dispatch_command(MSG &msg) const{
-	if (msg.wParam == BN_CLICKED)
-		return trigger_event_<events::click>(msg, thread_.get_class_entry(get_class_name())).second;
-	return button::dispatch_command(msg);
-}
-
 winp::utility::error_code winp::control::push_button::click() const{
 	if (handle_ == nullptr){
 		MSG msg{ nullptr, WM_COMMAND, 0, reinterpret_cast<LPARAM>(handle_) };
@@ -37,6 +31,12 @@ winp::utility::error_code winp::control::push_button::click() const{
 
 DWORD winp::control::push_button::get_persistent_styles_(bool is_extended) const{
 	return (button::get_persistent_styles_(is_extended) | (is_extended ? 0u : BS_PUSHBUTTON));
+}
+
+LRESULT winp::control::push_button::dispatch_command_(MSG &msg) const{
+	if (msg.wParam == BN_CLICKED)
+		return trigger_event_<events::click>(msg, thread_.get_class_entry(get_class_name())).second;
+	return button::dispatch_command_(msg);
 }
 
 winp::control::default_push_button::default_push_button()

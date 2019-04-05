@@ -7,11 +7,9 @@ namespace winp::control{
 	public:
 		virtual ~object();
 
-		virtual LRESULT dispatch_command(MSG &msg) const;
-
-		virtual LRESULT dispatch_notification(MSG &msg) const;
-
 	protected:
+		friend class thread::item_manager;
+
 		object(thread::object &thread, const std::wstring &class_name, DWORD common_id);
 
 		virtual bool is_dialog_message_(MSG &msg) const override;
@@ -23,6 +21,10 @@ namespace winp::control{
 		virtual const std::wstring &get_class_name_() const override;
 
 		virtual HINSTANCE get_instance_() const override;
+
+		virtual LRESULT dispatch_command_(MSG &msg) const;
+
+		virtual LRESULT dispatch_notification_(MSG &msg) const;
 
 		std::wstring class_name_;
 	};

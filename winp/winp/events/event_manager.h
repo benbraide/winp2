@@ -6,6 +6,10 @@
 #include "../utility/random_number_generator.h"
 
 #include "event_object.h"
+#include "general_events.h"
+#include "io_events.h"
+#include "menu_events.h"
+#include "control_events.h"
 
 namespace winp::events{
 	class handler_base{

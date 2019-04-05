@@ -19,6 +19,9 @@
 
 #define WINP_WM_SPLIT_BUTTON_DROPDOWN			(WM_APP + 0x0A)
 
+#define WINP_WM_TOOLTIP_SHOW					(WM_APP + 0x10)
+#define WINP_WM_TOOLTIP_HIDE					(WM_APP + 0x11)
+
 namespace winp::ui{
 	class interactive_surface;
 	class window_surface;

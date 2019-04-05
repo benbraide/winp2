@@ -375,6 +375,10 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return command_(target, msg);
 	case WM_NOTIFY:
 		return notify_(target, msg);
+	case WM_SHOWWINDOW:
+		if (msg.wParam == FALSE)
+			return trigger_event_<events::hide>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
+		return trigger_event_<events::show>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	default:
 		break;
 	}
@@ -682,7 +686,7 @@ LRESULT winp::thread::item_manager::command_(item &target, MSG &msg){
 
 	if (msg.lParam != 0){//Control command
 		auto control_target = dynamic_cast<control::object *>(find_window_(reinterpret_cast<HWND>(msg.lParam), false));
-		return ((control_target == nullptr) ? trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second : control_target->dispatch_command(msg));
+		return ((control_target == nullptr) ? trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second : control_target->dispatch_command_(msg));
 	}
 
 	if (HIWORD(msg.wParam) != 0u){//Accelerator command
@@ -698,7 +702,7 @@ LRESULT winp::thread::item_manager::notify_(item &target, MSG &msg){
 		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
 
 	auto control_target = dynamic_cast<control::object *>(find_window_(reinterpret_cast<NMHDR *>(msg.lParam)->hwndFrom, false));
-	return ((control_target == nullptr) ? trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second : control_target->dispatch_notification(msg));
+	return ((control_target == nullptr) ? trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second : control_target->dispatch_notification_(msg));
 }
 
 bool winp::thread::item_manager::menu_item_id_is_reserved_(UINT id){
@@ -779,12 +783,12 @@ LRESULT CALLBACK winp::thread::item_manager::entry_(HWND handle, UINT message, W
 LRESULT CALLBACK winp::thread::item_manager::hook_entry_(int code, WPARAM wparam, LPARAM lparam){
 	auto &manager = app::collection::get_current_thread()->get_item_manager();
 	switch (code){
-	case HCBT_CREATEWND:
-		break;
 	case HCBT_DESTROYWND:
 		if (reinterpret_cast<HWND>(wparam) == manager.window_cache_.handle || (!manager.windows_.empty() && manager.windows_.find(reinterpret_cast<HWND>(wparam)) != manager.windows_.end()))
 			SetMenu(reinterpret_cast<HWND>(wparam), nullptr);
 		return CallNextHookEx(nullptr, code, wparam, lparam);
+	case HCBT_CREATEWND:
+		break;
 	default:
 		return CallNextHookEx(nullptr, code, wparam, lparam);
 	}

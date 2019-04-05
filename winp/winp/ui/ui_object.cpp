@@ -119,13 +119,11 @@ void winp::ui::object::traverse_all_siblings(const std::function<void(object &)>
 }
 
 winp::utility::error_code winp::ui::object::destruct_(){
+	destroy_();
 	if (parent_ != nullptr){//Remove parent
-		if (auto error_code = set_parent_(nullptr, static_cast<std::size_t>(-1)); error_code != utility::error_code::nil)
-			return error_code;
+		set_parent_(nullptr, static_cast<std::size_t>(-1));
+		parent_ = nullptr;
 	}
-
-	if (auto error_code = destroy_(); error_code != utility::error_code::nil && error_code != utility::error_code::not_supported)
-		return error_code;
 
 	return item::destruct_();
 }

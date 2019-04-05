@@ -20,5 +20,7 @@ namespace winp::utility{
 		menu_link_target_not_created,
 		check_item_required,
 		menu_item_empty_text,
+		tool_tip_target_not_created,
+		tool_tip_target_not_visible,
 	};
 }

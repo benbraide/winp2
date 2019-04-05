@@ -17,7 +17,5 @@ namespace winp::control{
 
 	protected:
 		virtual DWORD get_persistent_styles_(bool is_extended) const override;
-
-		std::size_t io_event_count_ = 0u;
 	};
 }
