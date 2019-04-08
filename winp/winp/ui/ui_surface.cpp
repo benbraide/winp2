@@ -322,11 +322,11 @@ winp::utility::error_code winp::ui::surface::set_position_(int x, int y){
 }
 
 winp::utility::error_code winp::ui::surface::set_x_position_(int value){
-	return set_position_(value, position_.x);
+	return set_position_(value, position_.y);
 }
 
 winp::utility::error_code winp::ui::surface::set_y_position_(int value){
-	return set_position_(position_.y, value);
+	return set_position_(position_.x, value);
 }
 
 winp::utility::error_code winp::ui::surface::offset_position_(int x, int y){

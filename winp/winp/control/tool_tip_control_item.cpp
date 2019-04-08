@@ -163,8 +163,14 @@ winp::utility::error_code winp::control::tool_tip_item::set_dimension_(int x, in
 	if (auto error_code = ui::surface::set_dimension_(x, y, width, height); error_code != utility::error_code::nil)
 		return error_code;
 
-	if (handle_ == nullptr || local_id_ != id_)
+	if (handle_ == nullptr)
 		return utility::error_code::nil;
+
+	if (local_id_ != id_){
+		position_ = POINT{};
+		size_ = SIZE{};
+		return utility::error_code::nil;
+	}
 
 	TTTOOLINFOW info{
 		sizeof(TTTOOLINFOW),
@@ -224,10 +230,10 @@ HFONT winp::control::tool_tip_item::get_font_() const{
 	return nullptr;
 }
 
-void winp::control::tool_tip_item::need_text_(NMTTDISPINFOW &info) const{
+LRESULT winp::control::tool_tip_item::need_text_(NMTTDISPINFOW &info) const{
 	auto result = trigger_event_<events::get_text>(temp_text_);
 	if ((result.first & events::object::state_default_prevented) != 0u || (temp_text_.empty() && text_.empty()))
-		return;//Do nothing
+		return 0;//Do nothing
 
 	if (temp_text_.empty())
 		info.lpszText = const_cast<wchar_t *>(text_.data());
@@ -259,21 +265,22 @@ void winp::control::tool_tip_item::need_text_(NMTTDISPINFOW &info) const{
 		title = L"";
 		SendMessageW(handle_, TTM_SETTITLEW, TTI_NONE, reinterpret_cast<LPARAM>(title.data()));
 	}
+
+	return 0;
 }
 
-bool winp::control::tool_tip_item::showing_() const{
+LRESULT winp::control::tool_tip_item::showing_() const{
 	MSG msg{ nullptr, WINP_WM_TOOLTIP_SHOW };
-	trigger_event_<events::show>(msg, nullptr);
-	return false;
+	return trigger_event_<events::show>(msg, nullptr).second;
 }
 
-void winp::control::tool_tip_item::popping_() const{
+LRESULT winp::control::tool_tip_item::popping_() const{
 	MSG msg{ nullptr, WINP_WM_TOOLTIP_HIDE };
-	trigger_event_<events::hide>(msg, nullptr);
+	return trigger_event_<events::hide>(msg, nullptr).second;
 }
 
-void winp::control::tool_tip_item::link_clicked_() const{
-	trigger_event_<events::link_clicked>();
+LRESULT winp::control::tool_tip_item::link_clicked_() const{
+	return trigger_event_<events::link_clicked>().second;
 }
 
 winp::ui::window_surface *winp::control::tool_tip_item::get_target_window_ancestor_(POINT &offset) const{
@@ -291,3 +298,35 @@ winp::ui::window_surface *winp::control::tool_tip_item::get_target_window_ancest
 		return true;
 	});
 }
+
+winp::control::inplace_tool_tip_item::inplace_tool_tip_item()
+	: inplace_tool_tip_item(app::collection::get_main()->get_thread()){}
+
+winp::control::inplace_tool_tip_item::inplace_tool_tip_item(thread::object &thread)
+	: tool_tip_item(thread){
+	add_event_handler_([this](events::show &e){
+		if (handle_ == nullptr || target_ == nullptr)
+			return;
+
+		RECT target_rect{};
+		if (local_id_ == id_)
+			target_rect = target_->convert_dimension_to_absolute_value(get_dimension_());
+		else
+			target_rect = target_->get_absolute_dimension();
+
+		SendMessageW(handle_, TTM_ADJUSTRECT, TRUE, reinterpret_cast<LPARAM>(&target_rect));
+		dynamic_cast<tool_tip *>(parent_)->set_absolute_position(target_rect.left, target_rect.top);
+
+		e.set_result_if_not_set(TRUE);
+	});
+}
+
+winp::control::inplace_tool_tip_item::inplace_tool_tip_item(ui::tree &parent)
+	: inplace_tool_tip_item(parent, static_cast<std::size_t>(-1)){}
+
+winp::control::inplace_tool_tip_item::inplace_tool_tip_item(ui::tree &parent, std::size_t index)
+	: inplace_tool_tip_item(parent.get_thread()){
+	set_parent(&parent, index);
+}
+
+winp::control::inplace_tool_tip_item::~inplace_tool_tip_item() = default;

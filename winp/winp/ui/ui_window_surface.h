@@ -84,6 +84,10 @@ namespace winp::ui{
 
 		virtual bool is_visible_() const override;
 
+		virtual utility::error_code set_size_(int width, int height) override;
+
+		virtual utility::error_code set_position_(int x, int y) override;
+
 		virtual POINT get_absolute_position_() const override;
 
 		virtual POINT get_client_offset_() const override;

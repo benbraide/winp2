@@ -56,25 +56,25 @@ LRESULT winp::control::tool_tip::dispatch_notification_(MSG &msg) const{
 	{
 		auto info = reinterpret_cast<NMTTDISPINFOW *>(msg.lParam);
 		if (auto target = reinterpret_cast<tool_tip_item *>(info->lParam); target != nullptr)
-			target->need_text_(*info);
+			return target->need_text_(*info);
 		break;
 	}
 	case TTN_SHOW:
 	{
 		if (auto current_item = get_current_item_(); current_item != nullptr)
-			return (current_item->showing_() ? TRUE : FALSE);
+			return current_item->showing_();
 		break;
 	}
 	case TTN_POP:
 	{
 		if (auto current_item = get_current_item_(); current_item != nullptr)
-			current_item->popping_();
+			return current_item->popping_();
 		break;
 	}
 	case TTN_LINKCLICK:
 	{
 		if (auto current_item = get_current_item_(); current_item != nullptr)
-			current_item->link_clicked_();
+			return current_item->link_clicked_();
 		break;
 	}
 	default:

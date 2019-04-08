@@ -68,13 +68,13 @@ namespace winp::control{
 
 		virtual HFONT get_font_() const;
 
-		virtual void need_text_(NMTTDISPINFOW &info) const;
+		virtual LRESULT need_text_(NMTTDISPINFOW &info) const;
 
-		virtual bool showing_() const;
+		virtual LRESULT showing_() const;
 
-		virtual void popping_() const;
+		virtual LRESULT popping_() const;
 
-		virtual void link_clicked_() const;
+		virtual LRESULT link_clicked_() const;
 
 		virtual ui::window_surface *get_target_window_ancestor_(POINT &offset) const;
 
@@ -91,5 +91,18 @@ namespace winp::control{
 
 		HFONT font_ = nullptr;
 		HGDIOBJ image_ = nullptr;
+	};
+
+	class inplace_tool_tip_item : public tool_tip_item{
+	public:
+		inplace_tool_tip_item();
+
+		explicit inplace_tool_tip_item(thread::object &thread);
+
+		explicit inplace_tool_tip_item(ui::tree &parent);
+
+		inplace_tool_tip_item(ui::tree &parent, std::size_t index);
+
+		virtual ~inplace_tool_tip_item();
 	};
 }

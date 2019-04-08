@@ -50,6 +50,9 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 		return winp::ui::add_result_type::dont_create;
 	});
 
+	winp::ui::object_collection<winp::control::tool_tip> ttc;
+	ttc.create();
+
 	winp::utility::random_bool_generator rand;
 	ws.add_object([&](winp::ui::object_collection<winp::non_window::rectangle> &nwo){
 		nwo.events().bind([&](winp::events::paint &e){
@@ -83,7 +86,14 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 				auto &t = e.get_target();
 			});
 
-			return winp::ui::add_result_type::confirm;
+			btn.create();
+			ttc.add_object([&](winp::control::inplace_tool_tip_item &tti){
+				tti.set_target(btn);
+				tti.set_text(L"Push button label tip text");
+				return winp::ui::add_result_type::confirm;
+			});
+
+			return winp::ui::add_result_type::dont_create;
 		});
 
 		std::thread([&]{
@@ -93,9 +103,6 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 
 		return winp::ui::add_result_type::confirm;
 	});
-
-	winp::ui::object_collection<winp::control::tool_tip> ttc;
-	ttc.create();
 
 	ws.add_object([&](winp::control::split_button &btn){
 		btn.set_position(350, 40);

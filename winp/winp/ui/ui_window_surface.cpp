@@ -230,6 +230,26 @@ bool winp::ui::window_surface::is_visible_() const{
 	return ((handle_ == nullptr) ? has_styles_(WS_VISIBLE, false, true) : (IsWindowVisible(handle_) != FALSE));
 }
 
+winp::utility::error_code winp::ui::window_surface::set_size_(int width, int height){
+	if (handle_ == nullptr)
+		return visible_surface::set_size_(width, height);
+
+	size_.cx = width;
+	size_.cy = height;
+
+	return ((SetWindowPos(handle_, nullptr, 0, 0, width, height, (SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE)) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+}
+
+winp::utility::error_code winp::ui::window_surface::set_position_(int x, int y){
+	if (handle_ == nullptr)
+		return visible_surface::set_position_(x, y);
+
+	position_.x = x;
+	position_.y = y;
+
+	return ((SetWindowPos(handle_, nullptr, x, y, 0, 0, (SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE)) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+}
+
 POINT winp::ui::window_surface::get_absolute_position_() const{
 	if (handle_ == nullptr)
 		return visible_surface::get_absolute_position_();
@@ -256,6 +276,13 @@ POINT winp::ui::window_surface::get_client_offset_() const{
 winp::utility::error_code winp::ui::window_surface::set_dimension_(int x, int y, int width, int height){
 	if (handle_ == nullptr)
 		return visible_surface::set_dimension_(x, y, width, height);
+
+	position_.x = x;
+	position_.y = y;
+
+	size_.cx = width;
+	size_.cy = height;
+
 	return ((SetWindowPos(handle_, nullptr, x, y, width, height, (SWP_NOZORDER | SWP_NOACTIVATE)) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
 }
 
