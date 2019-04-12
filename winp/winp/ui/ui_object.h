@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../thread/thread_item.h"
+#include "ui_hook.h"
 
 namespace winp::ui{
 	class tree;
@@ -97,6 +97,17 @@ namespace winp::ui{
 			}, block);
 		}
 
+		template <typename hook_type, typename... args_types>
+		hook_type &insert_hook(args_types &&... args){
+			return *compute_task_inside_thread_context([&]{
+				auto hook = std::make_shared<hook_type>(*this, std::forward<args_types>(args)...);
+				hooks_[hook.get()] = hook;
+				return hook.get();
+			});
+		}
+
+		virtual void remove_hook(hook &target);
+
 	protected:
 		friend class tree;
 
@@ -161,5 +172,6 @@ namespace winp::ui{
 
 		tree *parent_ = nullptr;
 		std::size_t index_ = static_cast<std::size_t>(-1);
+		std::unordered_map<hook *, std::shared_ptr<hook>> hooks_;
 	};
 }

@@ -118,6 +118,13 @@ void winp::ui::object::traverse_all_siblings(const std::function<void(object &)>
 	}, block);
 }
 
+void winp::ui::object::remove_hook(hook &target){
+	execute_task_inside_thread_context([&]{
+		if (!hooks_.empty())
+			hooks_.erase(&target);
+	});
+}
+
 winp::utility::error_code winp::ui::object::destruct_(){
 	destroy_();
 	if (parent_ != nullptr){//Remove parent
@@ -137,7 +144,7 @@ winp::utility::error_code winp::ui::object::destroy_(){
 }
 
 bool winp::ui::object::is_created_() const{
-	return false;
+	return true;
 }
 
 winp::utility::error_code winp::ui::object::set_parent_(tree *value, std::size_t index){
@@ -151,11 +158,12 @@ winp::utility::error_code winp::ui::object::set_parent_(tree *value, std::size_t
 }
 
 winp::utility::error_code winp::ui::object::set_parent_value_(tree *value, bool changing){
+	auto previous_value = parent_;
 	if (changing)
-		return (((trigger_event_<events::parent_change>(value, true).first & events::object::state_default_prevented) == 0u) ? utility::error_code::nil : utility::error_code::action_prevented);
+		return (((trigger_event_<events::parent_change>(value, previous_value, true).first & events::object::state_default_prevented) == 0u) ? utility::error_code::nil : utility::error_code::action_prevented);
 
 	parent_ = value;
-	trigger_event_<events::parent_change>(value, false);
+	trigger_event_<events::parent_change>(value, previous_value, false);
 
 	return utility::error_code::nil;
 }

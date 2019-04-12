@@ -38,9 +38,15 @@ namespace winp::ui{
 		static bool compare_colors(const D2D1::ColorF &first, const D2D1::ColorF &second);
 
 	protected:
+		virtual utility::error_code position_change_(bool is_changing) override;
+
+		virtual utility::error_code size_change_(bool is_changing) override;
+
 		virtual utility::error_code redraw_() const;
 
 		virtual utility::error_code redraw_(const RECT &region) const;
+
+		virtual utility::error_code set_visibility_(bool is_visible, bool redraw);
 
 		virtual utility::error_code show_();
 

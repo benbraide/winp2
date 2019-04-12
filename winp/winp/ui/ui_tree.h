@@ -78,9 +78,13 @@ namespace winp::ui{
 
 		virtual utility::error_code do_insert_child_(object &child, std::size_t index);
 
+		virtual void child_inserted_(object &child);
+
 		virtual utility::error_code erase_child_(std::size_t index);
 
 		virtual utility::error_code do_erase_child_(object &child, std::size_t index);
+
+		virtual void child_erased_(object &child);
 
 		virtual utility::error_code change_child_index_(std::size_t old_index, std::size_t new_index);
 

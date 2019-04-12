@@ -1,10 +1,10 @@
 #pragma once
 
 #include "../menu/menu_object_wrapper.h"
+#include "../grid/grid_object.h"
 
 #include "ui_tree.h"
 #include "ui_visible_surface.h"
-#include "ui_object_collection.h"
 
 namespace winp::ui{
 	class window_surface : public tree, public visible_surface{
@@ -12,6 +12,7 @@ namespace winp::ui{
 		using system_menu_type = object_collection<menu::system_popup_wrapper>;
 		using popup_menu_type = object_collection<menu::popup>;
 		using bar_menu_type = object_collection<menu::bar>;
+		using grid_type = object_collection<grid::object>;
 
 		window_surface();
 
@@ -24,6 +25,12 @@ namespace winp::ui{
 		virtual ~window_surface();
 
 		virtual bool is_dialog_message(MSG &msg) const;
+
+		virtual SIZE get_client_size(const std::function<void(const SIZE &)> &callback = nullptr) const;
+
+		virtual int get_client_width(const std::function<void(int)> &callback = nullptr) const;
+
+		virtual int get_client_height(const std::function<void(int)> &callback = nullptr) const;
 
 		using visible_surface::show;
 
@@ -58,6 +65,8 @@ namespace winp::ui{
 		virtual popup_menu_type &get_context_menu(const std::function<void(const popup_menu_type &)> &callback = nullptr) const;
 
 		virtual bar_menu_type &get_menu_bar(const std::function<void(const bar_menu_type &)> &callback = nullptr) const;
+
+		virtual grid_type &get_grid(const std::function<void(const grid_type &)> &callback = nullptr) const;
 
 		virtual const std::wstring &get_class_name(const std::function<void(const std::wstring &)> &callback = nullptr) const;
 
@@ -104,6 +113,8 @@ namespace winp::ui{
 
 		virtual bool is_dialog_message_(MSG &msg) const;
 
+		virtual SIZE get_client_size_() const;
+
 		virtual utility::error_code show_(int how);
 
 		virtual utility::error_code maximize_();
@@ -136,6 +147,8 @@ namespace winp::ui{
 
 		virtual bar_menu_type &get_menu_bar_() const;
 
+		virtual grid_type &get_grid_() const;
+
 		virtual HMENU get_context_menu_handle_(events::get_context_menu_handle &e) const;
 
 		virtual POINT get_context_menu_position_() const;
@@ -159,5 +172,6 @@ namespace winp::ui{
 		mutable system_menu_type system_menu_;
 		mutable popup_menu_type context_menu_;
 		mutable bar_menu_type menu_bar_;
+		mutable grid_type grid_;
 	};
 }

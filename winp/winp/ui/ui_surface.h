@@ -2,6 +2,8 @@
 
 #include "../thread/thread_item.h"
 
+#include "ui_object_collection.h"
+
 namespace winp::ui{
 	class surface : public thread::synchronized_item{
 	public:
@@ -135,6 +137,10 @@ namespace winp::ui{
 		virtual POINT get_client_offset_() const;
 
 		virtual utility::error_code set_dimension_(int x, int y, int width, int height);
+
+		virtual utility::error_code position_change_(bool is_changing);
+
+		virtual utility::error_code size_change_(bool is_changing);
 
 		virtual RECT get_dimension_() const;
 

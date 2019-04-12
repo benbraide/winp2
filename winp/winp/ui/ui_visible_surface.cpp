@@ -27,7 +27,9 @@ winp::utility::error_code winp::ui::visible_surface::hide(const std::function<vo
 }
 
 winp::utility::error_code winp::ui::visible_surface::set_visibility(bool is_visible, const std::function<void(visible_surface, utility::error_code)> &callback){
-	return (is_visible ? show(callback) : hide(callback));
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, set_visibility_(is_visible, true));
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
 bool winp::ui::visible_surface::is_visible(const std::function<void(bool)> &callback) const{
@@ -90,12 +92,46 @@ bool winp::ui::visible_surface::compare_colors(const D2D1::ColorF &first, const 
 	return (convert_colorf_to_colorref(first) == convert_colorf_to_colorref(second));
 }
 
+winp::utility::error_code winp::ui::visible_surface::position_change_(bool is_changing){
+	if (auto error_code = surface::position_change_(is_changing); error_code != utility::error_code::nil)
+		return error_code;
+
+	if (is_changing && is_visible_()){
+		hide_();
+		set_visibility_(true, false);
+	}
+	else if (!is_changing)
+		redraw_();
+
+	return utility::error_code::nil;
+}
+
+winp::utility::error_code winp::ui::visible_surface::size_change_(bool is_changing){
+	if (auto error_code = surface::size_change_(is_changing); error_code != utility::error_code::nil)
+		return error_code;
+
+	if (is_changing && is_visible_()){
+		hide_();
+		set_visibility_(true, false);
+	}
+	else if (!is_changing)
+		redraw_();
+
+	return utility::error_code::nil;
+}
+
 winp::utility::error_code winp::ui::visible_surface::redraw_() const{
 	return utility::error_code::not_supported;
 }
 
 winp::utility::error_code winp::ui::visible_surface::redraw_(const RECT &region) const{
 	return utility::error_code::not_supported;
+}
+
+winp::utility::error_code winp::ui::visible_surface::set_visibility_(bool is_visible, bool redraw){
+	if (redraw)
+		return (is_visible ? show_() : hide_());
+	return utility::error_code::nil;
 }
 
 winp::utility::error_code winp::ui::visible_surface::show_(){

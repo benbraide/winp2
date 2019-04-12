@@ -9,6 +9,7 @@ namespace winp::utility{
 		object_not_created,
 		parent_not_created,
 		invalid_parent,
+		invalid_child,
 		multiple_main_apps,
 		multiple_app_threads,
 		duplicate_entry,

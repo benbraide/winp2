@@ -116,6 +116,7 @@ winp::utility::error_code winp::ui::tree::insert_child_(object &child, std::size
 
 	trigger_event_<events::children_change>(events::children_change::action_type::insert, child, index, false);
 	child.set_parent_value_(this, false);
+	child_inserted_(child);
 
 	return utility::error_code::nil;
 }
@@ -128,6 +129,8 @@ winp::utility::error_code winp::ui::tree::do_insert_child_(object &child, std::s
 
 	return utility::error_code::nil;
 }
+
+void winp::ui::tree::child_inserted_(object &child){}
 
 winp::utility::error_code winp::ui::tree::erase_child_(std::size_t index){
 	if (index >= children_.size())
@@ -144,7 +147,9 @@ winp::utility::error_code winp::ui::tree::erase_child_(std::size_t index){
 
 	child.set_parent_value_(nullptr, false);
 	do_erase_child_(child, index);
+
 	trigger_event_<events::children_change>(events::children_change::action_type::remove, child, index, false);
+	child_erased_(child);
 
 	return utility::error_code::nil;
 }
@@ -153,6 +158,8 @@ winp::utility::error_code winp::ui::tree::do_erase_child_(object &child, std::si
 	children_.erase(std::next(children_.begin(), index));
 	return utility::error_code::nil;
 }
+
+void winp::ui::tree::child_erased_(object &child){}
 
 winp::utility::error_code winp::ui::tree::change_child_index_(std::size_t old_index, std::size_t new_index){
 	if (children_.size() <= old_index || (new_index != static_cast<std::size_t>(-1) && children_.size() <= new_index))

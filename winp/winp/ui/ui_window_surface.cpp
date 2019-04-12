@@ -6,7 +6,7 @@ winp::ui::window_surface::window_surface()
 	: window_surface(app::collection::get_main()->get_thread()){}
 
 winp::ui::window_surface::window_surface(thread::object &thread)
-	: tree(thread), system_menu_(*this), context_menu_(thread), menu_bar_(*this){
+	: tree(thread), system_menu_(*this), context_menu_(thread), menu_bar_(*this), grid_(*this){
 	styles_ = (WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
 	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
 
@@ -20,6 +20,9 @@ winp::ui::window_surface::window_surface(thread::object &thread)
 		auto position = get_context_menu_position_();
 		e.set_result_if_not_set(MAKELONG(position.x, position.y));
 	});
+
+	grid_.set_size(1, 1);
+	grid_.insert_hook<parent_fill_hook>();
 }
 
 winp::ui::window_surface::window_surface(tree &parent)
@@ -38,6 +41,24 @@ bool winp::ui::window_surface::is_dialog_message(MSG &msg) const{
 	return compute_task_inside_thread_context([&]{
 		return is_dialog_message_(msg);
 	});
+}
+
+SIZE winp::ui::window_surface::get_client_size(const std::function<void(const SIZE &)> &callback) const{
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return synchronized_item_pass_return_value_to_callback(callback, get_client_size_());
+	}, (callback != nullptr), SIZE{});
+}
+
+int winp::ui::window_surface::get_client_width(const std::function<void(int)> &callback) const{
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return synchronized_item_pass_return_value_to_callback(callback, get_client_size_().cx);
+	}, (callback != nullptr), 0);
+}
+
+int winp::ui::window_surface::get_client_height(const std::function<void(int)> &callback) const{
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return synchronized_item_pass_return_value_to_callback(callback, get_client_size_().cy);
+	}, (callback != nullptr), 0);
 }
 
 winp::utility::error_code winp::ui::window_surface::show(int how, const std::function<void(window_surface &, utility::error_code)> &callback){
@@ -136,6 +157,12 @@ winp::ui::window_surface::bar_menu_type &winp::ui::window_surface::get_menu_bar(
 	}, (callback != nullptr), &menu_bar_);
 }
 
+winp::ui::window_surface::grid_type &winp::ui::window_surface::get_grid(const std::function<void(const grid_type &)> &callback) const{
+	return *compute_or_post_task_inside_thread_context([=]{
+		return &pass_return_ref_value_to_callback(callback, &get_grid_());
+	}, (callback != nullptr), &grid_);
+}
+
 const std::wstring &winp::ui::window_surface::get_class_name(const std::function<void(const std::wstring &)> &callback) const{
 	return *compute_or_post_task_inside_thread_context([=]{
 		return &pass_return_ref_value_to_callback(callback, &get_class_name_());
@@ -166,6 +193,7 @@ winp::utility::error_code winp::ui::window_surface::create_(){
 			position.x += ancestor_position.x;
 			position.y += ancestor_position.y;
 		}
+
 		return true;
 	});
 
@@ -188,7 +216,11 @@ winp::utility::error_code winp::ui::window_surface::create_(){
 		get_instance_()
 	);
 
-	return ((handle_ == nullptr) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+	if (handle_ == nullptr)
+		return utility::error_code::action_could_not_be_completed;
+
+	grid_.create();
+	return utility::error_code::nil;
 }
 
 winp::utility::error_code winp::ui::window_surface::destroy_(){
@@ -199,6 +231,8 @@ winp::utility::error_code winp::ui::window_surface::destroy_(){
 		return utility::error_code::action_could_not_be_completed;
 
 	system_menu_.destroy();
+	grid_.destroy();
+
 	return utility::error_code::nil;
 }
 
@@ -247,6 +281,16 @@ winp::utility::error_code winp::ui::window_surface::set_position_(int x, int y){
 	position_.x = x;
 	position_.y = y;
 
+	get_first_ancestor_of_<window_surface>([&](tree &ancestor){
+		if (auto surface_ancestor = dynamic_cast<surface *>(&ancestor); surface_ancestor != nullptr){
+			auto ancestor_position = surface_ancestor->get_position();
+			x += ancestor_position.x;
+			y += ancestor_position.y;
+		}
+
+		return true;
+	});
+
 	return ((SetWindowPos(handle_, nullptr, x, y, 0, 0, (SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE)) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
 }
 
@@ -279,6 +323,16 @@ winp::utility::error_code winp::ui::window_surface::set_dimension_(int x, int y,
 
 	position_.x = x;
 	position_.y = y;
+
+	get_first_ancestor_of_<window_surface>([&](tree &ancestor){
+		if (auto surface_ancestor = dynamic_cast<surface *>(&ancestor); surface_ancestor != nullptr){
+			auto ancestor_position = surface_ancestor->get_position();
+			x += ancestor_position.x;
+			y += ancestor_position.y;
+		}
+
+		return true;
+	});
 
 	size_.cx = width;
 	size_.cy = height;
@@ -322,6 +376,16 @@ UINT winp::ui::window_surface::absolute_hit_test_(int x, int y) const{
 
 bool winp::ui::window_surface::is_dialog_message_(MSG &msg) const{
 	return (handle_ != nullptr && IsDialogMessageW(handle_, &msg) != FALSE);
+}
+
+SIZE winp::ui::window_surface::get_client_size_() const{
+	if (handle_ == nullptr)
+		return get_size_();
+
+	RECT dimension{};
+	GetClientRect(handle_, &dimension);
+
+	return SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
 }
 
 winp::utility::error_code winp::ui::window_surface::show_(int how){
@@ -436,6 +500,10 @@ winp::ui::window_surface::popup_menu_type &winp::ui::window_surface::get_context
 
 winp::ui::window_surface::bar_menu_type &winp::ui::window_surface::get_menu_bar_() const{
 	return menu_bar_;
+}
+
+winp::ui::window_surface::grid_type &winp::ui::window_surface::get_grid_() const{
+	return grid_;
 }
 
 HMENU winp::ui::window_surface::get_context_menu_handle_(events::get_context_menu_handle &e) const{

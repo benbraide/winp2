@@ -20,6 +20,12 @@ winp::ui::tree *winp::events::parent_change::get_value() const{
 	return value_;
 }
 
+winp::ui::tree *winp::events::parent_change::get_previous_value() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return previous_;
+}
+
 bool winp::events::parent_change::is_changing() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
@@ -239,6 +245,10 @@ bool winp::events::erase_background::should_call_call_default_() const{
 }
 
 LRESULT winp::events::erase_background::get_called_default_value_(){
+	auto visible_context = dynamic_cast<ui::visible_surface *>(context_);
+	if (visible_context == nullptr)
+		return object_with_message::get_called_default_value_();
+
 	auto window_context = dynamic_cast<ui::window_surface *>(context_);
 	if (window_context != nullptr && window_context->get_thread().get_class_entry(window_context->get_class_name()) != DefWindowProcW)
 		return object_with_message::get_called_default_value_();

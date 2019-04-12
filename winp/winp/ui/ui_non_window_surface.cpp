@@ -1,6 +1,6 @@
 #include "../app/app_collection.h"
 
-#include "ui_non_window_surface.h"
+#include "ui_window_surface.h"
 
 winp::ui::non_window_surface::non_window_surface()
 	: non_window_surface(app::collection::get_main()->get_thread()){}
@@ -29,11 +29,8 @@ HRGN winp::ui::non_window_surface::get_handle(const std::function<void(HRGN)> &c
 }
 
 winp::utility::error_code winp::ui::non_window_surface::create_(){
-	if (handle_ != nullptr)
+	if (is_created_())
 		return utility::error_code::nil;
-
-	if (parent_ == nullptr || !parent_->is_created())
-		return utility::error_code::parent_not_created;
 
 	if ((handle_ = create_handle_()) == nullptr)
 		return utility::error_code::action_could_not_be_completed;
@@ -51,7 +48,7 @@ winp::utility::error_code winp::ui::non_window_surface::create_(){
 }
 
 winp::utility::error_code winp::ui::non_window_surface::destroy_(){
-	if (handle_ == nullptr)
+	if (handle_ == nullptr || !is_created_())
 		return utility::error_code::nil;
 
 	hide_();
@@ -84,6 +81,14 @@ winp::utility::error_code winp::ui::non_window_surface::redraw_(const RECT &regi
 	if (auto visible_parent = dynamic_cast<visible_surface *>(parent_); visible_parent != nullptr)
 		return visible_parent->redraw(RECT{ (region.left + position_.x), (region.top + position_.y), (region.right + position_.x), (region.bottom + position_.y) });
 
+	return utility::error_code::nil;
+}
+
+winp::utility::error_code winp::ui::non_window_surface::set_visibility_(bool is_visible, bool redraw){
+	if (redraw)
+		return (is_visible ? show_() : hide_());
+
+	visible_ = is_visible;
 	return utility::error_code::nil;
 }
 

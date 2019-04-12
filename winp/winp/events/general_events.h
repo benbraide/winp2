@@ -56,15 +56,18 @@ namespace winp::events{
 	class parent_change : public object{
 	public:
 		template <typename... args_types>
-		explicit parent_change(ui::tree *value, bool is_changing, args_types &&... args)
-			: object(std::forward<args_types>(args)...), value_(value), is_changing_(is_changing){}
+		explicit parent_change(ui::tree *value, ui::tree *previous, bool is_changing, args_types &&... args)
+			: object(std::forward<args_types>(args)...), value_(value), previous_(previous), is_changing_(is_changing){}
 
 		virtual ui::tree *get_value() const;
+
+		virtual ui::tree *get_previous_value() const;
 
 		virtual bool is_changing() const;
 
 	protected:
 		ui::tree *value_;
+		ui::tree *previous_;
 		bool is_changing_;
 	};
 

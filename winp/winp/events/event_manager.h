@@ -3,7 +3,6 @@
 #include <any>
 
 #include "../utility/traits.h"
-#include "../utility/random_number_generator.h"
 
 #include "event_object.h"
 #include "general_events.h"
@@ -141,20 +140,6 @@ namespace winp::events{
 			});
 		}
 
-		/*template <typename handler_type>
-		unsigned __int64 bind(const handler_type &handler){
-			return owner_.compute_task_inside_thread_context([&]{
-				return bind_<typename utility::object_to_function_traits::traits<handler_type>::m_return_type>(utility::object_to_function_traits::get(handler));
-			});
-		}
-		
-		template <typename object_type>
-		unsigned __int64 bind(const std::function<void()> &handler){
-			return bind([handler](object_type &){
-				handler();
-			});
-		}*/
-
 		void unbind(unsigned __int64 id){
 			owner_.execute_task_inside_thread_context([&]{
 				unbind_(id);
@@ -166,12 +151,16 @@ namespace winp::events{
 		
 		template <typename return_type, typename object_type>
 		unsigned __int64 bind_(const std::function<return_type(object_type &)> &handler){
-			unsigned __int64 id = random_generator_;
+			auto handler_object = std::make_shared<events::handler<object_type &, return_type>>(handler);
+			if (handler_object == nullptr)
+				return 0u;
+
+			auto id = reinterpret_cast<unsigned __int64>(handler_object.get());
 			auto &handler_list = handlers_[&typeid(object_type)];
 
 			handler_list.push_back(handler_info{
 				id,
-				std::make_shared<events::handler<object_type &, return_type>>(handler)
+				handler_object
 			});
 
 			++count_;
@@ -246,7 +235,5 @@ namespace winp::events{
 
 		map_type handlers_;
 		change_map_type change_handlers_;
-		
-		utility::random_integral_number_generator random_generator_;
 	};
 }

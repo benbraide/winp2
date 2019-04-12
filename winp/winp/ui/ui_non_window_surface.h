@@ -31,6 +31,8 @@ namespace winp::ui{
 
 		virtual utility::error_code redraw_(const RECT &region) const override;
 
+		virtual utility::error_code set_visibility_(bool is_visible, bool redraw) override;
+
 		virtual utility::error_code show_() override;
 
 		virtual utility::error_code hide_() override;

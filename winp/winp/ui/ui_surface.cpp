@@ -56,21 +56,15 @@ const SIZE &winp::ui::surface::get_size(const std::function<void(const SIZE &)> 
 }
 
 int winp::ui::surface::get_width(const std::function<void(int)> &callback) const{
-	if (callback == nullptr)
-		return get_size(nullptr).cx;
-
-	return get_size([=](const SIZE &value){
-		callback(value.cx);
-	}).cx;
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return synchronized_item_pass_return_value_to_callback(callback, get_size_().cx);
+	}, (callback != nullptr), 0);
 }
 
 int winp::ui::surface::get_height(const std::function<void(int)> &callback) const{
-	if (callback == nullptr)
-		return get_size(nullptr).cy;
-
-	return get_size([=](const SIZE &value){
-		callback(value.cy);
-	}).cy;
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return synchronized_item_pass_return_value_to_callback(callback, get_size_().cy);
+	}, (callback != nullptr), 0);
 }
 
 winp::utility::error_code winp::ui::surface::set_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback){
@@ -124,21 +118,15 @@ const POINT &winp::ui::surface::get_position(const std::function<void(const POIN
 }
 
 int winp::ui::surface::get_x_position(const std::function<void(int)> &callback) const{
-	if (callback == nullptr)
-		return get_position(nullptr).x;
-
-	return get_position([=](const POINT &value){
-		callback(value.x);
-	}).x;
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return synchronized_item_pass_return_value_to_callback(callback, get_position_().x);
+	}, (callback != nullptr), 0);
 }
 
 int winp::ui::surface::get_y_position(const std::function<void(int)> &callback) const{
-	if (callback == nullptr)
-		return get_position(nullptr).y;
-
-	return get_position([=](const POINT &value){
-		callback(value.y);
-	}).y;
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return synchronized_item_pass_return_value_to_callback(callback, get_position_().y);
+	}, (callback != nullptr), 0);
 }
 
 winp::utility::error_code winp::ui::surface::set_absolute_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback){
@@ -390,16 +378,44 @@ winp::utility::error_code winp::ui::surface::set_dimension_(int x, int y, int wi
 		return utility::error_code::nil;//No changes
 
 	if ((flags & SWP_NOMOVE) == 0u){
+		if (auto error_code = position_change_(true); error_code != utility::error_code::nil)
+			return error_code;
+
 		position_.x = info.x;
 		position_.y = info.y;
+
+		position_change_(false);
 	}
 
 	if ((flags & SWP_NOSIZE) == 0u){
+		if (auto error_code = size_change_(true); error_code != utility::error_code::nil)
+			return error_code;
+
 		size_.cx = info.cx;
 		size_.cy = info.cy;
+
+		size_change_(false);
 	}
 	
 	item_self->get_thread().send_message(*item_self, WM_WINDOWPOSCHANGED, 0, reinterpret_cast<LPARAM>(&info));
+	return utility::error_code::nil;
+}
+
+winp::utility::error_code winp::ui::surface::position_change_(bool is_changing){
+	if (is_changing)
+		return utility::error_code::nil;
+
+	if (auto tree_self = dynamic_cast<tree *>(this); tree_self != nullptr){
+		tree_self->traverse_all_children_of<surface>([](surface &child){
+			auto &child_position = child.get_position_();
+			child.set_position_(child_position.x, child_position.y);
+		}, true);
+	}
+
+	return utility::error_code::nil;
+}
+
+winp::utility::error_code winp::ui::surface::size_change_(bool is_changing){
 	return utility::error_code::nil;
 }
 
