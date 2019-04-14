@@ -3,7 +3,10 @@
 #include "control_object.h"
 
 winp::control::object::object(thread::object &thread, const std::wstring &class_name, DWORD common_id)
-	: window_surface(thread), class_name_(class_name){
+	: object(thread, class_name, common_id, false){}
+
+winp::control::object::object(thread::object &thread, const std::wstring &class_name, DWORD common_id, bool init_grid)
+	: window_surface(thread, init_grid), class_name_(class_name){
 	styles_ |= (WS_TABSTOP | WS_VISIBLE);
 	thread_.init_control(class_name_, common_id);
 }

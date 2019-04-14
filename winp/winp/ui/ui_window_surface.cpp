@@ -6,7 +6,10 @@ winp::ui::window_surface::window_surface()
 	: window_surface(app::collection::get_main()->get_thread()){}
 
 winp::ui::window_surface::window_surface(thread::object &thread)
-	: tree(thread), system_menu_(*this), context_menu_(thread), menu_bar_(*this), grid_(*this){
+	: window_surface(thread, true){}
+
+winp::ui::window_surface::window_surface(thread::object &thread, bool init_grid)
+	: tree(thread), visible_surface(init_grid ? this : nullptr), system_menu_(*this), context_menu_(thread), menu_bar_(*this){
 	styles_ = (WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
 	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
 
@@ -20,9 +23,6 @@ winp::ui::window_surface::window_surface(thread::object &thread)
 		auto position = get_context_menu_position_();
 		e.set_result_if_not_set(MAKELONG(position.x, position.y));
 	});
-
-	grid_.set_size(1, 1);
-	grid_.insert_hook<parent_fill_hook>();
 }
 
 winp::ui::window_surface::window_surface(tree &parent)
@@ -157,12 +157,6 @@ winp::ui::window_surface::bar_menu_type &winp::ui::window_surface::get_menu_bar(
 	}, (callback != nullptr), &menu_bar_);
 }
 
-winp::ui::window_surface::grid_type &winp::ui::window_surface::get_grid(const std::function<void(const grid_type &)> &callback) const{
-	return *compute_or_post_task_inside_thread_context([=]{
-		return &pass_return_ref_value_to_callback(callback, &get_grid_());
-	}, (callback != nullptr), &grid_);
-}
-
 const std::wstring &winp::ui::window_surface::get_class_name(const std::function<void(const std::wstring &)> &callback) const{
 	return *compute_or_post_task_inside_thread_context([=]{
 		return &pass_return_ref_value_to_callback(callback, &get_class_name_());
@@ -219,7 +213,6 @@ winp::utility::error_code winp::ui::window_surface::create_(){
 	if (handle_ == nullptr)
 		return utility::error_code::action_could_not_be_completed;
 
-	grid_.create();
 	return utility::error_code::nil;
 }
 
@@ -231,8 +224,6 @@ winp::utility::error_code winp::ui::window_surface::destroy_(){
 		return utility::error_code::action_could_not_be_completed;
 
 	system_menu_.destroy();
-	grid_.destroy();
-
 	return utility::error_code::nil;
 }
 
@@ -500,10 +491,6 @@ winp::ui::window_surface::popup_menu_type &winp::ui::window_surface::get_context
 
 winp::ui::window_surface::bar_menu_type &winp::ui::window_surface::get_menu_bar_() const{
 	return menu_bar_;
-}
-
-winp::ui::window_surface::grid_type &winp::ui::window_surface::get_grid_() const{
-	return grid_;
 }
 
 HMENU winp::ui::window_surface::get_context_menu_handle_(events::get_context_menu_handle &e) const{

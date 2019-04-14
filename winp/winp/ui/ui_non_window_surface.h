@@ -21,6 +21,8 @@ namespace winp::ui{
 	protected:
 		friend class thread::item_manager;
 
+		non_window_surface(thread::object &thread, bool init_grid);
+
 		virtual utility::error_code create_() override;
 
 		virtual utility::error_code destroy_() override;

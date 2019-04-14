@@ -12,6 +12,8 @@ namespace winp::control{
 
 		object(thread::object &thread, const std::wstring &class_name, DWORD common_id);
 
+		object(thread::object &thread, const std::wstring &class_name, DWORD common_id, bool init_grid);
+
 		virtual bool is_dialog_message_(MSG &msg) const override;
 
 		virtual system_menu_type &get_system_menu_() const override;

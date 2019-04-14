@@ -1,5 +1,8 @@
 #include "ui_visible_surface.h"
 
+winp::ui::visible_surface::visible_surface(tree *tree_self)
+	: surface(tree_self){}
+
 winp::ui::visible_surface::~visible_surface() = default;
 
 winp::utility::error_code winp::ui::visible_surface::redraw(const std::function<void(visible_surface, utility::error_code)> &callback) const{

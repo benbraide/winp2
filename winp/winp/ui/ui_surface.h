@@ -4,9 +4,17 @@
 
 #include "ui_object_collection.h"
 
+namespace winp::grid{
+	class object;
+}
+
 namespace winp::ui{
+	class tree;
+
 	class surface : public thread::synchronized_item{
 	public:
+		using grid_type = object_collection<grid::object>;
+
 		virtual ~surface();
 
 		virtual utility::error_code set_size(const SIZE &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
@@ -101,7 +109,13 @@ namespace winp::ui{
 
 		virtual UINT absolute_hit_test(int x, int y, const std::function<void(UINT)> &callback = nullptr) const;
 
+		virtual grid_type &get_grid(const std::function<void(const grid_type &)> &callback = nullptr) const;
+
+		virtual bool has_grid(const std::function<void(bool)> &callback = nullptr) const;
+
 	protected:
+		explicit surface(tree *tree_self = nullptr);
+
 		virtual utility::error_code set_size_(int width, int height);
 
 		virtual utility::error_code set_width_(int value);
@@ -160,5 +174,6 @@ namespace winp::ui{
 
 		SIZE size_{};
 		POINT position_{};
+		std::shared_ptr<grid_type> grid_;
 	};
 }

@@ -16,6 +16,8 @@ namespace winp::non_window{
 		virtual ~rectangle();
 
 	protected:
+		rectangle(thread::object &thread, bool init_grid);
+
 		virtual HRGN create_handle_() const override;
 
 		virtual utility::error_code resize_handle_() override;

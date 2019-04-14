@@ -6,7 +6,10 @@ winp::non_window::rectangle::rectangle()
 	: rectangle(app::collection::get_main()->get_thread()){}
 
 winp::non_window::rectangle::rectangle(thread::object &thread)
-	: non_window_surface(thread){}
+	: rectangle(thread, true){}
+
+winp::non_window::rectangle::rectangle(thread::object &thread, bool init_grid)
+	: non_window_surface(thread, init_grid){}
 
 winp::non_window::rectangle::rectangle(tree &parent)
 	: rectangle(parent, static_cast<std::size_t>(-1)){}

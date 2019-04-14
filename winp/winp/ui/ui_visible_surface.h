@@ -38,6 +38,8 @@ namespace winp::ui{
 		static bool compare_colors(const D2D1::ColorF &first, const D2D1::ColorF &second);
 
 	protected:
+		explicit visible_surface(tree *tree_self = nullptr);
+
 		virtual utility::error_code position_change_(bool is_changing) override;
 
 		virtual utility::error_code size_change_(bool is_changing) override;

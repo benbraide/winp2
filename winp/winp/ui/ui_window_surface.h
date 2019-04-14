@@ -12,7 +12,6 @@ namespace winp::ui{
 		using system_menu_type = object_collection<menu::system_popup_wrapper>;
 		using popup_menu_type = object_collection<menu::popup>;
 		using bar_menu_type = object_collection<menu::bar>;
-		using grid_type = object_collection<grid::object>;
 
 		window_surface();
 
@@ -66,8 +65,6 @@ namespace winp::ui{
 
 		virtual bar_menu_type &get_menu_bar(const std::function<void(const bar_menu_type &)> &callback = nullptr) const;
 
-		virtual grid_type &get_grid(const std::function<void(const grid_type &)> &callback = nullptr) const;
-
 		virtual const std::wstring &get_class_name(const std::function<void(const std::wstring &)> &callback = nullptr) const;
 
 		virtual void traverse_child_windows(const std::function<bool(window_surface &)> &callback, bool block) const;
@@ -76,6 +73,8 @@ namespace winp::ui{
 
 	protected:
 		friend class thread::item_manager;
+
+		window_surface(thread::object &thread, bool init_grid);
 
 		virtual utility::error_code create_() override;
 
@@ -147,8 +146,6 @@ namespace winp::ui{
 
 		virtual bar_menu_type &get_menu_bar_() const;
 
-		virtual grid_type &get_grid_() const;
-
 		virtual HMENU get_context_menu_handle_(events::get_context_menu_handle &e) const;
 
 		virtual POINT get_context_menu_position_() const;
@@ -172,6 +169,5 @@ namespace winp::ui{
 		mutable system_menu_type system_menu_;
 		mutable popup_menu_type context_menu_;
 		mutable bar_menu_type menu_bar_;
-		mutable grid_type grid_;
 	};
 }

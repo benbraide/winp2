@@ -1,7 +1,14 @@
 #include "../app/app_collection.h"
 
-#include "ui_tree.h"
-#include "ui_surface.h"
+#include "../grid/grid_object.h"
+
+winp::ui::surface::surface(tree *tree_self){
+	if (tree_self != nullptr){
+		grid_ = std::make_shared<grid_type>(*tree_self);
+		grid_->insert_hook<parent_fill_hook>();
+		grid_->create();
+	}
+}
 
 winp::ui::surface::~surface() = default;
 
@@ -275,6 +282,18 @@ UINT winp::ui::surface::absolute_hit_test(int x, int y, const std::function<void
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
 		return synchronized_item_pass_return_value_to_callback(callback, absolute_hit_test_(x, y));
 	}, (callback != nullptr), 0u);
+}
+
+winp::ui::surface::grid_type &winp::ui::surface::get_grid(const std::function<void(const grid_type &)> &callback) const{
+	return *synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return &thread::item::pass_return_ref_value_to_callback(callback, grid_.get());
+	}, (callback != nullptr), grid_.get());
+}
+
+bool winp::ui::surface::has_grid(const std::function<void(bool)> &callback) const{
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return synchronized_item_pass_return_value_to_callback(callback, (grid_ != nullptr));
+	}, (callback != nullptr), false);
 }
 
 winp::utility::error_code winp::ui::surface::set_size_(int width, int height){

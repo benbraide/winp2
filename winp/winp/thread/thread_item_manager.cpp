@@ -442,13 +442,13 @@ LRESULT winp::thread::item_manager::erase_background_(item &context, item &targe
 		return 0;
 
 	auto object_context = dynamic_cast<ui::object *>(&context);
-	auto window_context = dynamic_cast<ui::window_surface *>(&context);
-
-	if (window_context == nullptr && (!visible_context->is_visible() || (object_context != nullptr && !object_context->is_created())))
-		return 0;//Surface is not visible
+	if (object_context == nullptr)//Object required
+		return 0;
 
 	LRESULT result = 0;
-	if (window_context != nullptr || !visible_context->is_transparent_background())
+	auto window_context = dynamic_cast<ui::window_surface *>(&context);
+
+	if (object_context->is_created() && (window_context != nullptr || (!visible_context->is_transparent_background() && visible_context->is_visible())))
 		result = trigger_event_with_target_<events::erase_background>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_class_entry_(window_context->get_class_name()))).second;
 
 	if (auto tree_context = dynamic_cast<ui::tree *>(&context); tree_context != nullptr){
@@ -467,18 +467,21 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 		return 0;
 
 	auto object_context = dynamic_cast<ui::object *>(&context);
-	auto window_context = dynamic_cast<ui::window_surface *>(&context);
+	if (object_context == nullptr)//Object required
+		return 0;
 
+	auto window_context = dynamic_cast<ui::window_surface *>(&context);
 	if (window_context != nullptr && msg.hwnd != nullptr){
 		if (msg.message == WM_PRINTCLIENT)
 			GetClipBox(reinterpret_cast<HDC>(msg.wParam), &update_rect_);
 		else//Paint
 			GetUpdateRect(msg.hwnd, &update_rect_, FALSE);
 	}
-	else if (window_context == nullptr && (!visible_context->is_visible() || (object_context != nullptr && !object_context->is_created())))
-		return 0;//Surface is not visible
 
-	auto result = trigger_event_with_target_<events::paint>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_class_entry_(window_context->get_class_name()))).second;
+	LRESULT result = 0;
+	if (object_context->is_created() && (window_context != nullptr || visible_context->is_visible()))
+		result = trigger_event_with_target_<events::paint>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_class_entry_(window_context->get_class_name()))).second;
+
 	if (auto tree_context = dynamic_cast<ui::tree *>(&context); tree_context != nullptr){
 		tree_context->traverse_all_children([&](ui::object &child){
 			if (dynamic_cast<ui::window_surface *>(&child) == nullptr)

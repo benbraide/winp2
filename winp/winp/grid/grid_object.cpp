@@ -6,7 +6,7 @@ winp::grid::object::object()
 	: object(app::collection::get_main()->get_thread()){}
 
 winp::grid::object::object(thread::object &thread)
-	: rectangle(thread){}
+	: rectangle(thread, false){}
 
 winp::grid::object::object(ui::tree &parent)
 	: object(parent, static_cast<std::size_t>(-1)){}

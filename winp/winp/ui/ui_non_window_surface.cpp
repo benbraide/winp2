@@ -6,7 +6,10 @@ winp::ui::non_window_surface::non_window_surface()
 	: non_window_surface(app::collection::get_main()->get_thread()){}
 
 winp::ui::non_window_surface::non_window_surface(thread::object &thread)
-	: tree(thread){
+	: non_window_surface(thread, true){}
+
+winp::ui::non_window_surface::non_window_surface(thread::object &thread, bool init_grid)
+	: tree(thread), visible_surface(init_grid ? this : nullptr){
 	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
 }
 
