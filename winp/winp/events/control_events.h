@@ -66,4 +66,18 @@ namespace winp::events{
 		explicit link_clicked(args_types &&... args)
 			: object(std::forward<args_types>(args)...){}
 	};
+
+	class activate_page : public object{
+	public:
+		template <typename... args_types>
+		explicit activate_page(args_types &&... args)
+			: object(std::forward<args_types>(args)...){}
+	};
+
+	class deactivate_page : public object{
+	public:
+		template <typename... args_types>
+		explicit deactivate_page(args_types &&... args)
+			: object(std::forward<args_types>(args)...){}
+	};
 }

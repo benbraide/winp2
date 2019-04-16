@@ -8,10 +8,10 @@ winp::control::tool_tip_item::tool_tip_item()
 winp::control::tool_tip_item::tool_tip_item(thread::object &thread)
 	: object(thread){}
 
-winp::control::tool_tip_item::tool_tip_item(ui::tree &parent)
+winp::control::tool_tip_item::tool_tip_item(tool_tip &parent)
 	: tool_tip_item(parent, static_cast<std::size_t>(-1)){}
 
-winp::control::tool_tip_item::tool_tip_item(ui::tree &parent, std::size_t index)
+winp::control::tool_tip_item::tool_tip_item(tool_tip &parent, std::size_t index)
 	: tool_tip_item(parent.get_thread()){
 	set_parent(&parent, index);
 }
@@ -130,11 +130,6 @@ winp::utility::error_code winp::control::tool_tip_item::destroy_(){
 	if (handle_ == nullptr)
 		return utility::error_code::nil;
 
-	if (auto object_target = dynamic_cast<ui::object *>(target_); object_target != nullptr){
-		object_target->events().unbind(event_id_);
-		event_id_ = 0u;
-	}
-
 	TTTOOLINFOW info{
 		sizeof(TTTOOLINFOW),
 		((local_id_ == id_) ? 0u : TTF_IDISHWND),
@@ -231,14 +226,15 @@ HFONT winp::control::tool_tip_item::get_font_() const{
 }
 
 LRESULT winp::control::tool_tip_item::need_text_(NMTTDISPINFOW &info) const{
-	auto result = trigger_event_<events::get_text>(temp_text_);
-	if ((result.first & events::object::state_default_prevented) != 0u || (temp_text_.empty() && text_.empty()))
+	std::wstring text;
+	auto result = trigger_event_<events::get_text>(text);
+	if ((result.first & events::object::state_default_prevented) != 0u || (text.empty() && text_.empty()))
 		return 0;//Do nothing
 
-	if (temp_text_.empty())
+	if (text.empty())
 		info.lpszText = const_cast<wchar_t *>(text_.data());
 	else
-		info.lpszText = const_cast<wchar_t *>(temp_text_.data());
+		info.lpszText = const_cast<wchar_t *>(text.data());
 
 	auto max_width = get_max_width_();
 	SendMessageW(handle_, TTM_SETMAXTIPWIDTH, 0, ((0 < max_width) ? max_width : -1));

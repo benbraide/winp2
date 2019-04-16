@@ -13,6 +13,7 @@
 #include "control/control_group.h"
 #include "control/label_control.h"
 #include "control/tool_tip_control.h"
+#include "control/tab_control.h"
 
 int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_show){
 	winp::app::main_object main_app;
@@ -68,62 +69,83 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 	winp::ui::object_collection<winp::control::tool_tip> ttc;
 	ttc.create();
 
-	ws.get_grid().add_object([](winp::ui::object_collection<winp::grid::row> &row){
-		row.add_object([](winp::ui::object_collection<winp::grid::column> &col){
-			col.set_background_color(D2D1::ColorF::Red);
-			col.add_object([&](winp::ui::object_collection<winp::non_window::rectangle> &nwo){
-				nwo.events().bind([&](winp::events::paint &e){
-					e.begin();
-					if (auto drawer = e.get_render_target(); drawer != nullptr){
-						e.get_color_brush()->SetColor(D2D1::ColorF(D2D1::ColorF::White));
-						auto size = dynamic_cast<winp::ui::surface *>(&e.get_context())->get_size();
+	ws.add_object([](winp::ui::object_collection<winp::control::tab> &tab){
+		tab.create();
 
-						for (auto step = 10; step < size.cx; step += 10)
-							drawer->DrawLine(D2D1::Point2F((float)step, 0.f), D2D1::Point2F((float)step, (float)size.cy), e.get_color_brush());
-						for (auto step = 10; step < size.cy; step += 10)
-							drawer->DrawLine(D2D1::Point2F(0.f, (float)step), D2D1::Point2F((float)size.cx, (float)step), e.get_color_brush());
-					}
+		tab.insert_hook<winp::ui::parent_fill_hook>();
+		tab.insert_hook<winp::ui::placement_hook>(winp::ui::placement_hook::alignment_type::top_left);
+
+		tab.add_object([](winp::ui::object_collection<winp::control::tab_page> &tpg){
+			tpg.set_title(L"First Tab");
+			tpg.create();
+
+			tpg.get_grid().add_object([](winp::ui::object_collection<winp::grid::row> &row){
+				row.add_object([](winp::ui::object_collection<winp::grid::column> &col){
+					col.set_background_color(D2D1::ColorF::Red);
+					col.add_object([&](winp::ui::object_collection<winp::non_window::rectangle> &nwo){
+						nwo.events().bind([&](winp::events::paint &e){
+							e.begin();
+							if (auto drawer = e.get_render_target(); drawer != nullptr){
+								e.get_color_brush()->SetColor(D2D1::ColorF(D2D1::ColorF::White));
+								auto size = dynamic_cast<winp::ui::surface *>(&e.get_context())->get_size();
+
+								for (auto step = 10; step < size.cx; step += 10)
+									drawer->DrawLine(D2D1::Point2F((float)step, 0.f), D2D1::Point2F((float)step, (float)size.cy), e.get_color_brush());
+								for (auto step = 10; step < size.cy; step += 10)
+									drawer->DrawLine(D2D1::Point2F(0.f, (float)step), D2D1::Point2F((float)size.cx, (float)step), e.get_color_brush());
+							}
+						});
+
+						nwo.set_size(300, 150);
+						nwo.set_background_color(D2D1::ColorF::Red);
+
+						nwo.insert_hook<winp::ui::placement_hook>(winp::ui::placement_hook::alignment_type::bottom_right);
+
+						return winp::ui::add_result_type::confirm;
+					});
+
+					return winp::ui::add_result_type::confirm;
 				});
 
-				nwo.set_size(300, 150);
-				nwo.set_background_color(D2D1::ColorF::Red);
+				row.add_object([](winp::ui::object_collection<winp::grid::proportional_column> &col){
+					col.set_proportion(0.6f);
+					col.set_background_color(D2D1::ColorF::Green);
 
-				nwo.insert_hook<winp::ui::placement_hook>(winp::ui::placement_hook::alignment_type::bottom_right);
+					col.add_object([](winp::ui::object_collection<winp::window::object> &wsc){
+						wsc.set_caption(L"Child Window");
+						wsc.create();
+						wsc.show();
 
-				return winp::ui::add_result_type::confirm;
-			});
+						wsc.insert_hook<winp::ui::placement_hook>(winp::ui::placement_hook::alignment_type::center);
+						wsc.insert_hook<winp::ui::parent_fill_hook>(D2D1_SIZE_F{ 0.4f, 0.5f });
 
-			return winp::ui::add_result_type::confirm;
-		});
+						return winp::ui::add_result_type::confirm;
+					});
 
-		row.add_object([](winp::ui::object_collection<winp::grid::proportional_column> &col){
-			col.set_proportion(0.6f);
-			col.set_background_color(D2D1::ColorF::Green);
-
-			col.add_object([](winp::ui::object_collection<winp::window::object> &wsc){
-				wsc.set_caption(L"Child Window");
-				wsc.create();
-				wsc.show();
-
-				wsc.insert_hook<winp::ui::placement_hook>(winp::ui::placement_hook::alignment_type::center);
-				wsc.insert_hook<winp::ui::parent_fill_hook>(D2D1_SIZE_F{ 0.4f, 0.5f });
+					return winp::ui::add_result_type::confirm;
+				});
 
 				return winp::ui::add_result_type::confirm;
 			});
 
+			tpg.get_grid().add_object([](winp::ui::object_collection<winp::grid::row> &row){
+				row.create();
+				row.add_object([](winp::ui::object_collection<winp::grid::column> &col){
+					col.set_background_color(D2D1::ColorF::Blue);
+					return winp::ui::add_result_type::confirm;
+				});
+				return winp::ui::add_result_type::confirm;
+			});
+
+			return winp::ui::add_result_type::dont_create;
+		});
+
+		tab.add_object([](winp::ui::object_collection<winp::control::tab_page> &tpg){
+			tpg.set_title(L"Second Tab");
 			return winp::ui::add_result_type::confirm;
 		});
 
-		return winp::ui::add_result_type::confirm;
-	});
-
-	ws.get_grid().add_object([](winp::ui::object_collection<winp::grid::row> &row){
-		row.create();
-		row.add_object([](winp::ui::object_collection<winp::grid::column> &col){
-			col.set_background_color(D2D1::ColorF::Blue);
-			return winp::ui::add_result_type::confirm;
-		});
-		return winp::ui::add_result_type::confirm;
+		return winp::ui::add_result_type::dont_create;
 	});
 
 	/*winp::utility::random_bool_generator rand;
