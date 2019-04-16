@@ -156,15 +156,22 @@ winp::utility::error_code winp::events::draw::begin(){
 		auto offset = non_window_context->get_position();
 		auto context_dimension = non_window_context->get_dimension();
 
-		for (auto ancestor = non_window_context->get_parent(); ancestor != nullptr; ancestor = ancestor->get_parent()){
-			if (auto window_ancestor = dynamic_cast<ui::window_surface *>(ancestor); window_ancestor != nullptr)
-				break;
-
-			if (auto surface_ancestor = dynamic_cast<ui::surface *>(ancestor); surface_ancestor != nullptr){
+		auto window_ancestor = non_window_context->get_first_ancestor_of<ui::window_surface>([&](ui::tree &ancestor){
+			if (auto surface_ancestor = dynamic_cast<ui::surface *>(&ancestor); surface_ancestor != nullptr){
 				auto ancestor_position = surface_ancestor->get_position();
-				offset.x += ancestor_position.x;
-				offset.y += ancestor_position.y;
+				auto ancestor_client_offset = surface_ancestor->get_client_offset();
+
+				offset.x += (ancestor_position.x + ancestor_client_offset.x);
+				offset.y += (ancestor_position.y + ancestor_client_offset.y);
 			}
+
+			return true;
+		});
+
+		if (window_ancestor != nullptr){
+			auto ancestor_client_start_offset = window_ancestor->get_client_start_offset();
+			offset.x += ancestor_client_start_offset.x;
+			offset.y += ancestor_client_start_offset.y;
 		}
 
 		OffsetRect(&context_dimension, (offset.x - context_dimension.left), (offset.y - context_dimension.top));//Move relative to offset

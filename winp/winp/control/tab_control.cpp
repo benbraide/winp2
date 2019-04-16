@@ -30,6 +30,15 @@ winp::utility::error_code winp::control::tab::do_insert_child_(ui::object &child
 	return tree::do_insert_child_(child, index);
 }
 
+SIZE winp::control::tab::get_client_size_() const{
+	RECT dimension{};
+
+	GetWindowRect(handle_, &dimension);
+	TabCtrl_AdjustRect(handle_, FALSE, &dimension);
+
+	return SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
+}
+
 POINT winp::control::tab::get_client_offset_() const{
 	if (handle_ == nullptr)
 		return window_surface::get_client_offset_();
@@ -43,13 +52,8 @@ POINT winp::control::tab::get_client_offset_() const{
 	return POINT{ (computed_dimension.left - dimension.left), (computed_dimension.top - dimension.top) };
 }
 
-SIZE winp::control::tab::get_client_size_() const{
-	RECT dimension{};
-
-	GetWindowRect(handle_, &dimension);
-	TabCtrl_AdjustRect(handle_, FALSE, &dimension);
-
-	return SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
+POINT winp::control::tab::get_client_start_offset_() const{
+	return get_client_offset_();
 }
 
 LRESULT winp::control::tab::dispatch_notification_(MSG &msg) const{

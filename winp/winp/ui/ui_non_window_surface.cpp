@@ -9,8 +9,10 @@ winp::ui::non_window_surface::non_window_surface(thread::object &thread)
 	: non_window_surface(thread, true){}
 
 winp::ui::non_window_surface::non_window_surface(thread::object &thread, bool init_grid)
-	: tree(thread), visible_surface(init_grid ? this : nullptr){
+	: tree(thread){
 	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
+	if (init_grid)
+		init_grid_(*this);
 }
 
 winp::ui::non_window_surface::non_window_surface(tree &parent)

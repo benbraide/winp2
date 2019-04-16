@@ -9,9 +9,12 @@ winp::ui::window_surface::window_surface(thread::object &thread)
 	: window_surface(thread, true){}
 
 winp::ui::window_surface::window_surface(thread::object &thread, bool init_grid)
-	: tree(thread), visible_surface(init_grid ? this : nullptr), system_menu_(*this), context_menu_(thread), menu_bar_(*this){
+	: tree(thread), system_menu_(*this), context_menu_(thread), menu_bar_(*this){
 	styles_ = (WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
 	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
+
+	if (init_grid)
+		init_grid_(*this);
 
 	add_event_handler_([this](events::get_context_menu_handle &e){
 		auto context_menu_handle = get_context_menu_handle_(e);
@@ -41,24 +44,6 @@ bool winp::ui::window_surface::is_dialog_message(MSG &msg) const{
 	return compute_task_inside_thread_context([&]{
 		return is_dialog_message_(msg);
 	});
-}
-
-SIZE winp::ui::window_surface::get_client_size(const std::function<void(const SIZE &)> &callback) const{
-	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return synchronized_item_pass_return_value_to_callback(callback, get_client_size_());
-	}, (callback != nullptr), SIZE{});
-}
-
-int winp::ui::window_surface::get_client_width(const std::function<void(int)> &callback) const{
-	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return synchronized_item_pass_return_value_to_callback(callback, get_client_size_().cx);
-	}, (callback != nullptr), 0);
-}
-
-int winp::ui::window_surface::get_client_height(const std::function<void(int)> &callback) const{
-	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return synchronized_item_pass_return_value_to_callback(callback, get_client_size_().cy);
-	}, (callback != nullptr), 0);
 }
 
 winp::utility::error_code winp::ui::window_surface::show(int how, const std::function<void(window_surface &, utility::error_code)> &callback){
@@ -184,8 +169,10 @@ winp::utility::error_code winp::ui::window_surface::create_(){
 	auto window_ancestor = get_first_ancestor_of_<window_surface>([&](tree &ancestor){
 		if (auto surface_ancestor = dynamic_cast<surface *>(&ancestor); surface_ancestor != nullptr){
 			auto ancestor_position = surface_ancestor->get_position();
-			position.x += ancestor_position.x;
-			position.y += ancestor_position.y;
+			auto ancestor_client_offset = surface_ancestor->get_client_offset();
+
+			position.x += (ancestor_position.x + ancestor_client_offset.x);
+			position.y += (ancestor_position.y + ancestor_client_offset.y);
 		}
 
 		return true;
@@ -194,6 +181,12 @@ winp::utility::error_code winp::ui::window_surface::create_(){
 	auto ancestor_handle = ((window_ancestor == nullptr) ? nullptr : window_ancestor->handle_);
 	if (parent_ != nullptr && ancestor_handle == nullptr)
 		return utility::error_code::parent_not_created;
+
+	if (window_ancestor != nullptr){
+		auto ancestor_client_start_offset = window_ancestor->get_client_start_offset();
+		position.x += ancestor_client_start_offset.x;
+		position.y += ancestor_client_start_offset.y;
+	}
 
 	handle_ = thread_.get_item_manager().create_window(
 		*this,
@@ -265,34 +258,14 @@ winp::utility::error_code winp::ui::window_surface::set_size_(int width, int hei
 	return ((SetWindowPos(handle_, nullptr, 0, 0, width, height, (SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE)) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
 }
 
-winp::utility::error_code winp::ui::window_surface::set_position_(int x, int y){
+SIZE winp::ui::window_surface::get_client_size_() const{
 	if (handle_ == nullptr)
-		return visible_surface::set_position_(x, y);
-
-	position_.x = x;
-	position_.y = y;
-
-	get_first_ancestor_of_<window_surface>([&](tree &ancestor){
-		if (auto surface_ancestor = dynamic_cast<surface *>(&ancestor); surface_ancestor != nullptr){
-			auto ancestor_position = surface_ancestor->get_position();
-			x += ancestor_position.x;
-			y += ancestor_position.y;
-		}
-
-		return true;
-	});
-
-	return ((SetWindowPos(handle_, nullptr, x, y, 0, 0, (SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE)) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
-}
-
-POINT winp::ui::window_surface::get_absolute_position_() const{
-	if (handle_ == nullptr)
-		return visible_surface::get_absolute_position_();
+		return get_size_();
 
 	RECT dimension{};
-	GetWindowRect(handle_, &dimension);
+	GetClientRect(handle_, &dimension);
 
-	return POINT{ dimension.left, dimension.top };
+	return SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
 }
 
 POINT winp::ui::window_surface::get_client_offset_() const{
@@ -306,6 +279,44 @@ POINT winp::ui::window_surface::get_client_offset_() const{
 	ClientToScreen(handle_, &offset);
 
 	return POINT{ (offset.x - dimension.left), (offset.y - dimension.top) };
+}
+
+winp::utility::error_code winp::ui::window_surface::set_position_(int x, int y){
+	if (handle_ == nullptr)
+		return visible_surface::set_position_(x, y);
+
+	position_.x = x;
+	position_.y = y;
+
+	auto window_ancestor = get_first_ancestor_of_<window_surface>([&](tree &ancestor){
+		if (auto surface_ancestor = dynamic_cast<surface *>(&ancestor); surface_ancestor != nullptr){
+			auto ancestor_position = surface_ancestor->get_position();
+			auto ancestor_client_offset = surface_ancestor->get_client_offset();
+
+			x += (ancestor_position.x + ancestor_client_offset.x);
+			y += (ancestor_position.y + ancestor_client_offset.y);
+		}
+
+		return true;
+	});
+
+	if (window_ancestor != nullptr){
+		auto ancestor_client_start_offset = window_ancestor->get_client_start_offset();
+		x += ancestor_client_start_offset.x;
+		y += ancestor_client_start_offset.y;
+	}
+
+	return ((SetWindowPos(handle_, nullptr, x, y, 0, 0, (SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE)) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+}
+
+POINT winp::ui::window_surface::get_absolute_position_() const{
+	if (handle_ == nullptr)
+		return visible_surface::get_absolute_position_();
+
+	RECT dimension{};
+	GetWindowRect(handle_, &dimension);
+
+	return POINT{ dimension.left, dimension.top };
 }
 
 winp::utility::error_code winp::ui::window_surface::set_dimension_(int x, int y, int width, int height){
@@ -367,16 +378,6 @@ UINT winp::ui::window_surface::absolute_hit_test_(int x, int y) const{
 
 bool winp::ui::window_surface::is_dialog_message_(MSG &msg) const{
 	return (handle_ != nullptr && IsDialogMessageW(handle_, &msg) != FALSE);
-}
-
-SIZE winp::ui::window_surface::get_client_size_() const{
-	if (handle_ == nullptr)
-		return get_size_();
-
-	RECT dimension{};
-	GetClientRect(handle_, &dimension);
-
-	return SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
 }
 
 winp::utility::error_code winp::ui::window_surface::show_(int how){

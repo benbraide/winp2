@@ -3,11 +3,8 @@
 #include "../grid/grid_object.h"
 
 winp::ui::surface::surface(tree *tree_self){
-	if (tree_self != nullptr){
-		grid_ = std::make_shared<grid_type>(*tree_self);
-		grid_->insert_hook<parent_fill_hook>();
-		grid_->create();
-	}
+	if (tree_self != nullptr)
+		init_grid_(*tree_self);
 }
 
 winp::ui::surface::~surface() = default;
@@ -72,6 +69,48 @@ int winp::ui::surface::get_height(const std::function<void(int)> &callback) cons
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
 		return synchronized_item_pass_return_value_to_callback(callback, get_size_().cy);
 	}, (callback != nullptr), 0);
+}
+
+SIZE winp::ui::surface::get_client_size(const std::function<void(const SIZE &)> &callback) const{
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return synchronized_item_pass_return_value_to_callback(callback, get_client_size_());
+	}, (callback != nullptr), SIZE{});
+}
+
+int winp::ui::surface::get_client_width(const std::function<void(int)> &callback) const{
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return synchronized_item_pass_return_value_to_callback(callback, get_client_size_().cx);
+	}, (callback != nullptr), 0);
+}
+
+int winp::ui::surface::get_client_height(const std::function<void(int)> &callback) const{
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return synchronized_item_pass_return_value_to_callback(callback, get_client_size_().cy);
+	}, (callback != nullptr), 0);
+}
+
+POINT winp::ui::surface::get_client_offset(const std::function<void(const POINT &)> &callback) const{
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return synchronized_item_pass_return_value_to_callback(callback, get_client_offset_());
+	}, (callback != nullptr), POINT{});
+}
+
+int winp::ui::surface::get_client_x_offset(const std::function<void(int)> &callback) const{
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return synchronized_item_pass_return_value_to_callback(callback, get_client_offset_().x);
+	}, (callback != nullptr), 0);
+}
+
+int winp::ui::surface::get_client_y_offset(const std::function<void(int)> &callback) const{
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return synchronized_item_pass_return_value_to_callback(callback, get_client_offset_().y);
+	}, (callback != nullptr), 0);
+}
+
+POINT winp::ui::surface::get_client_start_offset(const std::function<void(const POINT &)> &callback) const{
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return synchronized_item_pass_return_value_to_callback(callback, get_client_start_offset_());
+	}, (callback != nullptr), POINT{});
 }
 
 winp::utility::error_code winp::ui::surface::set_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback){
@@ -296,6 +335,13 @@ bool winp::ui::surface::has_grid(const std::function<void(bool)> &callback) cons
 	}, (callback != nullptr), false);
 }
 
+void winp::ui::surface::init_grid_(tree &tree_self){
+	grid_ = std::make_shared<grid_type>(tree_self);
+	grid_->insert_hook<parent_fill_hook>();
+	grid_->insert_hook<placement_hook>(placement_hook::alignment_type::top_left);
+	grid_->create();
+}
+
 winp::utility::error_code winp::ui::surface::set_size_(int width, int height){
 	return set_dimension_(position_.x, position_.y, width, height);
 }
@@ -322,6 +368,18 @@ winp::utility::error_code winp::ui::surface::offset_height_(int value){
 
 const SIZE &winp::ui::surface::get_size_() const{
 	return size_;
+}
+
+SIZE winp::ui::surface::get_client_size_() const{
+	return get_size_();
+}
+
+POINT winp::ui::surface::get_client_offset_() const{
+	return POINT{};
+}
+
+POINT winp::ui::surface::get_client_start_offset_() const{
+	return POINT{};
 }
 
 winp::utility::error_code winp::ui::surface::set_position_(int x, int y){
@@ -445,10 +503,6 @@ RECT winp::ui::surface::get_dimension_() const{
 RECT winp::ui::surface::get_absolute_dimension_() const{
 	auto absolute_position = get_absolute_position_();
 	return RECT{ absolute_position.x, absolute_position.y, (absolute_position.x + size_.cx), (absolute_position.y + size_.cy) };
-}
-
-POINT winp::ui::surface::get_client_offset_() const{
-	return POINT{};
 }
 
 POINT winp::ui::surface::convert_position_from_absolute_value_(int x, int y) const{

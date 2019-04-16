@@ -23,9 +23,11 @@ namespace winp::control{
 
 		virtual utility::error_code do_insert_child_(ui::object &child, std::size_t index) override;
 
+		virtual SIZE get_client_size_() const override;
+
 		virtual POINT get_client_offset_() const override;
 
-		virtual SIZE get_client_size_() const;
+		virtual POINT get_client_start_offset_() const override;
 
 		virtual LRESULT dispatch_notification_(MSG &msg) const override;
 

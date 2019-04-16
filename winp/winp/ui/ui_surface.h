@@ -39,6 +39,20 @@ namespace winp::ui{
 
 		virtual int get_height(const std::function<void(int)> &callback = nullptr) const;
 
+		virtual SIZE get_client_size(const std::function<void(const SIZE &)> &callback = nullptr) const;
+
+		virtual int get_client_width(const std::function<void(int)> &callback = nullptr) const;
+
+		virtual int get_client_height(const std::function<void(int)> &callback = nullptr) const;
+
+		virtual POINT get_client_offset(const std::function<void(const POINT &)> &callback = nullptr) const;
+
+		virtual int get_client_x_offset(const std::function<void(int)> &callback = nullptr) const;
+
+		virtual int get_client_y_offset(const std::function<void(int)> &callback = nullptr) const;
+
+		virtual POINT get_client_start_offset(const std::function<void(const POINT &)> &callback = nullptr) const;
+
 		virtual utility::error_code set_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
 		virtual utility::error_code set_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
@@ -116,6 +130,8 @@ namespace winp::ui{
 	protected:
 		explicit surface(tree *tree_self = nullptr);
 
+		void init_grid_(tree &tree_self);
+
 		virtual utility::error_code set_size_(int width, int height);
 
 		virtual utility::error_code set_width_(int value);
@@ -129,6 +145,12 @@ namespace winp::ui{
 		virtual utility::error_code offset_height_(int value);
 
 		virtual const SIZE &get_size_() const;
+
+		virtual SIZE get_client_size_() const;
+
+		virtual POINT get_client_offset_() const;
+
+		virtual POINT get_client_start_offset_() const;
 
 		virtual utility::error_code set_position_(int x, int y);
 
@@ -147,8 +169,6 @@ namespace winp::ui{
 		virtual utility::error_code set_absolute_position_(int x, int y);
 
 		virtual POINT get_absolute_position_() const;
-
-		virtual POINT get_client_offset_() const;
 
 		virtual utility::error_code set_dimension_(int x, int y, int width, int height);
 

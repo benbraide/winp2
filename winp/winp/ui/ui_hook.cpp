@@ -248,10 +248,8 @@ void winp::ui::placement_hook::update_(){
 		GetClientRect(GetDesktopWindow(), &dimension);
 		parent_size = SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
 	}
-	else if (auto window_parent = dynamic_cast<window_surface *>(parent); window_parent != nullptr)
-		parent_size = window_parent->get_client_size();
-	else
-		parent_size = surface_parent->get_size();
+	else//Use client size
+		parent_size = surface_parent->get_client_size();
 
 	auto computed_offset = offset_;
 	switch (alignment_){
@@ -371,10 +369,8 @@ void winp::ui::parent_fill_hook::update_(){
 		GetClientRect(GetDesktopWindow(), &dimension);
 		parent_size = SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
 	}
-	else if (auto window_parent = dynamic_cast<window_surface *>(parent); window_parent != nullptr)
-		parent_size = window_parent->get_client_size();
-	else
-		parent_size = surface_parent->get_size();
+	else//Use client size
+		parent_size = surface_parent->get_client_size();
 
 	if (std::holds_alternative<D2D1_SIZE_F>(offset_)){//Proportional offset
 		auto &proportional_offset = std::get<D2D1_SIZE_F>(offset_);

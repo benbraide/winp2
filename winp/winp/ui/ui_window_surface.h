@@ -25,12 +25,6 @@ namespace winp::ui{
 
 		virtual bool is_dialog_message(MSG &msg) const;
 
-		virtual SIZE get_client_size(const std::function<void(const SIZE &)> &callback = nullptr) const;
-
-		virtual int get_client_width(const std::function<void(int)> &callback = nullptr) const;
-
-		virtual int get_client_height(const std::function<void(int)> &callback = nullptr) const;
-
 		using visible_surface::show;
 
 		virtual utility::error_code show(int how, const std::function<void(window_surface &, utility::error_code)> &callback = nullptr);
@@ -94,11 +88,13 @@ namespace winp::ui{
 
 		virtual utility::error_code set_size_(int width, int height) override;
 
+		virtual SIZE get_client_size_() const override;
+
+		virtual POINT get_client_offset_() const override;
+
 		virtual utility::error_code set_position_(int x, int y) override;
 
 		virtual POINT get_absolute_position_() const override;
-
-		virtual POINT get_client_offset_() const override;
 
 		virtual utility::error_code set_dimension_(int x, int y, int width, int height) override;
 
@@ -111,8 +107,6 @@ namespace winp::ui{
 		virtual UINT absolute_hit_test_(int x, int y) const override;
 
 		virtual bool is_dialog_message_(MSG &msg) const;
-
-		virtual SIZE get_client_size_() const;
 
 		virtual utility::error_code show_(int how);
 
