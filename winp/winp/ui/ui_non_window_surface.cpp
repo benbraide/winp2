@@ -123,3 +123,11 @@ bool winp::ui::non_window_surface::is_visible_() const{
 HRGN winp::ui::non_window_surface::get_handle_() const{
 	return handle_;
 }
+
+HRGN winp::ui::non_window_surface::create_handle_() const{
+	return nullptr;
+}
+
+winp::utility::error_code winp::ui::non_window_surface::resize_handle_(){
+	return utility::error_code::not_supported;
+}

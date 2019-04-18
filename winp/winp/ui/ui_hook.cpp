@@ -19,8 +19,11 @@ winp::ui::parent_size_hook::parent_size_hook(object &target)
 	: target_(target){
 	bind_size_event_(target_.get_parent(), nullptr);
 	tree_event_id_ = target_.events().bind([this](events::parent_change &e){
-		if (!e.is_changing())
+		if (!e.is_changing()){
 			bind_size_event_(e.get_value(), e.get_previous_value());
+			if (callback_ != nullptr)
+				callback_(*this);
+		}
 	});
 }
 

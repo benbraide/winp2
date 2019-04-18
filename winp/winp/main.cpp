@@ -21,7 +21,7 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 	winp::ui::object_collection<winp::window::object> ws;
 	ws.set_caption(L"Test Window");
 	ws.set_position(30, 30);
-	ws.set_size(600, 400);
+	ws.set_size(1600, 900);
 	ws.create();
 	ws.show(cmd_show);
 

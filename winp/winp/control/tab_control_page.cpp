@@ -12,8 +12,12 @@ winp::control::tab_page::tab_page(thread::object &thread)
 
 	add_event_handler_([this](events::destroy &e){
 		auto tab_parent = dynamic_cast<tab *>(parent_);
-		if (tab_parent != nullptr && tab_parent->is_created())
+		if (tab_parent != nullptr && tab_parent->is_created()){
 			TabCtrl_DeleteItem(tab_parent->get_handle_(), actual_index_);
+
+			WINDOWPOS info{ nullptr, nullptr, 0, 0, tab_parent->size_.cx, tab_parent->size_.cy, SWP_NOMOVE };
+			thread_.send_message(*tab_parent, WM_WINDOWPOSCHANGED, 0, reinterpret_cast<LPARAM>(&info));
+		}
 		
 		actual_index_ = -1;
 	});
@@ -94,6 +98,9 @@ winp::utility::error_code winp::control::tab_page::create_(){
 
 		return utility::error_code::action_could_not_be_completed;
 	}
+
+	WINDOWPOS msg_info{ nullptr, nullptr, 0, 0, tab_parent->size_.cx, tab_parent->size_.cy, SWP_NOMOVE };
+	thread_.send_message(*tab_parent, WM_WINDOWPOSCHANGED, 0, reinterpret_cast<LPARAM>(&msg_info));
 
 	if (auto active_page = tab_parent->get_active_page_(); active_page == this){
 		active_page->hide_();
