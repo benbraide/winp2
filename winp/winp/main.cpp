@@ -31,8 +31,6 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 				item.set_text(L"Offspring Context Menu Action Item");
 			else
 				item.set_text(L"Context Menu Action Item");
-
-			return winp::ui::add_result_type::confirm;
 		});
 	});
 
@@ -42,12 +40,11 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 
 	auto &smn = ws.get_system_menu();
 	smn.add_object([](winp::menu::separator &item){
-		return winp::ui::add_result_type::confirm;
+		
 	});
 
 	smn.add_object([](winp::menu::action_item &item){
 		item.set_text(L"Custom Action Item");
-		return winp::ui::add_result_type::confirm;
 	});
 
 	smn.add_object([](winp::menu::link_item_with_popup &link){
@@ -60,10 +57,7 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 				auto &target = e.get_target();
 				auto &context = e.get_context();
 			});
-			return winp::ui::add_result_type::confirm;
 		});
-
-		return winp::ui::add_result_type::dont_create;
 	});
 
 	winp::ui::object_collection<winp::control::tool_tip> ttc;
@@ -100,11 +94,7 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 						nwo.set_background_color(D2D1::ColorF::Red);
 
 						nwo.insert_hook<winp::ui::placement_hook>(winp::ui::placement_hook::alignment_type::bottom_right);
-
-						return winp::ui::add_result_type::confirm;
 					});
-
-					return winp::ui::add_result_type::confirm;
 				});
 
 				row.add_object([](winp::ui::object_collection<winp::grid::proportional_column> &col){
@@ -118,34 +108,21 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 
 						wsc.insert_hook<winp::ui::placement_hook>(winp::ui::placement_hook::alignment_type::center);
 						wsc.insert_hook<winp::ui::parent_fill_hook>(D2D1_SIZE_F{ 0.4f, 0.5f });
-
-						return winp::ui::add_result_type::confirm;
 					});
-
-					return winp::ui::add_result_type::confirm;
 				});
-
-				return winp::ui::add_result_type::confirm;
 			});
 
 			tpg.get_grid().add_object([](winp::ui::object_collection<winp::grid::row> &row){
 				row.create();
 				row.add_object([](winp::ui::object_collection<winp::grid::column> &col){
 					col.set_background_color(D2D1::ColorF::Blue);
-					return winp::ui::add_result_type::confirm;
 				});
-				return winp::ui::add_result_type::confirm;
 			});
-
-			return winp::ui::add_result_type::dont_create;
 		});
 
 		tab.add_object([](winp::ui::object_collection<winp::control::tab_page> &tpg){
 			tpg.set_title(L"Second Tab");
-			return winp::ui::add_result_type::confirm;
 		});
-
-		return winp::ui::add_result_type::dont_create;
 	});
 
 	/*winp::utility::random_bool_generator rand;
