@@ -128,6 +128,6 @@ HRGN winp::ui::non_window_surface::create_handle_() const{
 	return nullptr;
 }
 
-winp::utility::error_code winp::ui::non_window_surface::resize_handle_(){
+winp::utility::error_code winp::ui::non_window_surface::update_handle_(){
 	return utility::error_code::not_supported;
 }

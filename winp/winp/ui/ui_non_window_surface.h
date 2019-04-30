@@ -45,7 +45,7 @@ namespace winp::ui{
 
 		virtual HRGN create_handle_() const;
 
-		virtual utility::error_code resize_handle_();
+		virtual utility::error_code update_handle_();
 
 		HRGN handle_ = nullptr;
 		bool visible_ = true;

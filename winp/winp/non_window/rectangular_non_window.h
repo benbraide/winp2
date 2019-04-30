@@ -20,6 +20,6 @@ namespace winp::non_window{
 
 		virtual HRGN create_handle_() const override;
 
-		virtual utility::error_code resize_handle_() override;
+		virtual utility::error_code update_handle_() override;
 	};
 }

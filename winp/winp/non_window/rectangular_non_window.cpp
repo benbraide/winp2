@@ -25,7 +25,7 @@ HRGN winp::non_window::rectangle::create_handle_() const{
 	return CreateRectRgn(0, 0, size_.cx, size_.cy);
 }
 
-winp::utility::error_code winp::non_window::rectangle::resize_handle_(){
+winp::utility::error_code winp::non_window::rectangle::update_handle_(){
 	if (handle_ == nullptr)
 		return utility::error_code::nil;
 
