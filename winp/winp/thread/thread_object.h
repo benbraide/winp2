@@ -13,6 +13,8 @@ namespace winp::app{
 namespace winp::thread{
 	class object{
 	public:
+		using animation_frame_callback_type = std::function<void(const std::chrono::time_point<std::chrono::steady_clock> &)>;
+
 		object();
 
 		explicit object(app::object &app);
@@ -40,6 +42,14 @@ namespace winp::thread{
 		DWORD get_local_id() const;
 
 		bool is_thread_context() const;
+
+		unsigned __int64 request_animation_frame(const animation_frame_callback_type &callback, unsigned __int64 cancel_frame = 0u);
+
+		void cancel_animation_frame(unsigned __int64 id);
+
+		void animate(const std::function<float(float)> &timing, const std::function<bool(float)> &callback, const std::chrono::microseconds &duration);
+
+		void animate(const std::function<float(float)> &timing, const std::function<bool(float, bool)> &callback, const std::chrono::microseconds &duration);
 
 		void discard_d2d_resources();
 
@@ -139,6 +149,14 @@ namespace winp::thread{
 
 		WNDPROC get_class_entry_(const std::wstring &class_name) const;
 
+		unsigned __int64 request_animation_frame_(const animation_frame_callback_type &callback);
+
+		void cancel_animation_frame_(unsigned __int64 id);
+
+		void animate_(const std::function<float(float)> &timing, const std::function<bool(float, bool)> &callback, const std::chrono::nanoseconds &duration);
+
+		void animate_(const std::chrono::time_point<std::chrono::steady_clock> &start, const std::function<float(float)> &timing, const std::function<bool(float, bool)> &callback, const std::chrono::nanoseconds &duration);
+
 		app::object &app_;
 		queue queue_;
 		item_manager item_manager_;
@@ -149,6 +167,10 @@ namespace winp::thread{
 		HWND message_hwnd_ = nullptr;
 		std::unordered_map<unsigned __int64, item *> items_;
 		utility::random_integral_number_generator random_generator_;
+
+		bool running_animation_loop_ = false;
+		unsigned __int64 animation_frame_id_ = 0;
+		std::unordered_map<unsigned __int64, animation_frame_callback_type> animation_callbacks_;
 
 		mutable ID2D1Factory *draw_factory_ = nullptr;
 		mutable IDWriteFactory *write_factory_ = nullptr;

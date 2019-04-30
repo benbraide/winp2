@@ -6,11 +6,13 @@ winp::thread::object::object()
 winp::thread::object::object(app::object &app)
 	: app_(app), queue_(*this), item_manager_(*this, GetCurrentThreadId()), id_(std::this_thread::get_id()), local_id_(GetCurrentThreadId()){
 	app::object::current_thread_ = this;
+
 	app_.add_thread_(*this);
 	message_hwnd_ = CreateWindowExW(0, app_.get_class_name().data(), L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, GetModuleHandleW(nullptr), nullptr);
 }
 
 winp::thread::object::~object(){
+	queue_.add_id_to_black_list(reinterpret_cast<unsigned __int64>(this));
 	app_.remove_thread_(local_id_);
 	app::object::current_thread_ = nullptr;
 }
@@ -18,6 +20,37 @@ winp::thread::object::~object(){
 int winp::thread::object::run(){
 	if (!is_thread_context())
 		throw utility::error_code::outside_thread_context;
+
+	std::thread([this]{//Run animation loop
+		running_animation_loop_ = true;
+
+		DEVMODEW info{};
+		info.dmSize = sizeof(DEVMODEW);
+		info.dmDriverExtra = 0;
+
+		DWORD refresh_rate = 60;
+		if (EnumDisplaySettingsW(NULL, ENUM_CURRENT_SETTINGS, &info) != FALSE)
+			refresh_rate = info.dmDisplayFrequency;
+
+		auto interval = (1000000 / refresh_rate);
+		while (running_animation_loop_){
+			std::this_thread::sleep_for(std::chrono::microseconds(interval));
+			if (!running_animation_loop_)
+				break;
+
+			queue_.post_task([this]{
+				if (!running_animation_loop_ || animation_callbacks_.empty())
+					return;//Ignore
+
+				auto animation_callbacks = animation_callbacks_;
+				animation_callbacks_.clear();
+
+				for (auto &entry : animation_callbacks)
+					entry.second(std::chrono::high_resolution_clock::now());
+
+			}, queue::urgent_task_priority, reinterpret_cast<unsigned __int64>(this));
+		}
+	}).detach();
 
 	MSG msg{};
 	while (!item_manager_.top_level_windows_.empty()){
@@ -31,11 +64,15 @@ int winp::thread::object::run(){
 		else if (queue_.run_next_())
 			continue;//Task ran
 
-		if (GetMessageW(&msg, nullptr, 0u, 0u) == -1)
+		if (GetMessageW(&msg, nullptr, 0u, 0u) == -1){
+			running_animation_loop_ = false;
 			throw utility::error_code::thread_get_message_failure;
+		}
 
-		if (msg.message == WM_QUIT)
+		if (msg.message == WM_QUIT){
+			running_animation_loop_ = false;
 			return static_cast<int>(msg.wParam);
+		}
 
 		if (msg.hwnd == nullptr || !item_manager_.is_dialog_message_(msg)){
 			TranslateMessage(&msg);
@@ -43,6 +80,7 @@ int winp::thread::object::run(){
 		}
 	}
 
+	running_animation_loop_ = false;
 	return 0;
 }
 
@@ -87,6 +125,31 @@ DWORD winp::thread::object::get_local_id() const{
 
 bool winp::thread::object::is_thread_context() const{
 	return (GetCurrentThreadId() == local_id_);
+}
+
+unsigned __int64 winp::thread::object::request_animation_frame(const animation_frame_callback_type &callback, unsigned __int64 cancel_frame){
+	return queue_.compute_task([&]{
+		cancel_animation_frame_(cancel_frame);
+		return request_animation_frame_(callback);
+	}, queue::urgent_task_priority, reinterpret_cast<unsigned __int64>(this));
+}
+
+void winp::thread::object::cancel_animation_frame(unsigned __int64 id){
+	queue_.post_task([=]{
+		cancel_animation_frame_(id);
+	}, queue::urgent_task_priority, reinterpret_cast<unsigned __int64>(this));
+}
+
+void winp::thread::object::animate(const std::function<float(float)> &timing, const std::function<bool(float)> &callback, const std::chrono::microseconds &duration){
+	animate(timing, [=](float progress, bool){
+		return callback(progress);
+	}, duration);
+}
+
+void winp::thread::object::animate(const std::function<float(float)> &timing, const std::function<bool(float, bool)> &callback, const std::chrono::microseconds &duration){
+	queue_.execute_task([&]{
+		animate_(timing, callback, duration);
+	}, queue::urgent_task_priority, reinterpret_cast<unsigned __int64>(this));
 }
 
 void winp::thread::object::discard_d2d_resources(){
@@ -240,4 +303,37 @@ WNDPROC winp::thread::object::get_class_entry_(const std::wstring &class_name) c
 	}
 
 	return nullptr;
+}
+
+unsigned __int64 winp::thread::object::request_animation_frame_(const animation_frame_callback_type &callback){
+	animation_callbacks_[++animation_frame_id_] = callback;
+	return animation_frame_id_;
+}
+
+void winp::thread::object::cancel_animation_frame_(unsigned __int64 id){
+	if (!animation_callbacks_.empty())
+		animation_callbacks_.erase(id);
+}
+
+void winp::thread::object::animate_(const std::function<float(float)> &timing, const std::function<bool(float, bool)> &callback, const std::chrono::nanoseconds &duration){
+	if (duration.count() == 0)
+		callback(1.0f, false);
+	else if (callback(timing(0.0f), true))
+		animate_(std::chrono::high_resolution_clock::now(), timing, callback, duration);
+}
+
+void winp::thread::object::animate_(const std::chrono::time_point<std::chrono::steady_clock> &start, const std::function<float(float)> &timing, const std::function<bool(float, bool)> &callback, const std::chrono::nanoseconds &duration){
+	request_animation_frame_([=](const std::chrono::time_point<std::chrono::steady_clock> &time){
+		auto elapsed_time = (time - start);
+		if (duration.count() <= elapsed_time.count()){
+			callback(1.0f, false);
+			return;
+		}
+
+		auto time_fraction = (static_cast<float>(elapsed_time.count()) / duration.count());
+		auto progress = timing(time_fraction);
+
+		if (callback(progress, true))
+			animate_(start, timing, callback, duration);
+	});
 }

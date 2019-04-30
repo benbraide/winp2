@@ -23,5 +23,8 @@ namespace winp::utility{
 		menu_item_empty_text,
 		tool_tip_target_not_created,
 		tool_tip_target_not_visible,
+		animation_started,
+		animation_canceled,
+		animation_ended,
 	};
 }

@@ -53,11 +53,11 @@ namespace winp::ui{
 
 		virtual HWND get_handle(const std::function<void(HWND)> &callback = nullptr) const;
 
-		virtual system_menu_type &get_system_menu(const std::function<void(const system_menu_type &)> &callback = nullptr) const;
+		virtual system_menu_type &get_system_menu(const std::function<void(system_menu_type &)> &callback = nullptr) const;
 
-		virtual popup_menu_type &get_context_menu(const std::function<void(const popup_menu_type &)> &callback = nullptr) const;
+		virtual popup_menu_type &get_context_menu(const std::function<void(popup_menu_type &)> &callback = nullptr) const;
 
-		virtual bar_menu_type &get_menu_bar(const std::function<void(const bar_menu_type &)> &callback = nullptr) const;
+		virtual bar_menu_type &get_menu_bar(const std::function<void(bar_menu_type &)> &callback = nullptr) const;
 
 		virtual const std::wstring &get_class_name(const std::function<void(const std::wstring &)> &callback = nullptr) const;
 

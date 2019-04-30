@@ -1,3 +1,5 @@
+#include "../app/app_collection.h"
+
 #include "ui_visible_surface.h"
 
 winp::ui::visible_surface::visible_surface(tree *tree_self)
@@ -56,6 +58,12 @@ bool winp::ui::visible_surface::is_transparent_background(const std::function<vo
 winp::utility::error_code winp::ui::visible_surface::set_background_color(const D2D1::ColorF &value, const std::function<void(visible_surface, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
 		return thread::item::pass_return_value_to_callback(callback, *this, set_background_color_(value));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
+winp::utility::error_code winp::ui::visible_surface::animate_background_color(const D2D1::ColorF &value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, animate_background_color_(value, easing, duration, callback));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
@@ -163,8 +171,34 @@ winp::utility::error_code winp::ui::visible_surface::set_background_color_(const
 
 	background_color_ = value;
 	synchronized_item_trigger_event_<events::background_color_change>(value, false);
+	redraw_();
 
 	return utility::error_code::nil;
+}
+
+winp::utility::error_code winp::ui::visible_surface::animate_background_color_(const D2D1::ColorF &value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback){
+	if (auto item_self = dynamic_cast<thread::item *>(this); item_self != nullptr){
+		auto state = ++background_color_animation_state_;
+		D2D1::ColorF start_color = get_background_color_(), color_offset{ (value.r - start_color.r), (value.g - start_color.g), (value.b - start_color.b) };
+
+		item_self->get_thread().animate(easing, [=](float progress, bool has_more){
+			if (background_color_animation_state_ != state){
+				if (callback != nullptr)
+					callback(*this, utility::error_code::animation_canceled);
+				return false;
+			}
+
+			set_background_color_(D2D1::ColorF((start_color.r + (color_offset.r * progress)), (start_color.g + (color_offset.g * progress)), (start_color.b + (color_offset.b * progress))));
+			if (!has_more && callback != nullptr)
+				callback(*this, utility::error_code::animation_ended);
+
+			return true;
+		}, duration);
+
+		return utility::error_code::animation_started;
+	}
+
+	return utility::error_code::action_could_not_be_completed;
 }
 
 const D2D1::ColorF &winp::ui::visible_surface::get_background_color_() const{

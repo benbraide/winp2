@@ -14,6 +14,7 @@ namespace winp::ui{
 	class surface : public thread::synchronized_item{
 	public:
 		using grid_type = object_collection<grid::object>;
+		using easing_type = std::function<float(float)>;
 
 		virtual ~surface();
 
@@ -21,9 +22,15 @@ namespace winp::ui{
 
 		virtual utility::error_code set_size(int width, int height, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
+		virtual utility::error_code animate_size(int width, int height, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+
 		virtual utility::error_code set_width(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
+		virtual utility::error_code animate_width(int value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+
 		virtual utility::error_code set_height(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+
+		virtual utility::error_code animate_height(int value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
 		virtual utility::error_code offset_size(const SIZE &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
@@ -57,9 +64,15 @@ namespace winp::ui{
 
 		virtual utility::error_code set_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
+		virtual utility::error_code animate_position(int x, int y, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+
 		virtual utility::error_code set_x_position(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
+		virtual utility::error_code animate_x_position(int value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+
 		virtual utility::error_code set_y_position(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+
+		virtual utility::error_code animate_y_position(int value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
 		virtual utility::error_code offset_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
@@ -134,15 +147,7 @@ namespace winp::ui{
 
 		virtual utility::error_code set_size_(int width, int height);
 
-		virtual utility::error_code set_width_(int value);
-
-		virtual utility::error_code set_height_(int value);
-
-		virtual utility::error_code offset_size_(int width, int height);
-
-		virtual utility::error_code offset_width_(int value);
-
-		virtual utility::error_code offset_height_(int value);
+		virtual utility::error_code animate_size_(int width, int height, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback);
 
 		virtual const SIZE &get_size_() const;
 
@@ -154,15 +159,7 @@ namespace winp::ui{
 
 		virtual utility::error_code set_position_(int x, int y);
 
-		virtual utility::error_code set_x_position_(int value);
-
-		virtual utility::error_code set_y_position_(int value);
-
-		virtual utility::error_code offset_position_(int x, int y);
-
-		virtual utility::error_code offset_x_position_(int value);
-
-		virtual utility::error_code offset_y_position_(int value);
+		virtual utility::error_code animate_position_(int x, int y, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback);
 
 		virtual const POINT &get_position_() const;
 
@@ -195,5 +192,8 @@ namespace winp::ui{
 		SIZE size_{};
 		POINT position_{};
 		std::shared_ptr<grid_type> grid_;
+
+		unsigned __int64 size_animation_state_ = 0;
+		unsigned __int64 position_animation_state_ = 0;
 	};
 }

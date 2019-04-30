@@ -19,15 +19,33 @@ winp::utility::error_code winp::ui::surface::set_size(int width, int height, con
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
+winp::utility::error_code winp::ui::surface::animate_size(int width, int height, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, animate_size_(width, height, easing, duration, callback));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
 winp::utility::error_code winp::ui::surface::set_width(int value, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, set_width_(value));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_size_(value, size_.cy));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
+winp::utility::error_code winp::ui::surface::animate_width(int value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, animate_size_(value, size_.cy, easing, duration, callback));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::surface::set_height(int value, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, set_height_(value));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_size_(size_.cx, value));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
+winp::utility::error_code winp::ui::surface::animate_height(int value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, animate_size_(size_.cx, value, easing, duration, callback));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
@@ -37,19 +55,19 @@ winp::utility::error_code winp::ui::surface::offset_size(const SIZE &value, cons
 
 winp::utility::error_code winp::ui::surface::offset_size(int width, int height, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, offset_size_(width, height));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_size_((size_.cx + width), (size_.cy + height)));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::surface::offset_width(int value, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, offset_width_(value));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_size_((size_.cx + value), size_.cy));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::surface::offset_height(int value, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, offset_height_(value));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_size_(size_.cx, (size_.cy + value)));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
@@ -123,15 +141,33 @@ winp::utility::error_code winp::ui::surface::set_position(int x, int y, const st
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
+winp::utility::error_code winp::ui::surface::animate_position(int x, int y, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, animate_position_(x, y, easing, duration, callback));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
 winp::utility::error_code winp::ui::surface::set_x_position(int value, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, set_x_position_(value));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_position_(value, position_.y));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
+winp::utility::error_code winp::ui::surface::animate_x_position(int value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, animate_position_(value, position_.y, easing, duration, callback));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::surface::set_y_position(int value, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, set_y_position_(value));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_position_(position_.x, value));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
+winp::utility::error_code winp::ui::surface::animate_y_position(int value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback){
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, animate_position_(position_.x, value, easing, duration, callback));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
@@ -141,19 +177,19 @@ winp::utility::error_code winp::ui::surface::offset_position(const POINT &value,
 
 winp::utility::error_code winp::ui::surface::offset_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, offset_position_(x, y));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_position_((position_.x + x), (position_.y + y)));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::surface::offset_x_position(int value, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, offset_x_position_(value));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_position_((position_.x + value), position_.y));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::surface::offset_y_position(int value, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, offset_y_position_(value));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_position_(position_.x, position_.x + value));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
@@ -346,24 +382,29 @@ winp::utility::error_code winp::ui::surface::set_size_(int width, int height){
 	return set_dimension_(position_.x, position_.y, width, height);
 }
 
-winp::utility::error_code winp::ui::surface::set_width_(int value){
-	return set_size_(value, size_.cy);
-}
+winp::utility::error_code winp::ui::surface::animate_size_(int width, int height, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback){
+	if (auto item_self = dynamic_cast<thread::item *>(this); item_self != nullptr){
+		auto state = ++size_animation_state_;
+		SIZE start_size = get_size_(), size_offset{ (width - start_size.cx), (height - start_size.cy) };
 
-winp::utility::error_code winp::ui::surface::set_height_(int value){
-	return set_size_(size_.cx, value);
-}
+		item_self->get_thread().animate(easing, [=](float progress, bool has_more){
+			if (size_animation_state_ != state){
+				if (callback != nullptr)
+					callback(*this, utility::error_code::animation_canceled);
+				return false;
+			}
 
-winp::utility::error_code winp::ui::surface::offset_size_(int width, int height){
-	return set_size_((size_.cx + width), (size_.cy + height));
-}
+			set_size_((start_size.cx + static_cast<int>(size_offset.cx * progress)), (start_size.cy + static_cast<int>(size_offset.cy * progress)));
+			if (!has_more && callback != nullptr)
+				callback(*this, utility::error_code::animation_ended);
 
-winp::utility::error_code winp::ui::surface::offset_width_(int value){
-	return offset_size_(value, 0);
-}
+			return true;
+		}, duration);
 
-winp::utility::error_code winp::ui::surface::offset_height_(int value){
-	return offset_size_(0, value);
+		return utility::error_code::animation_started;
+	}
+
+	return utility::error_code::action_could_not_be_completed;
 }
 
 const SIZE &winp::ui::surface::get_size_() const{
@@ -386,24 +427,29 @@ winp::utility::error_code winp::ui::surface::set_position_(int x, int y){
 	return set_dimension_(x, y, size_.cx, size_.cy);
 }
 
-winp::utility::error_code winp::ui::surface::set_x_position_(int value){
-	return set_position_(value, position_.y);
-}
+winp::utility::error_code winp::ui::surface::animate_position_(int x, int y, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback){
+	if (auto item_self = dynamic_cast<thread::item *>(this); item_self != nullptr){
+		auto state = ++position_animation_state_;
+		POINT start_position = get_position_(), position_offset{ (x - start_position.x), (y - start_position.y) };
 
-winp::utility::error_code winp::ui::surface::set_y_position_(int value){
-	return set_position_(position_.x, value);
-}
+		item_self->get_thread().animate(easing, [=](float progress, bool has_more){
+			if (position_animation_state_ != state){
+				if (callback != nullptr)
+					callback(*this, utility::error_code::animation_canceled);
+				return false;
+			}
 
-winp::utility::error_code winp::ui::surface::offset_position_(int x, int y){
-	return set_position_((position_.x + x), (position_.y + y));
-}
+			set_position_((start_position.x + static_cast<int>(position_offset.x * progress)), (start_position.y + static_cast<int>(position_offset.y * progress)));
+			if (!has_more && callback != nullptr)
+				callback(*this, utility::error_code::animation_ended);
 
-winp::utility::error_code winp::ui::surface::offset_x_position_(int value){
-	return offset_position_(value, 0);
-}
+			return true;
+		}, duration);
 
-winp::utility::error_code winp::ui::surface::offset_y_position_(int value){
-	return offset_position_(0, value);
+		return utility::error_code::animation_started;
+	}
+
+	return utility::error_code::action_could_not_be_completed;
 }
 
 const POINT &winp::ui::surface::get_position_() const{

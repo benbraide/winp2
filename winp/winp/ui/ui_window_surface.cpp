@@ -124,19 +124,19 @@ HWND winp::ui::window_surface::get_handle(const std::function<void(HWND)> &callb
 	}, (callback != nullptr), nullptr);
 }
 
-winp::ui::window_surface::system_menu_type &winp::ui::window_surface::get_system_menu(const std::function<void(const system_menu_type &)> &callback) const{
+winp::ui::window_surface::system_menu_type &winp::ui::window_surface::get_system_menu(const std::function<void(system_menu_type &)> &callback) const{
 	return *compute_or_post_task_inside_thread_context([=]{
 		return &pass_return_ref_value_to_callback(callback, &get_system_menu_());
 	}, (callback != nullptr), &system_menu_);
 }
 
-winp::ui::window_surface::popup_menu_type &winp::ui::window_surface::get_context_menu(const std::function<void(const popup_menu_type &)> &callback) const{
+winp::ui::window_surface::popup_menu_type &winp::ui::window_surface::get_context_menu(const std::function<void(popup_menu_type &)> &callback) const{
 	return *compute_or_post_task_inside_thread_context([=]{
 		return &pass_return_ref_value_to_callback(callback, &get_context_menu_());
 	}, (callback != nullptr), &context_menu_);
 }
 
-winp::ui::window_surface::bar_menu_type &winp::ui::window_surface::get_menu_bar(const std::function<void(const bar_menu_type &)> &callback) const{
+winp::ui::window_surface::bar_menu_type &winp::ui::window_surface::get_menu_bar(const std::function<void(bar_menu_type &)> &callback) const{
 	return *compute_or_post_task_inside_thread_context([=]{
 		return &pass_return_ref_value_to_callback(callback, &get_menu_bar_());
 	}, (callback != nullptr), &menu_bar_);
