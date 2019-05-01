@@ -35,10 +35,6 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_sh
 		});
 	});
 
-	ws.events().bind([&](winp::events::allow_context_menu &e){
-		e.set_result(true);
-	});
-
 	ws.get_system_menu([&](winp::ui::window_surface::system_menu_type &smn){
 		smn.add_object([](winp::menu::separator &item){});
 

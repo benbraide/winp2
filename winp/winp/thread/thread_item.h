@@ -77,28 +77,28 @@ namespace winp::thread{
 
 		template <typename value_type, typename function_type>
 		static value_type pass_return_value_to_callback(const function_type &callback, value_type &&value){
-			if (callback)
+			if (callback != nullptr)
 				callback(std::forward<value_type>(value));
 			return value;
 		}
 
 		template <typename value_type, typename function_type>
 		static value_type &pass_return_ref_value_to_callback(const function_type &callback, value_type *value){
-			if (callback)
+			if (callback != nullptr)
 				callback(*value);
 			return *value;
 		}
 
 		template <typename value_type, typename function_type, typename object_type>
 		static value_type pass_return_value_to_callback(const function_type &callback, object_type &&object, value_type &&value){
-			if (callback)
+			if (callback != nullptr)
 				callback(std::forward<object_type>(object), std::forward<value_type>(value));
 			return value;
 		}
 
 		template <typename value_type, typename function_type, typename object_type>
 		static value_type &pass_return_ref_value_to_callback(const function_type &callback, object_type &&object, value_type *value){
-			if (callback)
+			if (callback != nullptr)
 				callback(std::forward<object_type>(object), *value);
 			return *value;
 		}

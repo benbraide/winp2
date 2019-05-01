@@ -64,10 +64,10 @@ namespace winp::events{
 			: context_menu_base(std::forward<args_types>(args)...){}
 	};
 
-	class allow_context_menu : public context_menu_base{
+	class block_context_menu : public context_menu_base{
 	public:
 		template <typename... args_types>
-		explicit allow_context_menu(args_types &&... args)
+		explicit block_context_menu(args_types &&... args)
 			: context_menu_base(std::forward<args_types>(args)...){}
 	};
 

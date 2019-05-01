@@ -367,8 +367,8 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return trigger_event_<events::get_context_menu_position>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WINP_WM_GET_CONTEXT_MENU_HANDLE:
 		return trigger_event_<events::get_context_menu_handle>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
-	case WINP_WM_ALLOW_CONTEXT_MENU:
-		return trigger_event_<events::allow_context_menu>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
+	case WINP_WM_BLOCK_CONTEXT_MENU:
+		return trigger_event_<events::block_context_menu>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_INITMENUPOPUP:
 		return menu_init_(target, msg);
 	case WM_COMMAND:
@@ -641,7 +641,7 @@ LRESULT winp::thread::item_manager::context_menu_(item &target, MSG &msg){
 	if ((position.x != -1 || position.y != -1) && window_target->absolute_hit_test(position) != HTCLIENT)
 		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
-	if (thread_.send_message(target, WINP_WM_ALLOW_CONTEXT_MENU, 0, msg.lParam) == FALSE)//Context menu blocked
+	if (target.events().get_bound_count<events::context_menu>() == 0u || thread_.send_message(target, WINP_WM_BLOCK_CONTEXT_MENU, 0, msg.lParam) != FALSE)//Context menu blocked
 		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
 	if ((active_context_menu_ = std::make_shared<ui::object_collection<menu::popup>>(thread_)) == nullptr || active_context_menu_->create() != utility::error_code::nil)

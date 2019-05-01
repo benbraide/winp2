@@ -61,8 +61,12 @@ namespace winp::events{
 		};
 
 		using list_type = std::list<handler_info>;
-		using map_type = std::unordered_map<const std::type_info *, list_type>;
-		using change_map_type = std::unordered_map<const std::type_info *, std::list<std::function<void(std::size_t, std::size_t)>>>;
+		using key_type = unsigned __int64;
+		using map_type = std::unordered_map<key_type, list_type>;
+
+		using change_callback_type = std::function<void(manager &, key_type, std::size_t, std::size_t)>;
+		using change_map_type = std::unordered_map<key_type, std::list<change_callback_type>>;
+		using general_change_list_type = std::list<change_callback_type>;
 
 		template <class return_type, class object_type, std::size_t>
 		struct bind_helper;
@@ -146,6 +150,28 @@ namespace winp::events{
 			});
 		}
 
+		template <typename object_type>
+		std::size_t get_bound_count() const{
+			return owner_.compute_task_inside_thread_context([&]{
+				if (auto it = handlers_.find(get_key<object_type>()); it != handlers_.end())
+					return it->second.size();
+				return static_cast<std::size_t>(0);
+			});
+		}
+
+		static key_type get_key(const std::type_info &info){
+			return reinterpret_cast<key_type>(&info);
+		}
+
+		static key_type get_key(object &e){
+			return get_key(typeid(e));
+		}
+
+		template <typename object_type>
+		static key_type get_key(){
+			return get_key(typeid(object_type));
+		}
+
 	private:
 		friend owner_type;
 		
@@ -156,18 +182,22 @@ namespace winp::events{
 				return 0u;
 
 			auto id = reinterpret_cast<unsigned __int64>(handler_object.get());
-			auto &handler_list = handlers_[&typeid(object_type)];
+			auto key = get_key<object_type>();
 
+			auto &handler_list = handlers_[key];
 			handler_list.push_back(handler_info{
 				id,
 				handler_object
 			});
 
 			++count_;
-			if (auto it = change_handlers_.find(&typeid(object_type)); it != change_handlers_.end()){//Call handlers
+			if (auto it = change_handlers_.find(key); it != change_handlers_.end()){//Call handlers
 				for (auto &handler : it->second)
-					handler(handler_list.size(), (handler_list.size() - 1u));
+					handler(*this, key, handler_list.size(), (handler_list.size() - 1u));
 			}
+
+			for (auto &handler : general_change_handlers_)
+				handler(*this, key, handler_list.size(), (handler_list.size() - 1u));
 
 			return id;
 		}
@@ -193,8 +223,11 @@ namespace winp::events{
 
 					if (auto it = change_handlers_.find(info.first); it != change_handlers_.end()){//Call handlers
 						for (auto &handler : it->second)
-							handler(info.second.size(), (info.second.size() + 1u));
+							handler(*this, info.first, info.second.size(), (info.second.size() + 1u));
 					}
+
+					for (auto &handler : general_change_handlers_)
+						handler(*this, info.first, info.second.size(), (info.second.size() + 1u));
 
 					return;
 				}
@@ -205,7 +238,7 @@ namespace winp::events{
 			if (count_ == 0u)
 				return;
 
-			if (auto it = handlers_.find(&typeid(e)); it != handlers_.end()){
+			if (auto it = handlers_.find(get_key(e)); it != handlers_.end()){
 				for (auto &handler_info : it->second){
 					handler_info.handler->call(e);
 					if ((e.get_states() & object::state_propagation_stopped) != 0u)
@@ -214,20 +247,19 @@ namespace winp::events{
 			}
 		}
 
-		template <typename object_type, typename... others>
-		void add_change_handler_(const std::function<void(std::size_t, std::size_t)> &handler){
-			do_add_change_handler_<object_type, others...>(handler);
-		}
-
-		template <typename first_type, typename second_type, typename... others>
-		void do_add_change_handler_(const std::function<void(std::size_t, std::size_t)> &handler){
-			do_add_change_handler_<first_type>(handler);
-			do_add_change_handler_<second_type, others...>(handler);
+		void add_change_handler_(const change_callback_type &handler){
+			general_change_handlers_.push_back(handler);
 		}
 
 		template <typename object_type>
-		void do_add_change_handler_(const std::function<void(std::size_t, std::size_t)> &handler){
-			change_handlers_[&typeid(object_type)].push_back(handler);
+		void add_change_handler_(const change_callback_type &handler){
+			change_handlers_[get_key<object_type>()].push_back(handler);
+		}
+
+		template <typename first_object_type, typename second_object_type, typename... other_object_types>
+		void add_change_handler_(const change_callback_type &handler){
+			add_change_handler_<first_object_type>(handler);
+			add_change_handler_<second_object_type, other_object_types...>(handler);
 		}
 
 		m_owner_type &owner_;
@@ -235,5 +267,6 @@ namespace winp::events{
 
 		map_type handlers_;
 		change_map_type change_handlers_;
+		general_change_list_type general_change_handlers_;
 	};
 }

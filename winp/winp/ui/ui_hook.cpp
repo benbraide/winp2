@@ -28,7 +28,9 @@ winp::ui::parent_size_hook::parent_size_hook(object &target)
 }
 
 winp::ui::parent_size_hook::~parent_size_hook(){
-	bind_size_event_(nullptr, target_.get_parent());
+	if (auto parent = target_.get_parent(); parent != nullptr)
+		parent->events().unbind(size_event_id_);
+
 	target_.events().unbind(tree_event_id_);
 	tree_event_id_ = 0u;
 }
