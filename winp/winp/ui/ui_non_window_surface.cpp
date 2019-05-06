@@ -11,8 +11,11 @@ winp::ui::non_window_surface::non_window_surface(thread::object &thread)
 winp::ui::non_window_surface::non_window_surface(thread::object &thread, bool init_grid)
 	: tree(thread){
 	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
-	if (init_grid)
+	if (init_grid){
+		is_auto_createable_ = false;
 		init_grid_(*this);
+		is_auto_createable_ = true;
+	}
 }
 
 winp::ui::non_window_surface::non_window_surface(tree &parent)
@@ -36,6 +39,9 @@ HRGN winp::ui::non_window_surface::get_handle(const std::function<void(HRGN)> &c
 winp::utility::error_code winp::ui::non_window_surface::create_(){
 	if (is_created_())
 		return utility::error_code::nil;
+
+	if (parent_ != nullptr && parent_->auto_create() != utility::error_code::nil)
+		return utility::error_code::parent_not_created;
 
 	if ((handle_ = create_handle_()) == nullptr)
 		return utility::error_code::action_could_not_be_completed;

@@ -13,8 +13,11 @@ winp::ui::window_surface::window_surface(thread::object &thread, bool init_grid)
 	styles_ = (WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
 	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
 
-	if (init_grid)
+	if (init_grid){
+		is_auto_createable_ = false;
 		init_grid_(*this);
+		is_auto_createable_ = true;
+	}
 
 	add_event_handler_([this](events::get_context_menu_handle &e){
 		auto context_menu_handle = get_context_menu_handle_(e);
@@ -164,6 +167,9 @@ void winp::ui::window_surface::traverse_all_child_windows(const std::function<vo
 winp::utility::error_code winp::ui::window_surface::create_(){
 	if (handle_ != nullptr)
 		return utility::error_code::nil;
+
+	if (parent_ != nullptr && parent_->auto_create() != utility::error_code::nil)
+		return utility::error_code::parent_not_created;
 
 	auto position = position_;
 	auto window_ancestor = get_first_ancestor_of_<window_surface>([&](tree &ancestor){

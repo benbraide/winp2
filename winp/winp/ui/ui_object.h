@@ -19,9 +19,15 @@ namespace winp::ui{
 
 		virtual utility::error_code create(const std::function<void(object &, utility::error_code)> &callback = nullptr);
 
+		virtual utility::error_code auto_create(const std::function<void(object &, utility::error_code)> &callback = nullptr);
+
 		virtual utility::error_code destroy(const std::function<void(object &, utility::error_code)> &callback = nullptr);
 
 		virtual bool is_created(const std::function<void(bool)> &callback = nullptr) const;
+
+		virtual utility::error_code set_auto_create_state(bool state, const std::function<void(object &, utility::error_code)> &callback = nullptr);
+
+		virtual bool is_auto_createable(const std::function<void(bool)> &callback = nullptr) const;
 
 		virtual utility::error_code set_parent(tree *value, const std::function<void(object &, utility::error_code)> &callback = nullptr);
 
@@ -115,9 +121,13 @@ namespace winp::ui{
 
 		virtual utility::error_code create_();
 
+		virtual utility::error_code auto_create_();
+
 		virtual utility::error_code destroy_();
 
 		virtual bool is_created_() const;
+
+		virtual utility::error_code set_auto_create_state_(bool state);
 
 		virtual utility::error_code set_parent_(tree *value, std::size_t index);
 
@@ -173,5 +183,6 @@ namespace winp::ui{
 		tree *parent_ = nullptr;
 		std::size_t index_ = static_cast<std::size_t>(-1);
 		std::unordered_map<hook *, std::shared_ptr<hook>> hooks_;
+		bool is_auto_createable_ = true;
 	};
 }

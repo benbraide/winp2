@@ -26,6 +26,12 @@ winp::utility::error_code winp::ui::object::create(const std::function<void(obje
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
+winp::utility::error_code winp::ui::object::auto_create(const std::function<void(object &, utility::error_code)> &callback){
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, *this, auto_create_());
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
 winp::utility::error_code winp::ui::object::destroy(const std::function<void(object &, utility::error_code)> &callback){
 	return compute_or_post_task_inside_thread_context([=]{
 		return pass_return_value_to_callback(callback, *this, destroy_());
@@ -35,6 +41,18 @@ winp::utility::error_code winp::ui::object::destroy(const std::function<void(obj
 bool winp::ui::object::is_created(const std::function<void(bool)> &callback) const{
 	return compute_or_post_task_inside_thread_context([=]{
 		return pass_return_value_to_callback(callback, is_created_());
+	}, (callback != nullptr), false);
+}
+
+winp::utility::error_code winp::ui::object::set_auto_create_state(bool state, const std::function<void(object &, utility::error_code)> &callback){
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, *this, set_auto_create_state_(state));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
+bool winp::ui::object::is_auto_createable(const std::function<void(bool)> &callback) const{
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, is_auto_createable_);
 	}, (callback != nullptr), false);
 }
 
@@ -139,12 +157,23 @@ winp::utility::error_code winp::ui::object::create_(){
 	return utility::error_code::not_supported;
 }
 
+winp::utility::error_code winp::ui::object::auto_create_(){
+	if (is_created_())
+		return utility::error_code::nil;
+	return (is_auto_createable_ ? create_() : utility::error_code::action_could_not_be_completed);
+}
+
 winp::utility::error_code winp::ui::object::destroy_(){
 	return utility::error_code::not_supported;
 }
 
 bool winp::ui::object::is_created_() const{
 	return true;
+}
+
+winp::utility::error_code winp::ui::object::set_auto_create_state_(bool state){
+	is_auto_createable_ = state;
+	return utility::error_code::nil;
 }
 
 winp::utility::error_code winp::ui::object::set_parent_(tree *value, std::size_t index){

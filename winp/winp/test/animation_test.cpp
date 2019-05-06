@@ -34,12 +34,9 @@ void winp::test::animation::run(int cmd_show){
 
 		smn.add_object([&](menu::link_item_with_popup &link){
 			link.set_text(L"Animations");
-			link.create();
 
 			link.add_object([&](menu::link_item_with_popup &link){
 				link.set_text(L"Linear");
-				link.create();
-
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease");
 					item.events().bind([&](events::menu_item_select &e){
@@ -53,8 +50,6 @@ void winp::test::animation::run(int cmd_show){
 
 			link.add_object([&](menu::link_item_with_popup &link){
 				link.set_text(L"Back");
-				link.create();
-
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
@@ -88,8 +83,6 @@ void winp::test::animation::run(int cmd_show){
 
 			link.add_object([&](menu::link_item_with_popup &link){
 				link.set_text(L"Bounce");
-				link.create();
-
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
@@ -123,8 +116,6 @@ void winp::test::animation::run(int cmd_show){
 
 			link.add_object([&](menu::link_item_with_popup &link){
 				link.set_text(L"Circle");
-				link.create();
-
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
@@ -158,8 +149,6 @@ void winp::test::animation::run(int cmd_show){
 
 			link.add_object([&](menu::link_item_with_popup &link){
 				link.set_text(L"Cubic");
-				link.create();
-
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
@@ -193,8 +182,6 @@ void winp::test::animation::run(int cmd_show){
 
 			link.add_object([&](menu::link_item_with_popup &link){
 				link.set_text(L"Elastic");
-				link.create();
-
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
@@ -228,8 +215,6 @@ void winp::test::animation::run(int cmd_show){
 
 			link.add_object([&](menu::link_item_with_popup &link){
 				link.set_text(L"Exponential");
-				link.create();
-
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
@@ -263,8 +248,6 @@ void winp::test::animation::run(int cmd_show){
 
 			link.add_object([&](menu::link_item_with_popup &link){
 				link.set_text(L"Quadratic");
-				link.create();
-
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
@@ -298,8 +281,6 @@ void winp::test::animation::run(int cmd_show){
 
 			link.add_object([&](menu::link_item_with_popup &link){
 				link.set_text(L"Quart");
-				link.create();
-
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
@@ -333,8 +314,6 @@ void winp::test::animation::run(int cmd_show){
 
 			link.add_object([&](menu::link_item_with_popup &link){
 				link.set_text(L"Quint");
-				link.create();
-
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
@@ -368,8 +347,6 @@ void winp::test::animation::run(int cmd_show){
 
 			link.add_object([&](menu::link_item_with_popup &link){
 				link.set_text(L"Sine");
-				link.create();
-
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
