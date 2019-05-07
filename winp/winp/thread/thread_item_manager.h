@@ -112,6 +112,8 @@ namespace winp::thread{
 
 		LRESULT position_change_(item &target, MSG &msg, bool changing);
 
+		LRESULT style_changing_(item &target, MSG &msg);
+
 		LRESULT mouse_leave_(item &target, MSG &msg);
 
 		LRESULT mouse_move_(item &target, MSG &msg);

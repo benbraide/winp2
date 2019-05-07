@@ -278,6 +278,8 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return erase_background_(target, target, msg);
 	case WM_PAINT:
 		return paint_(target, target, msg);
+	case WM_STYLECHANGING:
+		return style_changing_(target, msg);
 	case WM_WINDOWPOSCHANGING:
 		return position_change_(target, msg, true);
 	case WM_WINDOWPOSCHANGED:
@@ -510,6 +512,16 @@ LRESULT winp::thread::item_manager::position_change_(item &target, MSG &msg, boo
 		result = trigger_event_<events::position_change>(target, false, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 
 	return result;
+}
+
+LRESULT winp::thread::item_manager::style_changing_(item &target, MSG &msg){
+	auto window_target = dynamic_cast<ui::window_surface *>(&target);
+	if (window_target != nullptr){
+		reinterpret_cast<STYLESTRUCT *>(msg.lParam)->styleNew &= ~window_target->get_filtered_styles_((msg.wParam == GWL_EXSTYLE));
+		reinterpret_cast<STYLESTRUCT *>(msg.lParam)->styleNew |= window_target->get_persistent_styles_((msg.wParam == GWL_EXSTYLE));
+	}
+
+	return trigger_event_<events::unhandled>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 }
 
 LRESULT winp::thread::item_manager::mouse_leave_(item &target, MSG &msg){

@@ -7,8 +7,11 @@ winp::control::object::object(thread::object &thread, const std::wstring &class_
 
 winp::control::object::object(thread::object &thread, const std::wstring &class_name, DWORD common_id, bool init_grid)
 	: window_surface(thread, init_grid), class_name_(class_name){
-	styles_ |= (WS_TABSTOP | WS_VISIBLE);
+	styles_ |= WS_TABSTOP;
 	thread_.init_control(class_name_, common_id);
+	add_event_handler_([this](events::create &e){
+		show_();
+	});
 }
 
 winp::control::object::~object() = default;

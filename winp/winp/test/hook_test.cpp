@@ -13,64 +13,46 @@ void winp::test::hook::run(int cmd_show){
 	ws.add_object([&](control::push_button &btn){
 		btn.set_text(L"Top-Left Aligned");
 		btn.insert_hook<ui::placement_hook>(ui::placement_hook::alignment_type::top_left);
-		btn.create();
-		btn.show();
 	});
 
 	ws.add_object([&](control::push_button &btn){
 		btn.set_text(L"Top-Center Aligned");
 		btn.insert_hook<ui::placement_hook>(ui::placement_hook::alignment_type::top_center);
-		btn.create();
-		btn.show();
 	});
 
 	ws.add_object([&](control::push_button &btn){
 		btn.set_text(L"Top-Right Aligned");
 		btn.insert_hook<ui::placement_hook>(ui::placement_hook::alignment_type::top_right);
-		btn.create();
-		btn.show();
 	});
 
 	ws.add_object([&](control::push_button &btn){
 		btn.set_text(L"Center-Right Aligned");
 		btn.insert_hook<ui::placement_hook>(ui::placement_hook::alignment_type::center_right);
-		btn.create();
-		btn.show();
 	});
 
 	ws.add_object([&](control::push_button &btn){
 		btn.set_text(L"Center Aligned");
 		btn.insert_hook<ui::placement_hook>(ui::placement_hook::alignment_type::center);
-		btn.create();
-		btn.show();
 	});
 
 	ws.add_object([&](control::push_button &btn){
 		btn.set_text(L"Center-Left Aligned");
 		btn.insert_hook<ui::placement_hook>(ui::placement_hook::alignment_type::center_left);
-		btn.create();
-		btn.show();
 	});
 
 	ws.add_object([&](control::push_button &btn){
 		btn.set_text(L"Bottom-Left Aligned");
 		btn.insert_hook<ui::placement_hook>(ui::placement_hook::alignment_type::bottom_left);
-		btn.create();
-		btn.show();
 	});
 
 	ws.add_object([&](control::push_button &btn){
 		btn.set_text(L"Bottom-Center Aligned");
 		btn.insert_hook<ui::placement_hook>(ui::placement_hook::alignment_type::bottom_center);
-		btn.create();
-		btn.show();
 	});
 
 	ws.add_object([&](control::push_button &btn){
 		btn.set_text(L"Bottom-Right Aligned");
 		btn.insert_hook<ui::placement_hook>(ui::placement_hook::alignment_type::bottom_right);
-		btn.create();
-		btn.show();
 	});
 
 	main_app.get_thread().run();
