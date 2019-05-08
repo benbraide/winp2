@@ -32,6 +32,5 @@ winp::utility::error_code winp::non_window::rectangle::update_handle_(){
 	if (SetRectRgn(handle_, 0, 0, size_.cx, size_.cy) == FALSE)
 		return utility::error_code::action_could_not_be_completed;
 
-	redraw_();
 	return utility::error_code::nil;
 }

@@ -76,6 +76,27 @@ bool winp::ui::non_window_surface::is_created_() const{
 	return (handle_ != nullptr);
 }
 
+winp::utility::error_code winp::ui::non_window_surface::position_change_(bool is_changing){
+	if (is_changing)
+		return visible_surface::position_change_(is_changing);
+
+	visible_surface::position_change_(false);
+	redraw_();
+
+	return utility::error_code::nil;
+}
+
+winp::utility::error_code winp::ui::non_window_surface::size_change_(bool is_changing){
+	if (is_changing)
+		return visible_surface::size_change_(is_changing);
+
+	visible_surface::size_change_(false);
+	update_handle_();
+	redraw_();
+
+	return utility::error_code::nil;
+}
+
 winp::utility::error_code winp::ui::non_window_surface::redraw_() const{
 	auto dimension = get_dimension_();
 	OffsetRect(&dimension, -dimension.left, -dimension.top);

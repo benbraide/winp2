@@ -504,10 +504,6 @@ LRESULT winp::thread::item_manager::position_change_(item &target, MSG &msg, boo
 			reinterpret_cast<WINDOWPOS *>(msg.lParam)->flags |= (SWP_NOMOVE | SWP_NOSIZE);
 		result = result_info.second;
 	}
-	else if (auto non_window_target = dynamic_cast<ui::non_window_surface *>(&target); non_window_target != nullptr && (reinterpret_cast<WINDOWPOS *>(msg.lParam)->flags & SWP_NOSIZE) != SWP_NOSIZE){
-		non_window_target->update_handle_();
-		result = trigger_event_<events::position_change>(target, false, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
-	}
 	else
 		result = trigger_event_<events::position_change>(target, false, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 

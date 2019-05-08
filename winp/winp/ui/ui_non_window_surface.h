@@ -29,6 +29,10 @@ namespace winp::ui{
 
 		virtual bool is_created_() const override;
 
+		virtual utility::error_code position_change_(bool is_changing) override;
+
+		virtual utility::error_code size_change_(bool is_changing) override;
+
 		virtual utility::error_code redraw_() const override;
 
 		virtual utility::error_code redraw_(const RECT &region) const override;
