@@ -29,9 +29,7 @@ namespace winp::ui{
 
 		virtual bool is_created_() const override;
 
-		virtual utility::error_code position_change_(bool is_changing) override;
-
-		virtual utility::error_code size_change_(bool is_changing) override;
+		virtual utility::error_code set_dimension_(int x, int y, int width, int height) override;
 
 		virtual utility::error_code redraw_() const override;
 
@@ -51,7 +49,10 @@ namespace winp::ui{
 
 		virtual utility::error_code update_handle_();
 
+		virtual utility::error_code destroy_handle_();
+
 		HRGN handle_ = nullptr;
 		bool visible_ = true;
+		RECT previous_dimension_{};
 	};
 }

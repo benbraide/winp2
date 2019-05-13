@@ -42,10 +42,6 @@ namespace winp::ui{
 	protected:
 		explicit visible_surface(tree *tree_self = nullptr);
 
-		virtual utility::error_code position_change_(bool is_changing) override;
-
-		virtual utility::error_code size_change_(bool is_changing) override;
-
 		virtual utility::error_code redraw_() const;
 
 		virtual utility::error_code redraw_(const RECT &region) const;

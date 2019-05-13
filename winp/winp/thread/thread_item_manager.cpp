@@ -453,13 +453,6 @@ LRESULT winp::thread::item_manager::erase_background_(item &context, item &targe
 	if (object_context->is_created() && (window_context != nullptr || (!visible_context->is_transparent_background() && visible_context->is_visible())))
 		result = trigger_event_with_target_<events::erase_background>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_class_entry_(window_context->get_class_name()))).second;
 
-	if (auto tree_context = dynamic_cast<ui::tree *>(&context); tree_context != nullptr){
-		tree_context->traverse_all_children([&](ui::object &child){
-			if (dynamic_cast<ui::window_surface *>(&child) == nullptr)
-				erase_background_(child, target, msg);
-		}, true);
-	}
-
 	return result;
 }
 
@@ -474,10 +467,17 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 
 	auto window_context = dynamic_cast<ui::window_surface *>(&context);
 	if (window_context != nullptr && msg.hwnd != nullptr){
-		if (msg.message == WM_PRINTCLIENT)
-			GetClipBox(reinterpret_cast<HDC>(msg.wParam), &update_rect_);
-		else//Paint
+		if (msg.message != WM_PRINTCLIENT){
 			GetUpdateRect(msg.hwnd, &update_rect_, FALSE);
+			if ((paint_device_ = GetDC(msg.hwnd)) != nullptr)
+				IntersectClipRect(paint_device_, update_rect_.left, update_rect_.top, update_rect_.right, update_rect_.bottom);
+		}
+		else
+			GetClipBox(reinterpret_cast<HDC>(msg.wParam), &update_rect_);
+	}
+	else if (window_context == nullptr){
+		MSG paint_msg{ msg.hwnd, WM_ERASEBKGND, ((msg.message == WM_PRINTCLIENT) ? msg.wParam : reinterpret_cast<WPARAM>(paint_device_)) };
+		erase_background_(context, target, paint_msg);
 	}
 
 	LRESULT result = 0;
@@ -489,6 +489,11 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 			if (dynamic_cast<ui::window_surface *>(&child) == nullptr)
 				paint_(child, target, msg);
 		}, true);
+	}
+
+	if (window_context != nullptr && paint_device_ != nullptr){
+		ReleaseDC(msg.hwnd, paint_device_);
+		paint_device_ = nullptr;
 	}
 
 	return result;

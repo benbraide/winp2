@@ -63,8 +63,8 @@ winp::utility::error_code winp::ui::non_window_surface::destroy_(){
 		return utility::error_code::nil;
 
 	hide_();
-	if (DeleteObject(handle_) == FALSE)
-		return utility::error_code::action_could_not_be_completed;
+	if (auto error_code = destroy_handle_(); error_code != utility::error_code::nil)
+		return error_code;
 
 	handle_ = nullptr;
 	thread_.send_message(*this, WM_NCDESTROY);
@@ -76,23 +76,42 @@ bool winp::ui::non_window_surface::is_created_() const{
 	return (handle_ != nullptr);
 }
 
-winp::utility::error_code winp::ui::non_window_surface::position_change_(bool is_changing){
-	if (is_changing)
-		return visible_surface::position_change_(is_changing);
+winp::utility::error_code winp::ui::non_window_surface::set_dimension_(int x, int y, int width, int height){
+	previous_dimension_ = get_dimension_();
+	if (auto error_code = visible_surface::set_dimension_(x, y, width, height); error_code != utility::error_code::nil)
+		return error_code;
 
-	visible_surface::position_change_(false);
-	redraw_();
+	if (!is_created_())
+		return utility::error_code::nil;//Do nothing
 
-	return utility::error_code::nil;
-}
+	auto dimension = get_dimension_();
+	if (dimension.left != previous_dimension_.left || dimension.top != previous_dimension_.top || dimension.right != previous_dimension_.right || dimension.bottom != previous_dimension_.bottom)
+		update_handle_();
 
-winp::utility::error_code winp::ui::non_window_surface::size_change_(bool is_changing){
-	if (is_changing)
-		return visible_surface::size_change_(is_changing);
+	if (!is_created_() || !is_visible_())
+		return utility::error_code::nil;//Do nothing
 
-	visible_surface::size_change_(false);
-	update_handle_();
-	redraw_();
+	POINT offset{};
+	auto window_ancestor = get_first_ancestor_of_<window_surface>([&](tree &ancestor){
+		if (auto surface_ancestor = dynamic_cast<surface *>(&ancestor); surface_ancestor != nullptr){
+			auto ancestor_position = surface_ancestor->get_position();
+			auto ancestor_client_offset = surface_ancestor->get_client_offset();
+
+			offset.x += (ancestor_position.x + ancestor_client_offset.x);
+			offset.y += (ancestor_position.y + ancestor_client_offset.y);
+		}
+
+		return true;
+	});
+
+	if (window_ancestor == nullptr)//Do nothing
+		return utility::error_code::nil;
+
+	OffsetRect(&previous_dimension_, offset.x, offset.y);
+	OffsetRect(&dimension, offset.x, offset.y);
+
+	window_ancestor->redraw(previous_dimension_);
+	window_ancestor->redraw(dimension);
 
 	return utility::error_code::nil;
 }
@@ -157,4 +176,8 @@ HRGN winp::ui::non_window_surface::create_handle_() const{
 
 winp::utility::error_code winp::ui::non_window_surface::update_handle_(){
 	return utility::error_code::not_supported;
+}
+
+winp::utility::error_code winp::ui::non_window_surface::destroy_handle_(){
+	return ((DeleteObject(handle_) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
 }

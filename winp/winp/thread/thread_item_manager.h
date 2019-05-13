@@ -196,6 +196,7 @@ namespace winp::thread{
 		std::unordered_map<HWND, ui::window_surface *> top_level_windows_;
 
 		mutable window_cache_info window_cache_{};
+		HDC paint_device_ = nullptr;
 		RECT update_rect_{};
 
 		ui::window_surface *focused_window_ = nullptr;

@@ -103,34 +103,6 @@ bool winp::ui::visible_surface::compare_colors(const D2D1::ColorF &first, const 
 	return (convert_colorf_to_colorref(first) == convert_colorf_to_colorref(second));
 }
 
-winp::utility::error_code winp::ui::visible_surface::position_change_(bool is_changing){
-	if (auto error_code = surface::position_change_(is_changing); error_code != utility::error_code::nil)
-		return error_code;
-
-	if (is_changing && is_visible_()){
-		hide_();
-		set_visibility_(true, false);
-	}
-	else if (!is_changing)
-		redraw_();
-
-	return utility::error_code::nil;
-}
-
-winp::utility::error_code winp::ui::visible_surface::size_change_(bool is_changing){
-	if (auto error_code = surface::size_change_(is_changing); error_code != utility::error_code::nil)
-		return error_code;
-
-	if (is_changing && is_visible_()){
-		hide_();
-		set_visibility_(true, false);
-	}
-	else if (!is_changing)
-		redraw_();
-
-	return utility::error_code::nil;
-}
-
 winp::utility::error_code winp::ui::visible_surface::redraw_() const{
 	return utility::error_code::not_supported;
 }

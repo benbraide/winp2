@@ -311,7 +311,7 @@ void winp::events::paint::end_(){
 		EndPaint(original_message_.hwnd, &info_);
 		began_paint_ = false;
 	}
-	else
+	else if (message_.message != WM_PRINTCLIENT)
 		ReleaseDC(original_message_.hwnd, info_.hdc);
 }
 
