@@ -272,12 +272,14 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return trigger_event_<events::close>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_SETCURSOR:
 		return set_cursor_(target, msg);
+	case WINP_WM_GET_BACKGROUND_BRUSH:
+		return trigger_event_<events::background_brush>(target, msg, nullptr).second;
 	case WINP_WM_GET_BACKGROUND_COLOR:
 		return trigger_event_<events::background_color>(target, msg, nullptr).second;
 	case WM_ERASEBKGND:
 		return erase_background_(target, target, msg);
 	case WM_PAINT:
-		return paint_(target, target, msg);
+		return paint_(target, target, msg, true);
 	case WM_STYLECHANGING:
 		return style_changing_(target, msg);
 	case WM_WINDOWPOSCHANGING:
@@ -450,13 +452,13 @@ LRESULT winp::thread::item_manager::erase_background_(item &context, item &targe
 	LRESULT result = 0;
 	auto window_context = dynamic_cast<ui::window_surface *>(&context);
 
-	if (object_context->is_created() && (window_context != nullptr || (!visible_context->is_transparent_background() && visible_context->is_visible())))
+	if (object_context->is_created() && (window_context != nullptr || visible_context->is_visible()))
 		result = trigger_event_with_target_<events::erase_background>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_class_entry_(window_context->get_class_name()))).second;
 
 	return result;
 }
 
-LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg){
+LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg, bool check_interception){
 	auto visible_context = dynamic_cast<ui::visible_surface *>(&context);
 	if (visible_context == nullptr)//Visible surface required
 		return 0;
@@ -466,7 +468,44 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 		return 0;
 
 	auto window_context = dynamic_cast<ui::window_surface *>(&context);
-	if (window_context != nullptr && msg.hwnd != nullptr){
+	if (window_context == nullptr){
+		if (paint_device_ == nullptr || !visible_context->is_visible())
+			return 0;//Do nothing
+
+		if (check_interception){
+			POINT offset{};
+			auto window_ancestor = object_context->get_first_ancestor_of<ui::window_surface>([&](ui::tree &ancestor){
+				if (auto surface_ancestor = dynamic_cast<ui::surface *>(&ancestor); surface_ancestor != nullptr){
+					auto ancestor_position = surface_ancestor->get_position();
+					auto ancestor_client_offset = surface_ancestor->get_client_offset();
+
+					offset.x += (ancestor_position.x + ancestor_client_offset.x);
+					offset.y += (ancestor_position.y + ancestor_client_offset.y);
+				}
+
+				return true;
+			});
+
+			if (window_ancestor == nullptr)
+				return 0;//Window ancestor required
+
+			auto update_rect = update_rect_;
+			auto context_dimension = visible_context->get_dimension();
+			auto ancestor_client_start_offset = window_ancestor->get_client_start_offset();
+
+			offset.x += ancestor_client_start_offset.x;
+			offset.y += ancestor_client_start_offset.y;
+
+			OffsetRect(&context_dimension, offset.x, offset.y);//Move relative to offset
+			IntersectRect(&update_rect, &update_rect, &context_dimension);
+			if (IsRectEmpty(&update_rect) != FALSE)
+				return 0;//Outside update region
+		}
+		
+		MSG paint_msg{ msg.hwnd, WM_ERASEBKGND, ((msg.message == WM_PRINTCLIENT) ? msg.wParam : reinterpret_cast<WPARAM>(paint_device_)) };
+		erase_background_(context, target, paint_msg);
+	}
+	else if (msg.hwnd != nullptr){
 		if (msg.message != WM_PRINTCLIENT){
 			GetUpdateRect(msg.hwnd, &update_rect_, FALSE);
 			if ((paint_device_ = GetDC(msg.hwnd)) != nullptr)
@@ -475,19 +514,15 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 		else
 			GetClipBox(reinterpret_cast<HDC>(msg.wParam), &update_rect_);
 	}
-	else if (window_context == nullptr){
-		MSG paint_msg{ msg.hwnd, WM_ERASEBKGND, ((msg.message == WM_PRINTCLIENT) ? msg.wParam : reinterpret_cast<WPARAM>(paint_device_)) };
-		erase_background_(context, target, paint_msg);
-	}
 
 	LRESULT result = 0;
-	if (object_context->is_created() && (window_context != nullptr || visible_context->is_visible()))
+	if (object_context->is_created())
 		result = trigger_event_with_target_<events::paint>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_class_entry_(window_context->get_class_name()))).second;
 
 	if (auto tree_context = dynamic_cast<ui::tree *>(&context); tree_context != nullptr){
 		tree_context->traverse_all_children([&](ui::object &child){
 			if (dynamic_cast<ui::window_surface *>(&child) == nullptr)
-				paint_(child, target, msg);
+				paint_(child, target, msg, (window_context != nullptr));
 		}, true);
 	}
 

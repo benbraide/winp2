@@ -48,10 +48,6 @@ winp::utility::error_code winp::grid::object::set_dimension_(int x, int y, int w
 	return error_code;
 }
 
-bool winp::grid::object::is_transparent_background_() const{
-	return true;
-}
-
 winp::utility::error_code winp::grid::object::refresh_(){
 	if (children_.empty())
 		return utility::error_code::nil;

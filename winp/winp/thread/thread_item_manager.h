@@ -5,19 +5,20 @@
 #define WINP_WM_SEND_MESSAGE					(WM_APP + 0x00)
 #define WINP_WM_POST_MESSAGE					(WM_APP + 0x01)
 
-#define WINP_WM_GET_BACKGROUND_COLOR			(WM_APP + 0x02)
+#define WINP_WM_GET_BACKGROUND_BRUSH			(WM_APP + 0x02)
+#define WINP_WM_GET_BACKGROUND_COLOR			(WM_APP + 0x03)
 
-#define WINP_WM_MENU_ITEM_SELECT				(WM_APP + 0x03)
-#define WINP_WM_ITEM_CHECK						(WM_APP + 0x04)
-#define WINP_WM_MENU_ITEM_HIGHLIGHT				(WM_APP + 0x05)
+#define WINP_WM_MENU_ITEM_SELECT				(WM_APP + 0x04)
+#define WINP_WM_ITEM_CHECK						(WM_APP + 0x05)
+#define WINP_WM_MENU_ITEM_HIGHLIGHT				(WM_APP + 0x06)
 
-#define WINP_WM_GET_CONTEXT_MENU_POSITION		(WM_APP + 0x06)
-#define WINP_WM_GET_CONTEXT_MENU_HANDLE			(WM_APP + 0x07)
-#define WINP_WM_BLOCK_CONTEXT_MENU				(WM_APP + 0x08)
+#define WINP_WM_GET_CONTEXT_MENU_POSITION		(WM_APP + 0x07)
+#define WINP_WM_GET_CONTEXT_MENU_HANDLE			(WM_APP + 0x08)
+#define WINP_WM_BLOCK_CONTEXT_MENU				(WM_APP + 0x09)
 
-#define WINP_WM_INIT_MENU_ITEM					(WM_APP + 0x09)
+#define WINP_WM_INIT_MENU_ITEM					(WM_APP + 0x0A)
 
-#define WINP_WM_SPLIT_BUTTON_DROPDOWN			(WM_APP + 0x0A)
+#define WINP_WM_SPLIT_BUTTON_DROPDOWN			(WM_APP + 0x0B)
 
 #define WINP_WM_TOOLTIP_SHOW					(WM_APP + 0x10)
 #define WINP_WM_TOOLTIP_HIDE					(WM_APP + 0x11)
@@ -108,7 +109,7 @@ namespace winp::thread{
 
 		LRESULT erase_background_(item &context, item &target, MSG &msg);
 
-		LRESULT paint_(item &context, item &target, MSG &msg);
+		LRESULT paint_(item &context, item &target, MSG &msg, bool check_interception);
 
 		LRESULT position_change_(item &target, MSG &msg, bool changing);
 

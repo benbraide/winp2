@@ -130,6 +130,10 @@ namespace winp::thread{
 			}, queue::default_task_priority, queue::default_task_id);
 		}
 
+		float convert_pixel_to_dip_x(int x);
+
+		float convert_pixel_to_dip_y(int y);
+
 		void init_control(const std::wstring &class_name, DWORD control_id);
 
 		WNDPROC get_class_entry(const std::wstring &class_name) const;
@@ -157,6 +161,8 @@ namespace winp::thread{
 
 		void animate_(const std::chrono::time_point<std::chrono::steady_clock> &start, const std::function<float(float)> &timing, const std::function<bool(float, bool)> &callback, const std::chrono::nanoseconds &duration);
 
+		void initialize_dpi_scale_();
+
 		app::object &app_;
 		queue queue_;
 		item_manager item_manager_;
@@ -183,5 +189,6 @@ namespace winp::thread{
 		mutable std::unordered_map<std::wstring, WNDPROC> class_info_map_;
 
 		events::object *current_event_ = nullptr;
+		D2D1_POINT_2F dpi_scale_{};
 	};
 }

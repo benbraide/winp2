@@ -245,6 +245,18 @@ bool winp::thread::object::post_message(item &target, const MSG &msg) const{
 	return (PostMessageW(message_hwnd_, WINP_WM_POST_MESSAGE, reinterpret_cast<WPARAM>(new MSG(msg)), reinterpret_cast<LPARAM>(&target)) != FALSE);
 }
 
+float winp::thread::object::convert_pixel_to_dip_x(int x){
+	if (dpi_scale_.x == 0.0f)
+		initialize_dpi_scale_();
+	return ((dpi_scale_.x == 0.0f) ? static_cast<float>(x) : (x / dpi_scale_.x));
+}
+
+float winp::thread::object::convert_pixel_to_dip_y(int y){
+	if (dpi_scale_.y == 0.0f)
+		initialize_dpi_scale_();
+	return ((dpi_scale_.y == 0.0f) ? static_cast<float>(y) : (y / dpi_scale_.y));
+}
+
 void winp::thread::object::init_control(const std::wstring &class_name, DWORD control_id){
 	queue_.execute_task([&]{
 		if (class_info_map_.find(class_name) == class_info_map_.end()){
@@ -336,4 +348,18 @@ void winp::thread::object::animate_(const std::chrono::time_point<std::chrono::s
 		if (callback(progress, true))
 			animate_(start, timing, callback, duration);
 	});
+}
+
+void winp::thread::object::initialize_dpi_scale_(){
+	if (draw_factory_ == nullptr)
+		D2D1CreateFactory(D2D1_FACTORY_TYPE::D2D1_FACTORY_TYPE_SINGLE_THREADED, &draw_factory_);
+
+	if (draw_factory_ == nullptr)
+		return;
+
+	float dpi_x, dpi_y;
+	draw_factory_->GetDesktopDpi(&dpi_x, &dpi_y);
+
+	dpi_scale_.x = (dpi_x / 96.0f);
+	dpi_scale_.y = (dpi_y / 96.0f);
 }

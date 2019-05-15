@@ -46,10 +46,6 @@ void winp::grid::row::child_erased_(ui::object &child){
 	refresh_();
 }
 
-bool winp::grid::row::is_transparent_background_() const{
-	return true;
-}
-
 int winp::grid::row::compute_fixed_height_(int grid_height) const{
 	return 0;
 }

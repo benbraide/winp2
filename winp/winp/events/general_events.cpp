@@ -74,25 +74,25 @@ bool winp::events::position_change::is_changing() const{
 	return is_changing_;
 }
 
-const D2D1::ColorF &winp::events::background_color_change::get_value() const{
-	if (!target_.get_thread().is_thread_context())
-		throw utility::error_code::outside_thread_context;
-	return *value_;
-}
-
-bool winp::events::background_color_change::is_changing() const{
-	if (!target_.get_thread().is_thread_context())
-		throw utility::error_code::outside_thread_context;
-	return is_changing_;
-}
-
-bool winp::events::background_transparency_change::get_value() const{
+ID2D1Brush *winp::events::background_brush_change::get_value() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
 	return value_;
 }
 
-bool winp::events::background_transparency_change::is_changing() const{
+bool winp::events::background_brush_change::is_changing() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return is_changing_;
+}
+
+const D2D1_COLOR_F &winp::events::background_color_change::get_value() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return value_;
+}
+
+bool winp::events::background_color_change::is_changing() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
 	return is_changing_;
@@ -108,6 +108,29 @@ bool winp::events::visibility_change::is_changing() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
 	return is_changing_;
+}
+
+bool winp::events::background_brush::should_call_call_default_() const{
+	return ((states_ & state_default_prevented) == 0u);
+}
+
+LRESULT winp::events::background_brush::get_called_default_value_(){
+	if (auto visible_context = dynamic_cast<ui::visible_surface *>(context_); visible_context != nullptr){
+		auto brush = visible_context->get_background_brush();
+		if (brush == nullptr){
+			if (auto color_brush = target_.get_thread().get_color_brush(); color_brush != nullptr){
+				auto color = ui::visible_surface::convert_colorref_to_colorf(static_cast<COLORREF>(context_->get_thread().send_message(*context_, WINP_WM_GET_BACKGROUND_COLOR)));
+				if (color.a != 0.0f){//Non-transparent
+					color_brush->SetColor(color);
+					brush = color_brush;
+				}
+			}
+		}
+		
+		return reinterpret_cast<LRESULT>(brush);
+	}
+
+	return 0;
 }
 
 void winp::events::background_color::set_result(const D2D1::ColorF &result){
@@ -145,15 +168,12 @@ winp::utility::error_code winp::events::draw::begin(){
 	}
 
 	color_brush_ = target_.get_thread().get_color_brush();
-	color_brush_->SetColor(D2D1::ColorF(D2D1::ColorF::Black, 1.0f));
-
-	computed_clip_ = info_.rcPaint;
 	SaveDC(info_.hdc);
 
 	if (auto non_window_context = dynamic_cast<ui::non_window_surface *>(context_); non_window_context != nullptr){
 		SelectClipRgn(info_.hdc, non_window_context->get_handle());
 
-		auto offset = non_window_context->get_position();
+		POINT offset{};
 		auto context_dimension = non_window_context->get_dimension();
 
 		auto window_ancestor = non_window_context->get_first_ancestor_of<ui::window_surface>([&](ui::tree &ancestor){
@@ -174,18 +194,20 @@ winp::utility::error_code winp::events::draw::begin(){
 			offset.y += ancestor_client_start_offset.y;
 		}
 
-		OffsetRect(&context_dimension, (offset.x - context_dimension.left), (offset.y - context_dimension.top));//Move relative to offset
-		OffsetClipRgn(info_.hdc, offset.x, offset.y);
-		IntersectClipRect(info_.hdc, computed_clip_.left, computed_clip_.top, computed_clip_.right, computed_clip_.bottom);
+		OffsetRect(&context_dimension, offset.x, offset.y);//Move relative to offset
+		OffsetClipRgn(info_.hdc, context_dimension.left, context_dimension.top);
 
-		SetViewportOrgEx(info_.hdc, offset.x, offset.y, nullptr);
-		IntersectRect(&computed_clip_, &computed_clip_, &context_dimension);
+		IntersectClipRect(info_.hdc, info_.rcPaint.left, info_.rcPaint.top, info_.rcPaint.right, info_.rcPaint.bottom);
+		SetViewportOrgEx(info_.hdc, context_dimension.left, context_dimension.top, nullptr);
 
-		OffsetRect(&context_dimension, -offset.x, -offset.y);
-		computed_clip_ = context_dimension;
+		IntersectRect(&info_.rcPaint, &info_.rcPaint, &context_dimension);
+		OffsetRect(&info_.rcPaint, -context_dimension.left, -context_dimension.top);
 	}
 
-	render_target_->BindDC(info_.hdc, &computed_clip_);
+	RECT window_client_rect{};
+	GetClientRect(original_message_.hwnd, &window_client_rect);
+
+	render_target_->BindDC(info_.hdc, &window_client_rect);
 	render_target_->SetTransform(D2D1::IdentityMatrix());
 	render_target_->BeginDraw();
 
@@ -199,14 +221,17 @@ winp::utility::error_code winp::events::draw::end(){
 	if (render_target_ == nullptr)
 		return utility::error_code::nil;
 
+	auto error_code = utility::error_code::nil;
 	switch (render_target_->EndDraw()){
 	case D2DERR_RECREATE_TARGET:
 		target_.get_thread().discard_d2d_resources();
-		return utility::error_code::action_could_not_be_completed;
+		error_code = utility::error_code::action_could_not_be_completed;
+		break;
 	case S_OK:
 		break;
 	default:
-		return utility::error_code::action_could_not_be_completed;
+		error_code = utility::error_code::action_could_not_be_completed;
+		break;
 	}
 
 	RestoreDC(info_.hdc, -1);
@@ -216,7 +241,7 @@ winp::utility::error_code winp::events::draw::end(){
 	color_brush_ = nullptr;
 	info_ = PAINTSTRUCT{};
 
-	return utility::error_code::nil;
+	return error_code;
 }
 
 ID2D1RenderTarget *winp::events::draw::get_render_target() const{
@@ -243,6 +268,219 @@ const RECT &winp::events::draw::get_clip() const{
 	return info_.rcPaint;
 }
 
+void winp::events::draw::draw_line(const m_opt_point_type &start, const m_opt_point_type &stop, const m_opt_paint_type &paint, float stroke_width, ID2D1StrokeStyle *stroke_style){
+	if (begin() != utility::error_code::nil)
+		return;//Failed to initialize
+
+	if (auto brush = get_brush_(paint); brush != nullptr)
+		render_target_->DrawLine(get_dip_point_(start), get_dip_point_(stop), brush, stroke_width, stroke_style);
+}
+
+void winp::events::draw::draw_lines(const m_opt_point_type &start, const m_opt_point_type &stop, const m_opt_point_type &step, unsigned int count, const m_opt_paint_type &paint, float stroke_width, ID2D1StrokeStyle *stroke_style){
+	if (begin() != utility::error_code::nil)
+		return;//Failed to initialize
+
+	auto brush = get_brush_(paint);
+	if (brush == nullptr)
+		return;
+
+	auto dip_start = get_dip_point_(start);
+	auto dip_stop = get_dip_point_(stop);
+	auto dip_step = get_dip_point_(step);
+
+	for (auto index = 0u; index < count; ++index){
+		render_target_->DrawLine(dip_start, dip_stop, brush, stroke_width, stroke_style);
+		dip_start = D2D1::Point2F((dip_start.x + dip_step.x), (dip_start.y + dip_step.y));
+		dip_stop = D2D1::Point2F((dip_stop.x + dip_step.x), (dip_stop.y + dip_step.y));
+	}
+}
+
+void winp::events::draw::draw_rectangle(const m_opt_rect_type &region, const m_opt_paint_type &paint, float stroke_width, ID2D1StrokeStyle *stroke_style){
+	if (begin() != utility::error_code::nil)
+		return;//Failed to initialize
+
+	if (auto brush = get_brush_(paint); brush != nullptr)
+		render_target_->DrawRectangle(get_dip_rect_(region), brush, stroke_width, stroke_style);
+}
+
+void winp::events::draw::draw_rectangles(const m_opt_rect_type &region, const m_opt_rect_type &step, unsigned int count, const m_opt_paint_type &paint, float stroke_width, ID2D1StrokeStyle *stroke_style){
+	if (begin() != utility::error_code::nil)
+		return;//Failed to initialize
+
+	auto brush = get_brush_(paint);
+	if (brush == nullptr)
+		return;
+
+	auto dip_region = get_dip_rect_(region);
+	auto dip_step = get_dip_rect_(step);
+
+	for (auto index = 0u; index < count; ++index){
+		render_target_->DrawRectangle(dip_region, brush, stroke_width, stroke_style);
+		dip_region = D2D1::RectF((dip_region.left + dip_step.left), (dip_region.top + dip_step.top), (dip_region.right - dip_step.right), (dip_region.bottom - dip_step.bottom));
+	}
+}
+
+void winp::events::draw::draw_round_rectangle(const m_opt_rect_type &region, const m_opt_size_type &radius, const m_opt_paint_type &paint, float stroke_width, ID2D1StrokeStyle *stroke_style){
+	if (begin() != utility::error_code::nil)
+		return;//Failed to initialize
+
+	auto brush = get_brush_(paint);
+	if (brush == nullptr)
+		return;
+
+	auto dip_region = get_dip_rect_(region);
+	auto dip_radius = get_dip_size_(radius);
+
+	render_target_->DrawRoundedRectangle(D2D1::RoundedRect(dip_region, dip_radius.width, dip_radius.height), brush, stroke_width, stroke_style);
+}
+
+void winp::events::draw::draw_ellipse(const m_opt_rect_type &region, const m_opt_paint_type &paint, float stroke_width, ID2D1StrokeStyle *stroke_style){
+	auto dip_region = get_dip_rect_(region);
+	D2D1_SIZE_F size{ (dip_region.right - dip_region.left), (dip_region.bottom - dip_region.top) };
+	draw_ellipse(D2D1::Point2F((dip_region.left + size.width), (dip_region.top + size.height)), D2D1::SizeF((size.width / 2), (size.height / 2)), paint, stroke_width, stroke_style);
+}
+
+void winp::events::draw::draw_ellipse(const m_opt_point_type &center, const m_opt_size_type &radius, const m_opt_paint_type &paint, float stroke_width, ID2D1StrokeStyle *stroke_style){
+	if (begin() != utility::error_code::nil)
+		return;//Failed to initialize
+
+	auto brush = get_brush_(paint);
+	if (brush == nullptr)
+		return;
+
+	auto dip_center = get_dip_point_(center);
+	auto dip_radius = get_dip_size_(radius);
+
+	render_target_->DrawEllipse(D2D1::Ellipse(dip_center, dip_radius.width, dip_radius.height), brush, stroke_width, stroke_style);
+}
+
+void winp::events::draw::draw_geometry(ID2D1Geometry *geometry, const m_opt_paint_type &paint, float stroke_width, ID2D1StrokeStyle *stroke_style){
+	if (begin() != utility::error_code::nil)
+		return;//Failed to initialize
+
+	if (auto brush = get_brush_(paint); brush != nullptr)
+		render_target_->DrawGeometry(geometry, brush, stroke_width, stroke_style);
+}
+
+void winp::events::draw::draw_text(const std::wstring &text, IDWriteTextFormat *format, const m_opt_rect_type &bound, const m_opt_paint_type &paint, D2D1_DRAW_TEXT_OPTIONS options, DWRITE_MEASURING_MODE measuring_mode){
+	if (begin() != utility::error_code::nil)
+		return;//Failed to initialize
+
+	if (auto brush = get_brush_(paint); brush != nullptr)
+		render_target_->DrawTextW(text.data(), static_cast<UINT32>(text.size()), format, get_dip_rect_(bound), brush, options, measuring_mode);
+}
+
+void winp::events::draw::draw_text_layout(const m_opt_point_type &origin, IDWriteTextLayout *layout, const m_opt_paint_type &paint, D2D1_DRAW_TEXT_OPTIONS options){
+	if (begin() != utility::error_code::nil)
+		return;//Failed to initialize
+
+	if (auto brush = get_brush_(paint); brush != nullptr)
+		render_target_->DrawTextLayout(get_dip_point_(origin), layout, brush, options);
+}
+
+void winp::events::draw::fill_rectangle(const m_opt_rect_type &region, const m_opt_paint_type &paint){
+	if (begin() != utility::error_code::nil)
+		return;//Failed to initialize
+
+	if (auto brush = get_brush_(paint); brush != nullptr)
+		render_target_->FillRectangle(get_dip_rect_(region), brush);
+}
+
+void winp::events::draw::fill_round_rectangle(const m_opt_rect_type &region, const m_opt_size_type &radius, const m_opt_paint_type &paint){
+	if (begin() != utility::error_code::nil)
+		return;//Failed to initialize
+
+	auto brush = get_brush_(paint);
+	if (brush == nullptr)
+		return;
+
+	auto dip_region = get_dip_rect_(region);
+	auto dip_radius = get_dip_size_(radius);
+
+	render_target_->FillRoundedRectangle(D2D1::RoundedRect(dip_region, dip_radius.width, dip_radius.height), brush);
+}
+
+void winp::events::draw::fill_ellipse(const m_opt_rect_type &region, const m_opt_paint_type &paint){
+	auto dip_region = get_dip_rect_(region);
+	D2D1_SIZE_F size{ (dip_region.right - dip_region.left), (dip_region.bottom - dip_region.top) };
+	fill_ellipse(D2D1::Point2F((dip_region.left + size.width), (dip_region.top + size.height)), D2D1::SizeF((size.width / 2), (size.height / 2)), paint);
+}
+
+void winp::events::draw::fill_ellipse(const m_opt_point_type &center, const m_opt_size_type &radius, const m_opt_paint_type &paint){
+	if (begin() != utility::error_code::nil)
+		return;//Failed to initialize
+
+	auto brush = get_brush_(paint);
+	if (brush == nullptr)
+		return;
+
+	auto dip_center = get_dip_point_(center);
+	auto dip_radius = get_dip_size_(radius);
+
+	render_target_->FillEllipse(D2D1::Ellipse(dip_center, dip_radius.width, dip_radius.height), brush);
+}
+
+void winp::events::draw::fill_geometry(ID2D1Geometry *geometry, const m_opt_paint_type &paint){
+	if (begin() != utility::error_code::nil)
+		return;//Failed to initialize
+
+	if (auto brush = get_brush_(paint); brush != nullptr)
+		render_target_->FillGeometry(geometry, brush, nullptr);
+}
+
+void winp::events::draw::fill_mesh(ID2D1Mesh *mesh, const m_opt_paint_type &paint){
+	if (begin() != utility::error_code::nil)
+		return;//Failed to initialize
+
+	if (auto brush = get_brush_(paint); brush != nullptr)
+		render_target_->FillMesh(mesh, brush);
+}
+
+D2D1_POINT_2F winp::events::draw::get_dip_point_(const m_opt_point_type &point){
+	if (std::holds_alternative<D2D1_POINT_2F>(point))
+		return std::get<D2D1_POINT_2F>(point);
+
+	auto &ddp_point = std::get<POINT>(point);
+	return D2D1_POINT_2F{
+		target_.get_thread().convert_pixel_to_dip_x(ddp_point.x),
+		target_.get_thread().convert_pixel_to_dip_y(ddp_point.y)
+	};
+}
+
+D2D1_SIZE_F winp::events::draw::get_dip_size_(const m_opt_size_type &size){
+	if (std::holds_alternative<D2D1_SIZE_F>(size))
+		return std::get<D2D1_SIZE_F>(size);
+
+	auto &ddp_size = std::get<SIZE>(size);
+	return D2D1_SIZE_F{
+		target_.get_thread().convert_pixel_to_dip_x(ddp_size.cx),
+		target_.get_thread().convert_pixel_to_dip_y(ddp_size.cy)
+	};
+}
+
+D2D1_RECT_F winp::events::draw::get_dip_rect_(const m_opt_rect_type &rect){
+	if (std::holds_alternative<D2D1_RECT_F>(rect))
+		return std::get<D2D1_RECT_F>(rect);
+
+	auto &ddp_region = std::get<RECT>(rect);
+	return D2D1_RECT_F{
+		target_.get_thread().convert_pixel_to_dip_x(ddp_region.left),
+		target_.get_thread().convert_pixel_to_dip_y(ddp_region.top),
+		target_.get_thread().convert_pixel_to_dip_x(ddp_region.right),
+		target_.get_thread().convert_pixel_to_dip_y(ddp_region.bottom)
+	};
+}
+
+ID2D1Brush *winp::events::draw::get_brush_(const m_opt_paint_type &paint){
+	if (std::holds_alternative<ID2D1Brush *>(paint))
+		return std::get<ID2D1Brush *>(paint);
+
+	if (color_brush_ != nullptr)
+		color_brush_->SetColor(std::holds_alternative<D2D_COLOR_F>(paint) ? std::get<D2D_COLOR_F>(paint) : ui::visible_surface::convert_colorref_to_colorf(std::get<COLORREF>(paint), 255));
+
+	return color_brush_;
+}
+
 winp::events::erase_background::~erase_background(){
 	end();
 }
@@ -252,19 +490,16 @@ bool winp::events::erase_background::should_call_call_default_() const{
 }
 
 LRESULT winp::events::erase_background::get_called_default_value_(){
-	auto visible_context = dynamic_cast<ui::visible_surface *>(context_);
-	if (visible_context == nullptr)
+	if (dynamic_cast<ui::visible_surface *>(context_) == nullptr)
 		return object_with_message::get_called_default_value_();
 
-	auto window_context = dynamic_cast<ui::window_surface *>(context_);
-	if (window_context != nullptr && window_context->get_thread().get_class_entry(window_context->get_class_name()) != DefWindowProcW)
+	if (auto window_context = dynamic_cast<ui::window_surface *>(context_); window_context != nullptr && window_context->get_thread().get_class_entry(window_context->get_class_name()) != DefWindowProcW)
 		return object_with_message::get_called_default_value_();
 
-	auto background_color = ui::visible_surface::convert_colorref_to_colorf(static_cast<COLORREF>(context_->get_thread().send_message(*context_, WINP_WM_GET_BACKGROUND_COLOR)));
-	if (begin() != utility::error_code::nil)
-		return 0;
+	auto background_brush = reinterpret_cast<ID2D1Brush *>(context_->get_thread().send_message(*context_, WINP_WM_GET_BACKGROUND_BRUSH));
+	if (background_brush != nullptr && begin() == utility::error_code::nil)
+		fill_rectangle(info_.rcPaint, background_brush);
 
-	render_target_->Clear(background_color);
 	return 0;
 }
 

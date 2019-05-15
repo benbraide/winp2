@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <variant>
+
 #include "event_object.h"
 
 namespace winp::events{
@@ -114,33 +117,33 @@ namespace winp::events{
 		bool is_changing_;
 	};
 
-	class background_color_change : public object{
+	class background_brush_change : public object{
 	public:
 		template <typename... args_types>
-		explicit background_color_change(const D2D1::ColorF &value, bool is_changing, args_types &&... args)
-			: object(std::forward<args_types>(args)...), value_(&value), is_changing_(is_changing){}
+		explicit background_brush_change(ID2D1Brush *value, bool is_changing, args_types &&... args)
+			: object(std::forward<args_types>(args)...), value_(value), is_changing_(is_changing){}
 
-		virtual const D2D1::ColorF &get_value() const;
+		virtual ID2D1Brush *get_value() const;
 
 		virtual bool is_changing() const;
 
 	protected:
-		const D2D1::ColorF *value_;
+		ID2D1Brush *value_;
 		bool is_changing_;
 	};
 
-	class background_transparency_change : public object{
+	class background_color_change : public object{
 	public:
 		template <typename... args_types>
-		explicit background_transparency_change(bool value, bool is_changing, args_types &&... args)
+		explicit background_color_change(const D2D1_COLOR_F &value, bool is_changing, args_types &&... args)
 			: object(std::forward<args_types>(args)...), value_(value), is_changing_(is_changing){}
 
-		virtual bool get_value() const;
+		virtual const D2D1_COLOR_F &get_value() const;
 
 		virtual bool is_changing() const;
 
 	protected:
-		bool value_;
+		D2D1_COLOR_F value_;
 		bool is_changing_;
 	};
 
@@ -173,6 +176,18 @@ namespace winp::events{
 			: object_with_message(std::forward<args_types>(args)...){}
 	};
 
+	class background_brush : public object_with_message{
+	public:
+		template <typename... args_types>
+		explicit background_brush(args_types &&... args)
+			: object_with_message(std::forward<args_types>(args)...){}
+
+	protected:
+		virtual bool should_call_call_default_() const override;
+
+		virtual LRESULT get_called_default_value_() override;
+	};
+
 	class background_color : public object_with_message{
 	public:
 		template <typename... args_types>
@@ -191,6 +206,12 @@ namespace winp::events{
 
 	class draw : public object_with_message{
 	public:
+		using m_opt_point_type = std::variant<POINT, D2D1_POINT_2F>;
+		using m_opt_size_type = std::variant<SIZE, D2D1_SIZE_F>;
+		using m_opt_rect_type = std::variant<RECT, D2D1_RECT_F>;
+		using m_opt_color_type = std::variant<COLORREF, D2D1_COLOR_F>;
+		using m_opt_paint_type = std::variant<COLORREF, D2D1_COLOR_F, ID2D1Brush *>;
+
 		template <typename... args_types>
 		explicit draw(args_types &&... args)
 			: object_with_message(std::forward<args_types>(args)...){}
@@ -209,16 +230,54 @@ namespace winp::events{
 
 		virtual const RECT &get_clip() const;
 
+		virtual void draw_line(const m_opt_point_type &start, const m_opt_point_type &stop, const m_opt_paint_type &paint, float stroke_width = 1.0f, ID2D1StrokeStyle *stroke_style = nullptr);
+
+		virtual void draw_lines(const m_opt_point_type &start, const m_opt_point_type &stop, const m_opt_point_type &step, unsigned int count, const m_opt_paint_type &paint, float stroke_width = 1.0f, ID2D1StrokeStyle *stroke_style = nullptr);
+
+		virtual void draw_rectangle(const m_opt_rect_type &region, const m_opt_paint_type &paint, float stroke_width = 1.0f, ID2D1StrokeStyle *stroke_style = nullptr);
+
+		virtual void draw_rectangles(const m_opt_rect_type &region, const m_opt_rect_type &step, unsigned int count, const m_opt_paint_type &paint, float stroke_width = 1.0f, ID2D1StrokeStyle *stroke_style = nullptr);
+
+		virtual void draw_round_rectangle(const m_opt_rect_type &region, const m_opt_size_type &radius, const m_opt_paint_type &paint, float stroke_width = 1.0f, ID2D1StrokeStyle *stroke_style = nullptr);
+
+		virtual void draw_ellipse(const m_opt_rect_type &region, const m_opt_paint_type &paint, float stroke_width = 1.0f, ID2D1StrokeStyle *stroke_style = nullptr);
+
+		virtual void draw_ellipse(const m_opt_point_type &center, const m_opt_size_type &radius, const m_opt_paint_type &paint, float stroke_width = 1.0f, ID2D1StrokeStyle *stroke_style = nullptr);
+
+		virtual void draw_geometry(ID2D1Geometry *geometry, const m_opt_paint_type &paint, float stroke_width = 1.0f, ID2D1StrokeStyle *stroke_style = nullptr);
+
+		virtual void draw_text(const std::wstring &text, IDWriteTextFormat *format, const m_opt_rect_type &bound, const m_opt_paint_type &paint, D2D1_DRAW_TEXT_OPTIONS options = D2D1_DRAW_TEXT_OPTIONS_NONE, DWRITE_MEASURING_MODE measuring_mode = DWRITE_MEASURING_MODE_NATURAL);
+
+		virtual void draw_text_layout(const m_opt_point_type &origin, IDWriteTextLayout *layout, const m_opt_paint_type &paint, D2D1_DRAW_TEXT_OPTIONS options = D2D1_DRAW_TEXT_OPTIONS_NONE);
+
+		virtual void fill_rectangle(const m_opt_rect_type &region, const m_opt_paint_type &paint);
+
+		virtual void fill_round_rectangle(const m_opt_rect_type &region, const m_opt_size_type &radius, const m_opt_paint_type &paint);
+
+		virtual void fill_ellipse(const m_opt_rect_type &region, const m_opt_paint_type &paint);
+
+		virtual void fill_ellipse(const m_opt_point_type &center, const m_opt_size_type &radius, const m_opt_paint_type &paint);
+
+		virtual void fill_geometry(ID2D1Geometry *geometry, const m_opt_paint_type &paint);
+
+		virtual void fill_mesh(ID2D1Mesh *mesh, const m_opt_paint_type &paint);
+
 	protected:
 		virtual utility::error_code begin_() = 0;
 
 		virtual void end_() = 0;
 
+		virtual D2D1_POINT_2F get_dip_point_(const m_opt_point_type &point);
+
+		virtual D2D1_SIZE_F get_dip_size_(const m_opt_size_type &size);
+
+		virtual D2D1_RECT_F get_dip_rect_(const m_opt_rect_type &rect);
+
+		virtual ID2D1Brush *get_brush_(const m_opt_paint_type &paint);
+
 		ID2D1DCRenderTarget *render_target_ = nullptr;
 		ID2D1SolidColorBrush *color_brush_ = nullptr;
-
 		PAINTSTRUCT info_{};
-		RECT computed_clip_{};
 	};
 
 	class erase_background : public draw{

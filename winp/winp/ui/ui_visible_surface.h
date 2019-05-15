@@ -19,23 +19,31 @@ namespace winp::ui{
 
 		virtual bool is_visible(const std::function<void(bool)> &callback = nullptr) const;
 
-		virtual utility::error_code set_background_transparency(bool is_transparent, const std::function<void(visible_surface, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_background_brush(ID2D1Brush *value, const std::function<void(visible_surface, utility::error_code)> &callback = nullptr);
 
-		virtual bool is_transparent_background(const std::function<void(bool)> &callback = nullptr) const;
+		virtual ID2D1Brush *get_background_brush(const std::function<void(bool)> &callback = nullptr) const;
+
+		virtual utility::error_code set_background_color(const D2D1_COLOR_F &value, const std::function<void(visible_surface, utility::error_code)> &callback = nullptr);
 
 		virtual utility::error_code set_background_color(const D2D1::ColorF &value, const std::function<void(visible_surface, utility::error_code)> &callback = nullptr);
 
+		virtual utility::error_code animate_background_color(const D2D1_COLOR_F &value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
+
 		virtual utility::error_code animate_background_color(const D2D1::ColorF &value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual const D2D1::ColorF &get_background_color(const std::function<void(const D2D1::ColorF &)> &callback = nullptr) const;
+		virtual const D2D1_COLOR_F &get_background_color(const std::function<void(const D2D1_COLOR_F &)> &callback = nullptr) const;
 
 		static COLORREF convert_rgb_to_rgba(COLORREF rgb, BYTE a = 255);
 
+		static COLORREF convert_colorf_to_colorref(const D2D1_COLOR_F &value);
+
 		static COLORREF convert_colorf_to_colorref(const D2D1::ColorF &value);
 
-		static D2D1::ColorF convert_colorref_to_colorf(COLORREF value);
+		static D2D1_COLOR_F convert_colorref_to_colorf(COLORREF value);
 
-		static D2D1::ColorF convert_colorref_to_colorf(COLORREF value, BYTE a);
+		static D2D1_COLOR_F convert_colorref_to_colorf(COLORREF value, BYTE a);
+
+		static bool compare_colors(const D2D1_COLOR_F &first, const D2D1_COLOR_F &second);
 
 		static bool compare_colors(const D2D1::ColorF &first, const D2D1::ColorF &second);
 
@@ -54,17 +62,16 @@ namespace winp::ui{
 
 		virtual bool is_visible_() const;
 
-		virtual utility::error_code set_background_transparency_(bool is_transparent);
+		virtual utility::error_code set_background_brush_(ID2D1Brush *value);
 
-		virtual bool is_transparent_background_() const;
+		virtual utility::error_code set_background_color_(const D2D1_COLOR_F &value);
 
-		virtual utility::error_code set_background_color_(const D2D1::ColorF &value);
+		virtual utility::error_code animate_background_color_(const D2D1_COLOR_F &value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback);
 
-		virtual utility::error_code animate_background_color_(const D2D1::ColorF &value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback);
+		virtual const D2D1_COLOR_F &get_background_color_() const;
 
-		virtual const D2D1::ColorF &get_background_color_() const;
-
-		D2D1::ColorF background_color_{ 0 };
+		D2D1_COLOR_F background_color_{};
+		ID2D1Brush *background_brush_ = nullptr;
 		unsigned __int64 background_color_animation_state_ = 0;
 	};
 }

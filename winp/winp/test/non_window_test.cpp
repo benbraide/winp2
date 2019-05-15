@@ -12,16 +12,9 @@ void winp::test::non_window::run(int cmd_show){
 
 	ws.add_object([&](winp::non_window::rectangle &nwo){
 		nwo.events().bind([&](events::paint &e){
-			e.begin();
-			if (auto drawer = e.get_render_target(); drawer != nullptr){
-				e.get_color_brush()->SetColor(D2D1::ColorF(D2D1::ColorF::White));
-				auto size = dynamic_cast<ui::surface *>(&e.get_context())->get_size();
-
-				for (auto step = 10; step < size.cx; step += 10)
-					drawer->DrawLine(D2D1::Point2F((float)step, 0.f), D2D1::Point2F((float)step, (float)size.cy), e.get_color_brush());
-				for (auto step = 10; step < size.cy; step += 10)
-					drawer->DrawLine(D2D1::Point2F(0.f, (float)step), D2D1::Point2F((float)size.cx, (float)step), e.get_color_brush());
-			}
+			auto &size = dynamic_cast<ui::surface *>(&e.get_context())->get_size();
+			e.draw_lines(POINT{ 10, 0 }, POINT{ 10, size.cy }, POINT{ 10, 0 }, (size.cx / 10), D2D1::ColorF::White);
+			e.draw_lines(POINT{ 0, 10 }, POINT{ size.cx, 10 }, POINT{ 0, 10 }, (size.cy / 10), D2D1::ColorF::White);
 		});
 
 		nwo.set_position(30, 30);
@@ -31,16 +24,9 @@ void winp::test::non_window::run(int cmd_show){
 
 	ws.add_object([&](winp::non_window::round_rectangle &nwo){
 		nwo.events().bind([&](events::paint &e){
-			e.begin();
-			if (auto drawer = e.get_render_target(); drawer != nullptr){
-				e.get_color_brush()->SetColor(D2D1::ColorF(D2D1::ColorF::White));
-				auto size = dynamic_cast<ui::surface *>(&e.get_context())->get_size();
-
-				for (auto step = 10; step < size.cx; step += 10)
-					drawer->DrawLine(D2D1::Point2F((float)step, 0.f), D2D1::Point2F((float)step, (float)size.cy), e.get_color_brush());
-				for (auto step = 10; step < size.cy; step += 10)
-					drawer->DrawLine(D2D1::Point2F(0.f, (float)step), D2D1::Point2F((float)size.cx, (float)step), e.get_color_brush());
-			}
+			auto &size = dynamic_cast<ui::surface *>(&e.get_context())->get_size();
+			e.draw_lines(POINT{ 10, 0 }, POINT{ 10, size.cy }, POINT{ 10, 0 }, (size.cx / 10), D2D1::ColorF::White);
+			e.draw_lines(POINT{ 0, 10 }, POINT{ size.cx, 10 }, POINT{ 0, 10 }, (size.cy / 10), D2D1::ColorF::White);
 		});
 
 		nwo.set_position(260, 30);
@@ -51,16 +37,9 @@ void winp::test::non_window::run(int cmd_show){
 
 	ws.add_object([&](winp::non_window::ellipsis &nwo){
 		nwo.events().bind([&](events::paint &e){
-			e.begin();
-			if (auto drawer = e.get_render_target(); drawer != nullptr){
-				e.get_color_brush()->SetColor(D2D1::ColorF(D2D1::ColorF::White));
-				auto size = dynamic_cast<ui::surface *>(&e.get_context())->get_size();
-
-				for (auto step = 10; step < size.cx; step += 10)
-					drawer->DrawLine(D2D1::Point2F((float)step, 0.f), D2D1::Point2F((float)step, (float)size.cy), e.get_color_brush());
-				for (auto step = 10; step < size.cy; step += 10)
-					drawer->DrawLine(D2D1::Point2F(0.f, (float)step), D2D1::Point2F((float)size.cx, (float)step), e.get_color_brush());
-			}
+			auto &size = dynamic_cast<ui::surface *>(&e.get_context())->get_size();
+			e.draw_lines(POINT{ 10, 0 }, POINT{ 10, size.cy }, POINT{ 10, 0 }, (size.cx / 10), D2D1::ColorF::White);
+			e.draw_lines(POINT{ 0, 10 }, POINT{ size.cx, 10 }, POINT{ 0, 10 }, (size.cy / 10), D2D1::ColorF::White);
 		});
 
 		nwo.set_position(490, 30);
@@ -70,16 +49,9 @@ void winp::test::non_window::run(int cmd_show){
 
 	ws.add_object([&](winp::non_window::circle &nwo){
 		nwo.events().bind([&](events::paint &e){
-			e.begin();
-			if (auto drawer = e.get_render_target(); drawer != nullptr){
-				e.get_color_brush()->SetColor(D2D1::ColorF(D2D1::ColorF::White));
-				auto size = dynamic_cast<ui::surface *>(&e.get_context())->get_size();
-
-				for (auto step = 10; step < size.cx; step += 10)
-					drawer->DrawLine(D2D1::Point2F((float)step, 0.f), D2D1::Point2F((float)step, (float)size.cy), e.get_color_brush());
-				for (auto step = 10; step < size.cy; step += 10)
-					drawer->DrawLine(D2D1::Point2F(0.f, (float)step), D2D1::Point2F((float)size.cx, (float)step), e.get_color_brush());
-			}
+			auto &size = dynamic_cast<ui::surface *>(&e.get_context())->get_size();
+			e.draw_lines(POINT{ 10, 0 }, POINT{ 10, size.cy }, POINT{ 10, 0 }, (size.cx / 10), D2D1::ColorF::White);
+			e.draw_lines(POINT{ 0, 10 }, POINT{ size.cx, 10 }, POINT{ 0, 10 }, (size.cy / 10), D2D1::ColorF::White);
 		});
 
 		nwo.set_position(720, 30);
@@ -89,16 +61,9 @@ void winp::test::non_window::run(int cmd_show){
 
 	ws.add_object([&](winp::non_window::custom &nwo){
 		nwo.events().bind([&](events::paint &e){
-			e.begin();
-			if (auto drawer = e.get_render_target(); drawer != nullptr){
-				e.get_color_brush()->SetColor(D2D1::ColorF(D2D1::ColorF::White));
-				auto size = dynamic_cast<ui::surface *>(&e.get_context())->get_size();
-
-				for (auto step = 10; step < size.cx; step += 10)
-					drawer->DrawLine(D2D1::Point2F((float)step, 0.f), D2D1::Point2F((float)step, (float)size.cy), e.get_color_brush());
-				for (auto step = 10; step < size.cy; step += 10)
-					drawer->DrawLine(D2D1::Point2F(0.f, (float)step), D2D1::Point2F((float)size.cx, (float)step), e.get_color_brush());
-			}
+			auto &size = dynamic_cast<ui::surface *>(&e.get_context())->get_size();
+			e.draw_lines(POINT{ 10, 0 }, POINT{ 10, size.cy }, POINT{ 10, 0 }, (size.cx / 10), D2D1::ColorF::White);
+			e.draw_lines(POINT{ 0, 10 }, POINT{ size.cx, 10 }, POINT{ 0, 10 }, (size.cy / 10), D2D1::ColorF::White);
 		});
 
 		nwo.events().bind([&](events::create_non_window_handle &e){

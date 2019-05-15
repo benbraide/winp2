@@ -28,8 +28,6 @@ namespace winp::grid{
 
 		virtual utility::error_code set_dimension_(int x, int y, int width, int height) override;
 
-		virtual bool is_transparent_background_() const override;
-
 		virtual utility::error_code refresh_();
 
 		bool is_updating_ = false;
