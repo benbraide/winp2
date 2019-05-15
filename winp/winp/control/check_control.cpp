@@ -1,10 +1,10 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "check_control.h"
 #include "control_group.h"
 
 winp::control::check::check()
-	: check(app::collection::get_main()->get_thread()){}
+	: check(app::object::get_thread()){}
 
 winp::control::check::check(thread::object &thread)
 	: push_button(thread){
@@ -85,7 +85,7 @@ bool winp::control::check::is_radio_() const{
 }
 
 winp::control::three_state_check::three_state_check()
-	: three_state_check(app::collection::get_main()->get_thread()){}
+	: three_state_check(app::object::get_thread()){}
 
 winp::control::three_state_check::three_state_check(thread::object &thread)
 	: push_button(thread){

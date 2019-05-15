@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "window_object.h"
 
 winp::window::object::object()
-	: object(app::collection::get_main()->get_thread()){}
+	: object(app::object::get_thread()){}
 
 winp::window::object::object(thread::object &thread)
 	: window_surface(thread){

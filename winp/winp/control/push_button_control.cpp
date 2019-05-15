@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "push_button_control.h"
 
 winp::control::push_button::push_button()
-	: push_button(app::collection::get_main()->get_thread()){}
+	: push_button(app::object::get_thread()){}
 
 winp::control::push_button::push_button(thread::object &thread)
 	: button(thread){}
@@ -40,7 +40,7 @@ LRESULT winp::control::push_button::dispatch_command_(MSG &msg) const{
 }
 
 winp::control::default_push_button::default_push_button()
-	: default_push_button(app::collection::get_main()->get_thread()){}
+	: default_push_button(app::object::get_thread()){}
 
 winp::control::default_push_button::default_push_button(thread::object &thread)
 	: push_button(thread){}

@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "elliptical_non_window.h"
 
 winp::non_window::ellipsis::ellipsis()
-	: ellipsis(app::collection::get_main()->get_thread()){}
+	: ellipsis(app::object::get_thread()){}
 
 winp::non_window::ellipsis::ellipsis(thread::object &thread)
 	: ellipsis(thread, true){}
@@ -36,7 +36,7 @@ winp::utility::error_code winp::non_window::ellipsis::update_handle_(){
 }
 
 winp::non_window::circle::circle()
-	: circle(app::collection::get_main()->get_thread()){}
+	: circle(app::object::get_thread()){}
 
 winp::non_window::circle::circle(thread::object &thread)
 	: circle(thread, true){}

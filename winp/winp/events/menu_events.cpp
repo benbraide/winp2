@@ -1,4 +1,4 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 bool winp::events::menu::should_call_call_default_() const{
 	return (default_callback_ != nullptr && original_message_.hwnd != nullptr && original_message_.message < WM_APP && (states_ & state_default_prevented) == 0u);

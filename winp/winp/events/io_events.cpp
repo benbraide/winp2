@@ -1,4 +1,4 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 WORD winp::events::cursor::get_hit_target() const{
 	if (!target_.get_thread().is_thread_context())

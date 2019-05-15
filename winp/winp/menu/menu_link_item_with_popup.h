@@ -10,7 +10,7 @@ namespace winp::menu{
 	class generic_link_item_with_popup : public link_item{
 	public:
 		generic_link_item_with_popup()
-			: generic_link_item_with_popup(app::collection::get_main()->get_thread()){}
+			: generic_link_item_with_popup(app::object::get_thread()){}
 
 		explicit generic_link_item_with_popup(thread::object &thread)
 			: link_item(thread){

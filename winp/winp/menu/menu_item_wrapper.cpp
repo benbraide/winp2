@@ -1,4 +1,4 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "menu_object_wrapper.h"
 #include "menu_item_wrapper.h"

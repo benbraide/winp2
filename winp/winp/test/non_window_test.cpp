@@ -1,8 +1,6 @@
 #include "non_window_test.h"
 
 void winp::test::non_window::run(int cmd_show){
-	app::main_object main_app;
-
 	ui::object_collection<winp::window::object> ws;
 	ws.set_caption(L"Test Window");
 	ws.set_position(30, 30);
@@ -75,5 +73,5 @@ void winp::test::non_window::run(int cmd_show){
 		nwo.set_background_color(D2D1::ColorF::Purple);
 	});
 
-	main_app.get_thread().run();
+	app::object::run();
 }

@@ -1,10 +1,10 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "control_group.h"
 #include "check_control.h"
 
 winp::control::radio_group::radio_group()
-	: radio_group(app::collection::get_main()->get_thread()){}
+	: radio_group(app::object::get_thread()){}
 
 winp::control::radio_group::radio_group(thread::object &thread)
 	: tree(thread){}

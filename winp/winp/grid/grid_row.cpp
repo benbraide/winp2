@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "grid_object.h"
 
 winp::grid::row::row()
-	: row(app::collection::get_main()->get_thread()){}
+	: row(app::object::get_thread()){}
 
 winp::grid::row::row(thread::object &thread)
 	: custom(thread, false){
@@ -124,7 +124,7 @@ winp::utility::error_code winp::grid::row::refresh_(){
 }
 
 winp::grid::fixed_row::fixed_row()
-	: fixed_row(app::collection::get_main()->get_thread()){}
+	: fixed_row(app::object::get_thread()){}
 
 winp::grid::fixed_row::fixed_row(thread::object &thread)
 	: row(thread){}
@@ -156,7 +156,7 @@ bool winp::grid::fixed_row::is_fixed_() const{
 }
 
 winp::grid::proportional_row::proportional_row()
-	: proportional_row(app::collection::get_main()->get_thread()){}
+	: proportional_row(app::object::get_thread()){}
 
 winp::grid::proportional_row::proportional_row(thread::object &thread)
 	: fixed_row(thread){}

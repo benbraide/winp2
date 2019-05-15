@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "command_link_control.h"
 
 winp::control::command_link::command_link()
-	: command_link(app::collection::get_main()->get_thread()){}
+	: command_link(app::object::get_thread()){}
 
 winp::control::command_link::command_link(thread::object &thread)
 	: push_button(thread){}

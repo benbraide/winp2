@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "tool_tip_control.h"
 
 winp::control::tool_tip_item::tool_tip_item()
-	: tool_tip_item(app::collection::get_main()->get_thread()){}
+	: tool_tip_item(app::object::get_thread()){}
 
 winp::control::tool_tip_item::tool_tip_item(thread::object &thread)
 	: object(thread){}
@@ -296,7 +296,7 @@ winp::ui::window_surface *winp::control::tool_tip_item::get_target_window_ancest
 }
 
 winp::control::inplace_tool_tip_item::inplace_tool_tip_item()
-	: inplace_tool_tip_item(app::collection::get_main()->get_thread()){}
+	: inplace_tool_tip_item(app::object::get_thread()){}
 
 winp::control::inplace_tool_tip_item::inplace_tool_tip_item(thread::object &thread)
 	: tool_tip_item(thread){

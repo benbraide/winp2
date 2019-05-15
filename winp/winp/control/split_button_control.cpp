@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "split_button_control.h"
 
 winp::control::split_button::split_button()
-	: split_button(app::collection::get_main()->get_thread()){}
+	: split_button(app::object::get_thread()){}
 
 winp::control::split_button::split_button(thread::object &thread)
 	: push_button(thread){}
@@ -46,7 +46,7 @@ SIZE winp::control::split_button::compute_additional_size_() const{
 }
 
 winp::control::default_split_button::default_split_button()
-	: default_split_button(app::collection::get_main()->get_thread()){}
+	: default_split_button(app::object::get_thread()){}
 
 winp::control::default_split_button::default_split_button(thread::object &thread)
 	: split_button(thread){}

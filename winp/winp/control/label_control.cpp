@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "label_control.h"
 
 winp::control::label::label()
-	: label(app::collection::get_main()->get_thread()){}
+	: label(app::object::get_thread()){}
 
 winp::control::label::label(thread::object &thread)
 	: button(thread, WC_STATICW, ICC_STANDARD_CLASSES){

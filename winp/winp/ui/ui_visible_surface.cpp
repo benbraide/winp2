@@ -1,4 +1,4 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "ui_visible_surface.h"
 

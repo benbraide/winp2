@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "tab_control.h"
 
 winp::control::tab_page::tab_page()
-	: tab_page(app::collection::get_main()->get_thread()){}
+	: tab_page(app::object::get_thread()){}
 
 winp::control::tab_page::tab_page(thread::object &thread)
 	: window_surface(thread){

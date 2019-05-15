@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "ui_window_surface.h"
 
 winp::ui::non_window_surface::non_window_surface()
-	: non_window_surface(app::collection::get_main()->get_thread()){}
+	: non_window_surface(app::object::get_thread()){}
 
 winp::ui::non_window_surface::non_window_surface(thread::object &thread)
 	: non_window_surface(thread, true){}

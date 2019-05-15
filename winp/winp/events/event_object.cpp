@@ -1,4 +1,4 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 #include "../ui/ui_window_surface.h"
 
 winp::events::object::object(thread::item &target, const std::function<void(object &)> &default_handler)

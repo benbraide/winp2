@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "tool_tip_control.h"
 
 winp::control::tool_tip::tool_tip()
-	: tool_tip(app::collection::get_main()->get_thread()){}
+	: tool_tip(app::object::get_thread()){}
 
 winp::control::tool_tip::tool_tip(thread::object &thread)
 	: object(thread, TOOLTIPS_CLASSW, ICC_TAB_CLASSES){}

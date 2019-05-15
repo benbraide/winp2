@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "ui_tree.h"
 
 winp::ui::tree::tree()
-	: tree(app::collection::get_main()->get_thread()){}
+	: tree(app::object::get_thread()){}
 
 winp::ui::tree::tree(thread::object &thread)
 	: object(thread){}

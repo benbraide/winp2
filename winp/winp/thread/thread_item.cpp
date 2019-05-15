@@ -1,8 +1,8 @@
 #include "../ui/ui_tree.h"
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 winp::thread::item::item()
-	: item(app::collection::get_main()->get_thread()){}
+	: item(app::object::get_thread()){}
 
 winp::thread::item::item(object &thread)
 	: thread_(thread), id_(reinterpret_cast<std::size_t>(this)), scope_thread_id_(std::this_thread::get_id()), local_scope_thread_id_(GetCurrentThreadId()){

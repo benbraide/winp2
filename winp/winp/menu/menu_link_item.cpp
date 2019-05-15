@@ -1,4 +1,4 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "menu_object.h"
 #include "menu_link_item.h"

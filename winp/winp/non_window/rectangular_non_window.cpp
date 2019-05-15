@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "rectangular_non_window.h"
 
 winp::non_window::rectangle::rectangle()
-	: rectangle(app::collection::get_main()->get_thread()){}
+	: rectangle(app::object::get_thread()){}
 
 winp::non_window::rectangle::rectangle(thread::object &thread)
 	: rectangle(thread, true){}

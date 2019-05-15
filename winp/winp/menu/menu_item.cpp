@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "menu_object.h"
 
 winp::menu::item::item()
-	: item(app::collection::get_main()->get_thread()){}
+	: item(app::object::get_thread()){}
 
 winp::menu::item::item(thread::object &thread)
 	: object(thread){}

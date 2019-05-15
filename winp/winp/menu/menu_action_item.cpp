@@ -1,10 +1,10 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "menu_object.h"
 #include "menu_action_item.h"
 
 winp::menu::action_item::action_item()
-	: action_item(app::collection::get_main()->get_thread()){}
+	: action_item(app::object::get_thread()){}
 
 winp::menu::action_item::action_item(thread::object &thread)
 	: item(thread){}

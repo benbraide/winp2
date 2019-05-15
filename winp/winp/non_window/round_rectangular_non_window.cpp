@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "round_rectangular_non_window.h"
 
 winp::non_window::round_rectangle::round_rectangle()
-	: round_rectangle(app::collection::get_main()->get_thread()){}
+	: round_rectangle(app::object::get_thread()){}
 
 winp::non_window::round_rectangle::round_rectangle(thread::object &thread)
 	: round_rectangle(thread, true){}

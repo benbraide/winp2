@@ -1,4 +1,4 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "custom_non_window.h"
 
@@ -15,7 +15,7 @@ HRGN winp::events::destroy_non_window_handle::get_handle() const{
 }
 
 winp::non_window::custom::custom()
-	: custom(app::collection::get_main()->get_thread()){}
+	: custom(app::object::get_thread()){}
 
 winp::non_window::custom::custom(thread::object &thread)
 	: custom(thread, true){}

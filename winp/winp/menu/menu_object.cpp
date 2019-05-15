@@ -1,11 +1,11 @@
 #include "../ui/ui_window_surface.h"
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "menu_object.h"
 #include "menu_link_item.h"
 
 winp::menu::object::object() 
-	: object(app::collection::get_main()->get_thread()){}
+	: object(app::object::get_thread()){}
 
 winp::menu::object::object(thread::object &thread)
 	: tree(thread){}
@@ -82,7 +82,7 @@ winp::ui::window_surface *winp::menu::system_object::get_target_window(const std
 }
 
 winp::menu::popup::popup()
-	: popup(app::collection::get_main()->get_thread()){}
+	: popup(app::object::get_thread()){}
 
 winp::menu::popup::popup(thread::object &thread)
 	: object(thread){}
@@ -100,7 +100,7 @@ winp::utility::error_code winp::menu::popup::destroy_handle_(){
 }
 
 winp::menu::system_popup::system_popup()
-	: system_popup(app::collection::get_main()->get_thread()){}
+	: system_popup(app::object::get_thread()){}
 
 winp::menu::system_popup::system_popup(thread::object &thread)
 	: popup(thread){}

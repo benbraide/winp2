@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "tab_control.h"
 
 winp::control::tab::tab()
-	: tab(app::collection::get_main()->get_thread()){}
+	: tab(app::object::get_thread()){}
 
 winp::control::tab::tab(thread::object &thread)
 	: object(thread, WC_TABCONTROLW, ICC_TAB_CLASSES){}

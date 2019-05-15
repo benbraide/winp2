@@ -15,19 +15,11 @@ namespace winp::thread{
 	public:
 		using animation_frame_callback_type = std::function<void(const std::chrono::time_point<std::chrono::steady_clock> &)>;
 
-		object();
-
-		explicit object(app::object &app);
-
 		~object();
 
 		int run();
 
 		void stop(int exit_code);
-
-		app::object &get_app();
-
-		const app::object &get_app() const;
 
 		queue &get_queue();
 
@@ -147,6 +139,8 @@ namespace winp::thread{
 		friend class app::object;
 		friend class events::object;
 
+		explicit object();
+
 		void add_item_(item &item);
 
 		void remove_item_(unsigned __int64 id);
@@ -163,7 +157,6 @@ namespace winp::thread{
 
 		void initialize_dpi_scale_();
 
-		app::object &app_;
 		queue queue_;
 		item_manager item_manager_;
 

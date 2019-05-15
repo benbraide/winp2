@@ -1,73 +1,64 @@
-#include "app_collection.h"
+#include "app_object.h"
 
-winp::app::object::object()
-	: id_(std::this_thread::get_id()), local_id_(GetCurrentThreadId()){
-	collection::current_app_ = this;
-	collection::add_(*this);
-
-	class_info_.cbSize = sizeof(WNDCLASSEXW);
-	class_info_.hInstance = GetModuleHandleW(nullptr);
-	class_info_.lpfnWndProc = thread::object::get_message_entry();
-	class_info_.lpszClassName = (class_name_ = collection::random_wide_string_generator_(18, 36, utility::random_string_generator_char_set::alpha)).data();
-	class_info_.lpszMenuName = nullptr;
-	class_info_.style = (CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS);
-	class_info_.hbrBackground = nullptr;
-	class_info_.hCursor = nullptr;
-	class_info_.hIconSm = nullptr;
-	class_info_.hIcon = nullptr;
-	class_info_.cbWndExtra = 0;
-	class_info_.cbClsExtra = 0;
-
-	RegisterClassExW(&class_info_);
-}
-
-winp::app::object::~object(){
-	collection::remove_(local_id_);
-	collection::current_app_ = nullptr;
-}
-
-std::thread::id winp::app::object::get_id() const{
-	return id_;
-}
-
-DWORD winp::app::object::get_local_id() const{
-	return local_id_;
-}
-
-const WNDCLASSEXW &winp::app::object::get_class_info() const{
+const WNDCLASSEXW &winp::app::object::get_class_info(){
 	return class_info_;
 }
 
-const std::wstring &winp::app::object::get_class_name() const{
+const std::wstring &winp::app::object::get_class_name(){
 	return class_name_;
 }
 
-winp::thread::object *winp::app::object::find_thread(DWORD id) const{
+int winp::app::object::run(){
+	return ((current_thread_ == nullptr) ? 0 : current_thread_->run());
+}
+
+void winp::app::object::stop(int exit_code){
+	if (current_thread_ != nullptr)
+		current_thread_->stop(exit_code);
+}
+
+winp::thread::object *winp::app::object::find_thread(DWORD id){
+	if (id == GetCurrentThreadId())
+		return current_thread_;
+
 	std::lock_guard<std::mutex> guard(lock_);
 	if (threads_.empty())
 		return nullptr;
 
 	auto it = threads_.find(id);
-	return ((it == threads_.end()) ? nullptr : it->second);
+	return ((it == threads_.end()) ? nullptr : it->second.get());
 }
 
-winp::thread::object *winp::app::object::find_thread(const std::thread::id &id) const{
+winp::thread::object *winp::app::object::find_thread(const std::thread::id &id){
+	if (id == std::this_thread::get_id())
+		return current_thread_;
+
 	std::lock_guard<std::mutex> guard(lock_);
 	if (threads_.empty())
 		return nullptr;
 
 	for (auto &info : threads_){
 		if (info.second->get_id() == id)
-			return info.second;
+			return info.second.get();
 	}
 
 	return nullptr;
 }
 
-DWORD winp::app::object::convert_thread_id_to_local_id(const std::thread::id &value) const{
-	if (value == id_)
-		return local_id_;
+winp::thread::object &winp::app::object::get_thread(){
+	if (current_thread_ == nullptr){
+		std::lock_guard<std::mutex> guard(lock_);
+		threads_[GetCurrentThreadId()].reset(new thread::object);
+	}
 
+	return *current_thread_;
+}
+
+winp::thread::object *winp::app::object::get_current_thread(){
+	return current_thread_;
+}
+
+DWORD winp::app::object::convert_thread_id_to_local_id(const std::thread::id &value){
 	if (value == std::this_thread::get_id())
 		return GetCurrentThreadId();
 
@@ -75,10 +66,7 @@ DWORD winp::app::object::convert_thread_id_to_local_id(const std::thread::id &va
 	return ((thread == nullptr) ? 0 : thread->get_local_id());
 }
 
-std::thread::id winp::app::object::convert_local_thread_id_to_id(DWORD value) const{
-	if (value == local_id_)
-		return id_;
-
+std::thread::id winp::app::object::convert_local_thread_id_to_id(DWORD value){
 	if (value == GetCurrentThreadId())
 		return std::this_thread::get_id();
 
@@ -116,39 +104,45 @@ void winp::app::object::traverse_threads(const std::function<void(thread::object
 	}
 }
 
-winp::thread::object *winp::app::object::get_current_thread(){
-	return current_thread_;
-}
+std::wstring winp::app::object::class_name_;
 
-void winp::app::object::add_thread_(thread::object &thread){
-	std::lock_guard<std::mutex> guard(lock_);
-	if (threads_.find(thread.local_id_) == threads_.end())
-		threads_[thread.local_id_] = &thread;
-	else//Multiple threads
-		throw utility::error_code::multiple_app_threads;
-}
+WNDCLASSEXW winp::app::object::class_info_{};
 
-void winp::app::object::remove_thread_(DWORD id){
-	std::lock_guard<std::mutex> guard(lock_);
-	if (!threads_.empty())
-		threads_.erase(id);
-}
+std::unordered_map<DWORD, std::shared_ptr<winp::thread::object>> winp::app::object::threads_;
 
 thread_local winp::thread::object *winp::app::object::current_thread_ = nullptr;
 
-winp::app::main_object::main_object(){
-	{//Scoped lock
-		std::lock_guard<std::mutex> guard(collection::lock_);
-		if (collection::main_ == nullptr)
-			collection::main_ = this;
-		else
-			throw utility::error_code::multiple_main_apps;
-	}
+winp::app::object::app_initializer_class winp::app::object::app_initializer_;
 
-	if ((main_thread_ = collection::get_current_thread()) == nullptr)
-		main_thread_ = (thread_ = std::make_shared<thread::object>(*this)).get();
+thread_local winp::app::object::thread_scope_class winp::app::object::thread_scope_;
+
+std::mutex winp::app::object::lock_;
+
+winp::app::object::app_initializer_class::app_initializer_class(){
+	class_info_.cbSize = sizeof(WNDCLASSEXW);
+	class_info_.hInstance = GetModuleHandleW(nullptr);
+	class_info_.lpfnWndProc = thread::object::get_message_entry();
+	class_info_.lpszClassName = (class_name_ = WINP_CLASS_WUUID).data();
+	class_info_.lpszMenuName = nullptr;
+	class_info_.style = (CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS);
+	class_info_.hbrBackground = nullptr;
+	class_info_.hCursor = nullptr;
+	class_info_.hIconSm = nullptr;
+	class_info_.hIcon = nullptr;
+	class_info_.cbWndExtra = 0;
+	class_info_.cbClsExtra = 0;
+
+	RegisterClassExW(&class_info_);
 }
 
-winp::thread::object &winp::app::main_object::get_thread(){
-	return *main_thread_;
+winp::app::object::thread_scope_class::thread_scope_class() = default;
+
+winp::app::object::thread_scope_class::~thread_scope_class(){
+	if (current_thread_ != nullptr){//Remove associated object
+		std::lock_guard<std::mutex> guard(lock_);
+		if (!threads_.empty())
+			threads_.erase(current_thread_->local_id_);
+
+		current_thread_ = nullptr;
+	}
 }

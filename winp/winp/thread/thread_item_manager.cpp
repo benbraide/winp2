@@ -1,4 +1,4 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "../ui/ui_non_window_surface.h"
 #include "../control/control_object.h"
@@ -823,7 +823,7 @@ LRESULT winp::thread::item_manager::get_result_(const std::pair<unsigned int, LR
 }
 
 LRESULT CALLBACK winp::thread::item_manager::entry_(HWND handle, UINT message, WPARAM wparam, LPARAM lparam){
-	auto current_thread = app::collection::get_current_thread();
+	auto current_thread = app::object::get_current_thread();
 	if (current_thread == nullptr)
 		return CallWindowProcW(DefWindowProcW, handle, message, wparam, lparam);
 
@@ -838,7 +838,11 @@ LRESULT CALLBACK winp::thread::item_manager::entry_(HWND handle, UINT message, W
 }
 
 LRESULT CALLBACK winp::thread::item_manager::hook_entry_(int code, WPARAM wparam, LPARAM lparam){
-	auto &manager = app::collection::get_current_thread()->get_item_manager();
+	auto current_thread = app::object::get_current_thread();
+	if (current_thread == nullptr)
+		return CallNextHookEx(nullptr, code, wparam, lparam);
+
+	auto &manager = current_thread->get_item_manager();
 	switch (code){
 	case HCBT_DESTROYWND:
 		if (reinterpret_cast<HWND>(wparam) == manager.window_cache_.handle || (!manager.windows_.empty() && manager.windows_.find(reinterpret_cast<HWND>(wparam)) != manager.windows_.end()))

@@ -1,20 +1,13 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 winp::thread::object::object()
-	: object(*((app::collection::get_main() == nullptr) ? app::collection::get_current_thread_app() : app::collection::get_main())){}
-
-winp::thread::object::object(app::object &app)
-	: app_(app), queue_(*this), item_manager_(*this, GetCurrentThreadId()), id_(std::this_thread::get_id()), local_id_(GetCurrentThreadId()){
+	: queue_(*this), item_manager_(*this, GetCurrentThreadId()), id_(std::this_thread::get_id()), local_id_(GetCurrentThreadId()){
 	app::object::current_thread_ = this;
-
-	app_.add_thread_(*this);
-	message_hwnd_ = CreateWindowExW(0, app_.get_class_name().data(), L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, GetModuleHandleW(nullptr), nullptr);
+	message_hwnd_ = CreateWindowExW(0, app::object::get_class_name().data(), L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, GetModuleHandleW(nullptr), nullptr);
 }
 
 winp::thread::object::~object(){
 	queue_.add_id_to_black_list(reinterpret_cast<unsigned __int64>(this));
-	app_.remove_thread_(local_id_);
-	app::object::current_thread_ = nullptr;
 }
 
 int winp::thread::object::run(){
@@ -89,14 +82,6 @@ void winp::thread::object::stop(int exit_code){
 		PostQuitMessage(exit_code);
 	else//Post message to thread queue
 		post_message(WM_QUIT, exit_code);
-}
-
-winp::app::object &winp::thread::object::get_app(){
-	return app_;
-}
-
-const winp::app::object &winp::thread::object::get_app() const{
-	return app_;
 }
 
 winp::thread::queue &winp::thread::object::get_queue(){
@@ -303,7 +288,7 @@ void winp::thread::object::remove_item_(unsigned __int64 id){
 }
 
 WNDPROC winp::thread::object::get_class_entry_(const std::wstring &class_name) const{
-	if (&class_name == &app_.get_class_name())
+	if (&class_name == &app::object::get_class_name())
 		return DefWindowProcW;
 
 	if (auto it = class_info_map_.find(class_name); it != class_info_map_.end())

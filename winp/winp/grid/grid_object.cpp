@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "grid_object.h"
 
 winp::grid::object::object()
-	: object(app::collection::get_main()->get_thread()){}
+	: object(app::object::get_thread()){}
 
 winp::grid::object::object(thread::object &thread)
 	: custom(thread, false){

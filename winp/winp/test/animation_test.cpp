@@ -1,8 +1,6 @@
 #include "animation_test.h"
 
 void winp::test::animation::run(int cmd_show){
-	app::main_object main_app;
-
 	ui::object_collection<winp::window::object> ws;
 	ws.set_caption(L"Test Window");
 	ws.set_position(30, 30);
@@ -380,5 +378,5 @@ void winp::test::animation::run(int cmd_show){
 		});
 	});
 
-	main_app.get_thread().run();
+	app::object::run();
 }

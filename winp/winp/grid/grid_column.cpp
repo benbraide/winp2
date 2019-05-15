@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "grid_row.h"
 
 winp::grid::column::column()
-	: column(app::collection::get_main()->get_thread()){}
+	: column(app::object::get_thread()){}
 
 winp::grid::column::column(thread::object &thread)
 	: custom(thread){
@@ -65,7 +65,7 @@ winp::utility::error_code winp::grid::column::refresh_(){
 }
 
 winp::grid::fixed_column::fixed_column()
-	: fixed_column(app::collection::get_main()->get_thread()){}
+	: fixed_column(app::object::get_thread()){}
 
 winp::grid::fixed_column::fixed_column(thread::object &thread)
 	: column(thread){}
@@ -97,7 +97,7 @@ bool winp::grid::fixed_column::is_fixed_() const{
 }
 
 winp::grid::proportional_column::proportional_column()
-	: proportional_column(app::collection::get_main()->get_thread()){}
+	: proportional_column(app::object::get_thread()){}
 
 winp::grid::proportional_column::proportional_column(thread::object &thread)
 	: fixed_column(thread){}

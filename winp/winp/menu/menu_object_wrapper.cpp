@@ -1,10 +1,10 @@
 #include "../ui/ui_window_surface.h"
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "menu_item_wrapper.h"
 
 winp::menu::popup_wrapper::popup_wrapper()
-	: popup_wrapper(app::collection::get_main()->get_thread()){}
+	: popup_wrapper(app::object::get_thread()){}
 
 winp::menu::popup_wrapper::popup_wrapper(thread::object &thread)
 	: popup(thread){}
@@ -90,7 +90,7 @@ std::shared_ptr<winp::menu::item> winp::menu::popup_wrapper::create_item_(const 
 }
 
 winp::menu::system_popup_wrapper::system_popup_wrapper()
-	: system_popup_wrapper(app::collection::get_main()->get_thread()){}
+	: system_popup_wrapper(app::object::get_thread()){}
 
 winp::menu::system_popup_wrapper::system_popup_wrapper(thread::object &thread)
 	: popup_wrapper(thread){}

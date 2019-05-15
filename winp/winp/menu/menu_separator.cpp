@@ -1,10 +1,10 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "menu_object.h"
 #include "menu_separator.h"
 
 winp::menu::separator::separator()
-	: separator(app::collection::get_main()->get_thread()){}
+	: separator(app::object::get_thread()){}
 
 winp::menu::separator::separator(thread::object &thread)
 	: item(thread){}

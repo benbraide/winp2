@@ -1,9 +1,9 @@
-#include "../app/app_collection.h"
+#include "../app/app_object.h"
 
 #include "ui_window_surface.h"
 
 winp::ui::window_surface::window_surface()
-	: window_surface(app::collection::get_main()->get_thread()){}
+	: window_surface(app::object::get_thread()){}
 
 winp::ui::window_surface::window_surface(thread::object &thread)
 	: window_surface(thread, true){}
@@ -148,7 +148,7 @@ winp::ui::window_surface::bar_menu_type &winp::ui::window_surface::get_menu_bar(
 const std::wstring &winp::ui::window_surface::get_class_name(const std::function<void(const std::wstring &)> &callback) const{
 	return *compute_or_post_task_inside_thread_context([=]{
 		return &pass_return_ref_value_to_callback(callback, &get_class_name_());
-	}, (callback != nullptr), &thread_.get_app().get_class_name());
+	}, (callback != nullptr), &app::object::get_class_name());
 }
 
 void winp::ui::window_surface::traverse_child_windows(const std::function<bool(window_surface &)> &callback, bool block) const{
@@ -512,7 +512,7 @@ POINT winp::ui::window_surface::get_context_menu_position_() const{
 }
 
 const std::wstring &winp::ui::window_surface::get_class_name_() const{
-	return thread_.get_app().get_class_name();
+	return app::object::get_class_name();
 }
 
 const wchar_t *winp::ui::window_surface::get_window_text_() const{

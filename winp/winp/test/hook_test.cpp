@@ -1,8 +1,6 @@
 #include "hook_test.h"
 
 void winp::test::hook::run(int cmd_show){
-	app::main_object main_app;
-
 	ui::object_collection<winp::window::object> ws;
 	ws.set_caption(L"Test Window");
 	ws.set_position(30, 30);
@@ -55,5 +53,5 @@ void winp::test::hook::run(int cmd_show){
 		btn.insert_hook<ui::placement_hook>(ui::placement_hook::alignment_type::bottom_right);
 	});
 
-	main_app.get_thread().run();
+	app::object::run();
 }
