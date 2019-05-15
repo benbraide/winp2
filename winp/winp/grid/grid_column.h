@@ -2,12 +2,12 @@
 
 #include <vector>
 
-#include "../non_window/rectangular_non_window.h"
+#include "../non_window/custom_non_window.h"
 
 namespace winp::grid{
 	class row;
 
-	class column : public non_window::rectangle{
+	class column : public non_window::custom{
 	public:
 		column();
 

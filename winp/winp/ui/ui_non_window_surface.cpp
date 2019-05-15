@@ -40,8 +40,8 @@ winp::utility::error_code winp::ui::non_window_surface::create_(){
 	if (is_created_())
 		return utility::error_code::nil;
 
-	if (parent_ != nullptr && parent_->auto_create() != utility::error_code::nil)
-		return utility::error_code::parent_not_created;
+	if (parent_ != nullptr)
+		parent_->auto_create();
 
 	if ((handle_ = create_handle_()) == nullptr)
 		return utility::error_code::action_could_not_be_completed;
@@ -49,6 +49,7 @@ winp::utility::error_code winp::ui::non_window_surface::create_(){
 	if (thread_.send_message(*this, WM_NCCREATE) != FALSE){
 		if (visible_)
 			redraw_();
+
 		return utility::error_code::nil;
 	}
 

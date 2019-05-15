@@ -6,7 +6,20 @@ winp::grid::object::object()
 	: object(app::collection::get_main()->get_thread()){}
 
 winp::grid::object::object(thread::object &thread)
-	: rectangle(thread, false){}
+	: custom(thread, false){
+	background_color_.a = 0.0f;
+	add_event_handler_([this](events::create_non_window_handle &e) -> HRGN{
+		if ((e.get_states() & events::object::state_result_set) == 0u)
+			return CreateRectRgn(0, 0, size_.cx, size_.cy);
+		return nullptr;
+	});
+
+	add_event_handler_([this](events::update_non_window_handle &e) -> HRGN{
+		if ((e.get_states() & events::object::state_result_set) == 0u && SetRectRgn(e.get_handle(), 0, 0, size_.cx, size_.cy) != FALSE)
+			return e.get_handle();
+		return nullptr;
+	});
+}
 
 winp::grid::object::object(ui::tree &parent)
 	: object(parent, static_cast<std::size_t>(-1)){}
@@ -27,21 +40,21 @@ winp::utility::error_code winp::grid::object::refresh(const std::function<void(o
 winp::utility::error_code winp::grid::object::do_insert_child_(ui::object &child, std::size_t index){
 	if (dynamic_cast<row *>(&child) == nullptr)
 		return utility::error_code::invalid_child;
-	return non_window_surface::do_insert_child_(child, index);
+	return custom::do_insert_child_(child, index);
 }
 
 void winp::grid::object::child_inserted_(ui::object &child){
-	rectangle::child_inserted_(child);
+	custom::child_inserted_(child);
 	refresh_();
 }
 
 void winp::grid::object::child_erased_(ui::object &child){
-	rectangle::child_erased_(child);
+	custom::child_erased_(child);
 	refresh_();
 }
 
 winp::utility::error_code winp::grid::object::set_dimension_(int x, int y, int width, int height){
-	auto error_code = non_window_surface::set_dimension_(x, y, width, height);
+	auto error_code = custom::set_dimension_(x, y, width, height);
 	if (!is_updating_)
 		refresh_();
 

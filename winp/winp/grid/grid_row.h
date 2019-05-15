@@ -5,7 +5,7 @@
 namespace winp::grid{
 	class object;
 
-	class row : public non_window::rectangle{
+	class row : public non_window::custom{
 	public:
 		row();
 

@@ -41,7 +41,10 @@ winp::utility::error_code winp::non_window::custom::create_(){
 
 	if (handle_ != nullptr){
 		RECT dimension{};
+
 		GetRgnBox(handle_, &dimension);
+		OffsetRgn(handle_, -dimension.left, -dimension.top);
+
 		size_ = SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
 	}
 
@@ -60,7 +63,14 @@ winp::utility::error_code winp::non_window::custom::update_handle_(){
 
 	if (auto value = reinterpret_cast<HRGN>(result.second); value != nullptr){
 		RECT dimension{};
+		if (value != handle_ && events_manager_.get_bound_count<events::destroy_non_window_handle>() == 0u)
+			DeleteObject(handle_);
+		else if (value != handle_)
+			trigger_event_<events::destroy_non_window_handle>(handle_);
+
 		GetRgnBox((handle_ = value), &dimension);
+		OffsetRgn(handle_, -dimension.left, -dimension.top);
+
 		size_ = SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
 	}
 

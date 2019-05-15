@@ -6,7 +6,19 @@ winp::grid::column::column()
 	: column(app::collection::get_main()->get_thread()){}
 
 winp::grid::column::column(thread::object &thread)
-	: rectangle(thread){}
+	: custom(thread){
+	add_event_handler_([this](events::create_non_window_handle &e) -> HRGN{
+		if ((e.get_states() & events::object::state_result_set) == 0u)
+			return CreateRectRgn(0, 0, size_.cx, size_.cy);
+		return nullptr;
+	});
+
+	add_event_handler_([this](events::update_non_window_handle &e) -> HRGN{
+		if ((e.get_states() & events::object::state_result_set) == 0u && SetRectRgn(e.get_handle(), 0, 0, size_.cx, size_.cy) != FALSE)
+			return e.get_handle();
+		return nullptr;
+	});
+}
 
 winp::grid::column::column(ui::tree &parent)
 	: column(parent, static_cast<std::size_t>(-1)){}
