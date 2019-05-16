@@ -24,10 +24,6 @@ namespace winp::non_window{
 	protected:
 		round_rectangle(thread::object &thread, bool init_grid);
 
-		virtual HRGN create_handle_() const override;
-
-		virtual utility::error_code update_handle_() override;
-
 		virtual utility::error_code set_border_curve_size_(int width, int height);
 
 		SIZE border_curve_size_{};

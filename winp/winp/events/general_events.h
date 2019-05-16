@@ -43,6 +43,37 @@ namespace winp::events{
 			: object_with_message(std::forward<args_types>(args)...){}
 	};
 
+	class create_non_window_handle : public object{
+	public:
+		template <typename... args_types>
+		explicit create_non_window_handle(args_types &&... args)
+			: object(std::forward<args_types>(args)...){}
+	};
+
+	class update_non_window_handle : public object{
+	public:
+		template <typename... args_types>
+		explicit update_non_window_handle(HRGN handle, args_types &&... args)
+			: object(std::forward<args_types>(args)...), handle_(handle){}
+
+		virtual HRGN get_handle() const;
+
+	protected:
+		HRGN handle_ = nullptr;
+	};
+
+	class destroy_non_window_handle : public object{
+	public:
+		template <typename... args_types>
+		explicit destroy_non_window_handle(HRGN handle, args_types &&... args)
+			: object(std::forward<args_types>(args)...), handle_(handle){}
+
+		virtual HRGN get_handle() const;
+
+	protected:
+		HRGN handle_ = nullptr;
+	};
+
 	class index_change : public object{
 	public:
 		template <typename... args_types>

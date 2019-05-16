@@ -9,7 +9,16 @@ winp::non_window::round_rectangle::round_rectangle(thread::object &thread)
 	: round_rectangle(thread, true){}
 
 winp::non_window::round_rectangle::round_rectangle(thread::object &thread, bool init_grid)
-	: non_window_surface(thread, init_grid){}
+	: non_window_surface(thread, init_grid){
+	set_event_state_<events::create_non_window_handle, events::update_non_window_handle, events::destroy_non_window_handle>((event_manager_type::state_disable_bounding | event_manager_type::state_disable_triggering));
+	add_event_handler_([this](events::create_non_window_handle &e) -> HRGN{
+		return CreateRoundRectRgn(0, 0, size_.cx, size_.cy, border_curve_size_.cx, border_curve_size_.cy);
+	});
+
+	add_event_handler_([this](events::update_non_window_handle &e) -> HRGN{
+		return CreateRoundRectRgn(0, 0, size_.cx, size_.cy, border_curve_size_.cx, border_curve_size_.cy);
+	});
+}
 
 winp::non_window::round_rectangle::round_rectangle(tree &parent)
 	: round_rectangle(parent, static_cast<std::size_t>(-1)){}
@@ -35,20 +44,6 @@ const SIZE &winp::non_window::round_rectangle::get_border_curve_size(const std::
 	return *synchronized_item_compute_or_post_task_inside_thread_context([=]{
 		return &synchronized_item_pass_return_ref_value_to_callback(callback, &border_curve_size_);
 	}, (callback != nullptr), &border_curve_size_);
-}
-
-HRGN winp::non_window::round_rectangle::create_handle_() const{
-	return CreateRoundRectRgn(0, 0, size_.cx, size_.cy, border_curve_size_.cx, border_curve_size_.cy);
-}
-
-winp::utility::error_code winp::non_window::round_rectangle::update_handle_(){
-	if (handle_ == nullptr)
-		return utility::error_code::nil;
-
-	DeleteObject(handle_);
-	handle_ = create_handle_();
-
-	return utility::error_code::nil;
 }
 
 winp::utility::error_code winp::non_window::round_rectangle::set_border_curve_size_(int width, int height){

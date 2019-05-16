@@ -19,6 +19,8 @@ namespace winp::thread{
 
 	class item{
 	public:
+		using event_manager_type = events::manager<item>;
+
 		item();
 
 		explicit item(object &thread);
@@ -71,9 +73,9 @@ namespace winp::thread{
 			return default_value;
 		}
 
-		virtual const events::manager<item> &events() const;
+		virtual const event_manager_type &events() const;
 
-		virtual events::manager<item> &events();
+		virtual event_manager_type &events();
 
 		template <typename value_type, typename function_type>
 		static value_type pass_return_value_to_callback(const function_type &callback, value_type &&value){
@@ -175,8 +177,8 @@ namespace winp::thread{
 		DWORD local_scope_thread_id_;
 
 		bool is_destructed_ = false;
-		events::manager<item> events_manager_{ *this };
-		events::manager<item> event_handlers_{ *this };
+		event_manager_type events_manager_{ *this };
+		event_manager_type event_handlers_{ *this };
 	};
 
 	class synchronized_item{

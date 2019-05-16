@@ -47,7 +47,14 @@ winp::utility::error_code winp::ui::non_window_surface::create_(){
 		return utility::error_code::action_could_not_be_completed;
 
 	if (thread_.send_message(*this, WM_NCCREATE) != FALSE){
+		RECT dimension{};
+
+		GetRgnBox(handle_, &dimension);
+		OffsetRgn(handle_, -dimension.left, -dimension.top);
+
+		size_ = SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
 		thread_.send_message(*this, WM_CREATE);
+
 		if (visible_)
 			redraw_();
 
@@ -86,8 +93,8 @@ winp::utility::error_code winp::ui::non_window_surface::set_dimension_(int x, in
 	if (!is_created_())
 		return utility::error_code::nil;//Do nothing
 
-	auto dimension = get_dimension_();
-	if (dimension.left != previous_dimension_.left || dimension.top != previous_dimension_.top || dimension.right != previous_dimension_.right || dimension.bottom != previous_dimension_.bottom)
+	SIZE previous_size{ (previous_dimension_.right - previous_dimension_.left), (previous_dimension_.bottom - previous_dimension_.top) };
+	if (size_.cx != previous_size.cx || size_.cy != previous_size.cy)
 		update_handle_();
 
 	if (!is_created_() || !is_visible_())
@@ -109,6 +116,7 @@ winp::utility::error_code winp::ui::non_window_surface::set_dimension_(int x, in
 	if (window_ancestor == nullptr)//Do nothing
 		return utility::error_code::nil;
 
+	auto dimension = get_dimension_();
 	OffsetRect(&previous_dimension_, offset.x, offset.y);
 	OffsetRect(&dimension, offset.x, offset.y);
 
@@ -173,13 +181,35 @@ HRGN winp::ui::non_window_surface::get_handle_() const{
 }
 
 HRGN winp::ui::non_window_surface::create_handle_() const{
-	return nullptr;
+	auto result = trigger_event_<events::create_non_window_handle>();
+	return (((result.first & events::object::state_default_prevented) == 0u) ? reinterpret_cast<HRGN>(result.second) : nullptr);
 }
 
 winp::utility::error_code winp::ui::non_window_surface::update_handle_(){
-	return utility::error_code::not_supported;
+	auto result = trigger_event_<events::update_non_window_handle>(handle_);
+	if ((result.first & events::object::state_default_prevented) != 0u)
+		return utility::error_code::action_prevented;
+
+	if (auto value = reinterpret_cast<HRGN>(result.second); value != nullptr){
+		RECT dimension{};
+
+		destroy_handle_();
+		GetRgnBox((handle_ = value), &dimension);
+		OffsetRgn(handle_, -dimension.left, -dimension.top);
+
+		size_ = SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
+	}
+
+	return utility::error_code::nil;
 }
 
 winp::utility::error_code winp::ui::non_window_surface::destroy_handle_(){
-	return ((DeleteObject(handle_) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+	if (events_manager_.get_bound_count<events::destroy_non_window_handle>() == 0u)
+		return ((DeleteObject(handle_) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+
+	auto result = trigger_event_<events::destroy_non_window_handle>(handle_);
+	if ((result.first & events::object::state_default_prevented) != 0u)
+		return utility::error_code::action_prevented;
+
+	return utility::error_code::nil;
 }

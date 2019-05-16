@@ -87,11 +87,11 @@ void winp::thread::item::execute_or_post_task_inside_thread_context(const std::f
 		thread_.get_queue().execute_task(task, priority, id_);
 }
 
-const winp::events::manager<winp::thread::item> &winp::thread::item::events() const{
+const winp::thread::item::event_manager_type &winp::thread::item::events() const{
 	return events_manager_;
 }
 
-winp::events::manager<winp::thread::item> &winp::thread::item::events(){
+winp::thread::item::event_manager_type &winp::thread::item::events(){
 	return events_manager_;
 }
 

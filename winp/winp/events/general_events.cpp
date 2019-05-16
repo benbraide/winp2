@@ -6,6 +6,18 @@ bool winp::events::create::is_creating() const{
 	return (original_message_.message == WM_NCCREATE);
 }
 
+HRGN winp::events::update_non_window_handle::get_handle() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return handle_;
+}
+
+HRGN winp::events::destroy_non_window_handle::get_handle() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return handle_;
+}
+
 std::size_t winp::events::index_change::get_value() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
