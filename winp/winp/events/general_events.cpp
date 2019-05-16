@@ -2,6 +2,10 @@
 #include "../ui/ui_window_surface.h"
 #include "../ui/ui_non_window_surface.h"
 
+bool winp::events::create::is_creating() const{
+	return (original_message_.message == WM_NCCREATE);
+}
+
 std::size_t winp::events::index_change::get_value() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;

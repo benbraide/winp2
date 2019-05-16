@@ -265,7 +265,10 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 	auto window_target = dynamic_cast<ui::window_surface *>(&target);
 	switch (msg.message){
 	case WM_NCCREATE:
-		return get_result_(trigger_event_with_value_<events::create>(target, TRUE, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))), FALSE);
+		return get_result_(trigger_event_with_value_<events::create>(target, TRUE, true, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))), FALSE);
+	case WM_CREATE:
+		trigger_event_<events::create>(target, false, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name())));
+		return 0;
 	case WM_NCDESTROY:
 		return window_destroyed_(target, msg);
 	case WM_CLOSE:

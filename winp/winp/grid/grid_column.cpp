@@ -136,3 +136,44 @@ winp::utility::error_code winp::grid::proportional_column::set_proportion_(float
 
 	return utility::error_code::nil;
 }
+
+winp::grid::proportional_shared_column::proportional_shared_column()
+	: proportional_shared_column(app::object::get_thread()){}
+
+winp::grid::proportional_shared_column::proportional_shared_column(thread::object &thread)
+	: column(thread){}
+
+winp::grid::proportional_shared_column::proportional_shared_column(ui::tree &parent)
+	: proportional_shared_column(parent, static_cast<std::size_t>(-1)){}
+
+winp::grid::proportional_shared_column::proportional_shared_column(ui::tree &parent, std::size_t index)
+	: proportional_shared_column(parent.get_thread()){
+	set_parent(&parent, index);
+}
+
+winp::grid::proportional_shared_column::~proportional_shared_column() = default;
+
+winp::utility::error_code winp::grid::proportional_shared_column::set_proportion(float value, const std::function<void(proportional_shared_column &, utility::error_code)> &callback){
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, *this, set_proportion_(value));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
+float winp::grid::proportional_shared_column::get_proportion(const std::function<void(float)> &callback) const{
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, value_);
+	}, (callback != nullptr), 0.0f);
+}
+
+int winp::grid::proportional_shared_column::compute_fixed_width_(int shared_row_width) const{
+	return static_cast<int>(shared_row_width * value_);
+}
+
+winp::utility::error_code winp::grid::proportional_shared_column::set_proportion_(float value){
+	if (value != value_){
+		value_ = value;
+		refresh_();
+	}
+
+	return utility::error_code::nil;
+}

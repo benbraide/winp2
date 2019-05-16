@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vector>
+#include <unordered_map>
 
 #include "../non_window/custom_non_window.h"
 
@@ -75,6 +75,32 @@ namespace winp::grid{
 
 	protected:
 		virtual int compute_fixed_width_(int row_width) const override;
+
+		virtual utility::error_code set_proportion_(float value);
+
+		float value_ = 0.0f;
+	};
+
+	class proportional_shared_column : public column{
+	public:
+		proportional_shared_column();
+
+		explicit proportional_shared_column(thread::object &thread);
+
+		explicit proportional_shared_column(ui::tree &parent);
+
+		proportional_shared_column(ui::tree &parent, std::size_t index);
+
+		virtual ~proportional_shared_column();
+
+		virtual utility::error_code set_proportion(float value, const std::function<void(proportional_shared_column &, utility::error_code)> &callback = nullptr);
+
+		virtual float get_proportion(const std::function<void(float)> &callback = nullptr) const;
+
+	protected:
+		friend class row;
+
+		virtual int compute_fixed_width_(int shared_row_width) const override;
 
 		virtual utility::error_code set_proportion_(float value);
 

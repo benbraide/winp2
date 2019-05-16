@@ -37,7 +37,9 @@ winp::utility::error_code winp::menu::object::create_(){
 		MIM_STYLE,
 		MNS_NOTIFYBYPOS
 	};
+
 	SetMenuInfo(handle_, &info);
+	thread_.send_message(*this, WM_CREATE);
 
 	return utility::error_code::nil;
 }

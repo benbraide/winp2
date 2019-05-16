@@ -30,6 +30,7 @@ namespace winp::ui{
 		std::function<void(hook &)> callback_;
 		unsigned __int64 size_event_id_ = 0u;
 		unsigned __int64 tree_event_id_ = 0u;
+		unsigned __int64 creation_event_id_ = 0u;
 	};
 
 	class children_size_and_position_hook : public hook{

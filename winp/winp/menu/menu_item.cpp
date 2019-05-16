@@ -145,6 +145,7 @@ winp::utility::error_code winp::menu::item::create_(){
 		return utility::error_code::action_prevented;
 	}
 
+	thread_.send_message(*this, WM_CREATE);
 	return utility::error_code::nil;
 }
 

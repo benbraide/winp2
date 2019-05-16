@@ -16,8 +16,10 @@ namespace winp::events{
 	class create : public object_with_message{
 	public:
 		template <typename... args_types>
-		explicit create(args_types &&... args)
+		explicit create(bool is_changing, args_types &&... args)
 			: object_with_message(std::forward<args_types>(args)...){}
+
+		virtual bool is_creating() const;
 	};
 
 	class destroy : public object_with_message{

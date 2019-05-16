@@ -359,7 +359,7 @@ UINT winp::ui::surface::absolute_hit_test(int x, int y, const std::function<void
 	}, (callback != nullptr), 0u);
 }
 
-winp::ui::surface::grid_type &winp::ui::surface::get_grid(const std::function<void(const grid_type &)> &callback) const{
+winp::ui::surface::grid_type &winp::ui::surface::get_grid(const std::function<void(grid_type &)> &callback) const{
 	return *synchronized_item_compute_or_post_task_inside_thread_context([=]{
 		return &thread::item::pass_return_ref_value_to_callback(callback, grid_.get());
 	}, (callback != nullptr), grid_.get());

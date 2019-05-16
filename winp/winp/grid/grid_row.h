@@ -85,4 +85,30 @@ namespace winp::grid{
 
 		float value_ = 0.0f;
 	};
+
+	class proportional_shared_row : public row{
+	public:
+		proportional_shared_row();
+
+		explicit proportional_shared_row(thread::object &thread);
+
+		explicit proportional_shared_row(ui::tree &parent);
+
+		proportional_shared_row(ui::tree &parent, std::size_t index);
+
+		virtual ~proportional_shared_row();
+
+		virtual utility::error_code set_proportion(float value, const std::function<void(proportional_shared_row &, utility::error_code)> &callback = nullptr);
+
+		virtual float get_proportion(const std::function<void(float)> &callback = nullptr) const;
+
+	protected:
+		friend class grid::object;
+
+		virtual int compute_fixed_height_(int shared_row_height) const override;
+
+		virtual utility::error_code set_proportion_(float value);
+
+		float value_ = 0.0f;
+	};
 }

@@ -136,7 +136,7 @@ namespace winp::ui{
 
 		virtual UINT absolute_hit_test(int x, int y, const std::function<void(UINT)> &callback = nullptr) const;
 
-		virtual grid_type &get_grid(const std::function<void(const grid_type &)> &callback = nullptr) const;
+		virtual grid_type &get_grid(const std::function<void(grid_type &)> &callback = nullptr) const;
 
 		virtual bool has_grid(const std::function<void(bool)> &callback = nullptr) const;
 

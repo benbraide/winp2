@@ -28,21 +28,30 @@ winp::ui::parent_size_hook::parent_size_hook(object &target)
 }
 
 winp::ui::parent_size_hook::~parent_size_hook(){
-	if (auto parent = target_.get_parent(); parent != nullptr)
+	if (auto parent = target_.get_parent(); parent != nullptr){
 		parent->events().unbind(size_event_id_);
+		parent->events().unbind(creation_event_id_);
+	}
 
 	target_.events().unbind(tree_event_id_);
-	tree_event_id_ = 0u;
+	tree_event_id_ = size_event_id_ = creation_event_id_ = 0u;
 }
 
 void winp::ui::parent_size_hook::bind_size_event_(tree *parent, tree *previous_parent){
-	if (previous_parent != nullptr)
+	if (previous_parent != nullptr){
 		previous_parent->events().unbind(size_event_id_);
+		previous_parent->events().unbind(creation_event_id_);
+		size_event_id_ = creation_event_id_ = 0u;
+	}
 
-	size_event_id_ = 0u;
-	if (parent != nullptr){
+	if (parent != nullptr && size_event_id_ == 0u){
 		size_event_id_ = parent->events().bind([this](events::position_change &e){
 			if (callback_ != nullptr && !e.is_changing() && (reinterpret_cast<WINDOWPOS *>(e.get_message().lParam)->flags & SWP_NOSIZE) == 0u)
+				callback_(*this);
+		});
+
+		creation_event_id_ = parent->events().bind([this](events::create &e){
+			if (callback_ != nullptr && !e.is_creating())
 				callback_(*this);
 		});
 	}

@@ -66,7 +66,7 @@ winp::utility::error_code winp::grid::object::refresh_(){
 		return utility::error_code::nil;
 
 	row *row_child = nullptr;
-	std::vector<int> fixed_heights(children_.size(), 0);
+	std::unordered_map<int, int> fixed_heights;
 	int fixed_height = 0, shared_count = 0, child_index = 0;
 
 	is_updating_ = true;
@@ -83,22 +83,30 @@ winp::utility::error_code winp::grid::object::refresh_(){
 	}
 
 	child_index = 0;
-	int shared_height = (((size_.cy - fixed_height) < 0) ? 0 : (size_.cy - fixed_height)), height = 0, y = 0, used_shared_height = 0, updated_shared_count = 0;
+	int shared_height = ((size_.cy < fixed_height) ? 0 : (size_.cy - fixed_height)), height = 0, y = 0, used_shared_height = 0, updated_shared_count = 0;
 
+	for (auto child : children_){
+		if (auto ps_row_child = dynamic_cast<proportional_shared_row *>(child); ps_row_child != nullptr){
+			shared_height -= (fixed_heights[child_index] = ps_row_child->compute_fixed_height_(shared_height));
+			--shared_count;
+		}
+
+		++child_index;
+	}
+
+	child_index = 0;
 	for (auto child : children_){//Update rows
 		if ((row_child = dynamic_cast<row *>(child)) == nullptr)
 			continue;
 
-		if (row_child->is_fixed_())
+		if (fixed_heights.find(child_index) != fixed_heights.end())
 			height = fixed_heights[child_index];
 		else if (++updated_shared_count == shared_count)
 			height = (shared_height - used_shared_height);
 		else if (0 < shared_count)//Shared
-			height = (shared_height / shared_count);
+			used_shared_height += (height = (shared_height / shared_count));
 
 		row_child->update_(0, y, size_.cx, height);
-		used_shared_height += height;
-
 		y += height;
 		++child_index;
 	}

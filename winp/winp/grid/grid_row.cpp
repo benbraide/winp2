@@ -77,7 +77,7 @@ void winp::grid::row::update_(int x, int y, int width, int height){
 	}
 
 	column *column_child = nullptr;
-	std::vector<int> fixed_widths(children_.size(), 0);
+	std::unordered_map<int, int> fixed_widths;
 
 	int fixed_width = 0, shared_count = 0, child_index = 0;
 	for (auto child : children_){//Compute fixed width
@@ -93,23 +93,32 @@ void winp::grid::row::update_(int x, int y, int width, int height){
 	}
 
 	child_index = 0;
-	int shared_width = (((size_.cx - fixed_width) < 0) ? 0 : (size_.cx - fixed_width)), used_shared_width = 0, updated_shared_count = 0;
+	int shared_width = ((size_.cx < fixed_width) ? 0 : (size_.cx - fixed_width)), used_shared_width = 0, updated_shared_count = 0;
+
+	for (auto child : children_){
+		if (auto ps_column_child = dynamic_cast<proportional_shared_column *>(child); ps_column_child != nullptr){
+			shared_width -= (fixed_widths[child_index] = ps_column_child->compute_fixed_width_(shared_width));
+			--shared_count;
+		}
+
+		++child_index;
+	}
 
 	x = 0;
+	child_index = 0;
+	
 	for (auto child : children_){//Update columns
 		if ((column_child = dynamic_cast<column *>(child)) == nullptr)
 			continue;
 
-		if (column_child->is_fixed_())
+		if (fixed_widths.find(child_index) != fixed_widths.end())
 			width = fixed_widths[child_index];
 		else if (++updated_shared_count == shared_count)
 			width = (shared_width - used_shared_width);
 		else if (0 < shared_count)//Shared
-			width = (shared_width / shared_count);
+			used_shared_width += (width = (shared_width / shared_count));
 
 		column_child->update_(x, 0, width, size_.cy);
-		used_shared_width += width;
-
 		x += width;
 		++child_index;
 	}
@@ -189,6 +198,47 @@ int winp::grid::proportional_row::compute_fixed_height_(int grid_height) const{
 
 winp::utility::error_code winp::grid::proportional_row::set_proportion_(float value){
 	if (value == value_){
+		value_ = value;
+		refresh_();
+	}
+
+	return utility::error_code::nil;
+}
+
+winp::grid::proportional_shared_row::proportional_shared_row()
+	: proportional_shared_row(app::object::get_thread()){}
+
+winp::grid::proportional_shared_row::proportional_shared_row(thread::object &thread)
+	: row(thread){}
+
+winp::grid::proportional_shared_row::proportional_shared_row(ui::tree &parent)
+	: proportional_shared_row(parent, static_cast<std::size_t>(-1)){}
+
+winp::grid::proportional_shared_row::proportional_shared_row(ui::tree &parent, std::size_t index)
+	: proportional_shared_row(parent.get_thread()){
+	set_parent(&parent, index);
+}
+
+winp::grid::proportional_shared_row::~proportional_shared_row() = default;
+
+winp::utility::error_code winp::grid::proportional_shared_row::set_proportion(float value, const std::function<void(proportional_shared_row &, utility::error_code)> &callback){
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, *this, set_proportion_(value));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
+float winp::grid::proportional_shared_row::get_proportion(const std::function<void(float)> &callback) const{
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, value_);
+	}, (callback != nullptr), 0.0f);
+}
+
+int winp::grid::proportional_shared_row::compute_fixed_height_(int shared_row_height) const{
+	return static_cast<int>(shared_row_height * value_);
+}
+
+winp::utility::error_code winp::grid::proportional_shared_row::set_proportion_(float value){
+	if (value != value_){
 		value_ = value;
 		refresh_();
 	}
