@@ -116,6 +116,16 @@ namespace winp::thread{
 			events_manager_.add_change_handler_<event_type, others...>(handler);
 		}
 
+		template <typename event_type, typename... others>
+		void set_event_state_(unsigned int state, bool combine = true){
+			events_manager_.set_state_<event_type, others...>(state, combine);
+		}
+
+		template <typename event_type, typename... others>
+		void remove_event_state_(unsigned int state){
+			events_manager_.remove_state_<event_type, others...>(state);
+		}
+
 		template <typename handler_type>
 		unsigned __int64 add_event_handler_(const handler_type &handler){
 			return event_handlers_.bind(handler);

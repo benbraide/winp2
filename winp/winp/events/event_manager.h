@@ -62,7 +62,7 @@ namespace winp::events{
 
 		using list_type = std::list<handler_info>;
 		using key_type = unsigned __int64;
-		using map_type = std::unordered_map<key_type, list_type>;
+		using map_type = std::unordered_map<key_type, std::pair<list_type, unsigned int>>;
 
 		using change_callback_type = std::function<void(manager &, key_type, std::size_t, std::size_t)>;
 		using change_map_type = std::unordered_map<key_type, std::list<change_callback_type>>;
@@ -154,8 +154,17 @@ namespace winp::events{
 		std::size_t get_bound_count() const{
 			return owner_.compute_task_inside_thread_context([&]{
 				if (auto it = handlers_.find(get_key<object_type>()); it != handlers_.end())
-					return it->second.size();
+					return it->second.first.size();
 				return static_cast<std::size_t>(0);
+			});
+		}
+
+		template <typename object_type>
+		unsigned int get_states() const{
+			return owner_.compute_task_inside_thread_context([&]{
+				if (auto it = handlers_.find(get_key<object_type>()); it != handlers_.end())
+					return it->second.second;
+				return state_nil;
 			});
 		}
 
@@ -172,6 +181,10 @@ namespace winp::events{
 			return get_key(typeid(object_type));
 		}
 
+		static constexpr unsigned int state_nil							= (0u << 0x0000);
+		static constexpr unsigned int state_disable_bounding			= (1u << 0x0000);
+		static constexpr unsigned int state_disable_triggering			= (1u << 0x0001);
+
 	private:
 		friend owner_type;
 		
@@ -185,7 +198,10 @@ namespace winp::events{
 			auto key = get_key<object_type>();
 
 			auto &handler_list = handlers_[key];
-			handler_list.push_back(handler_info{
+			if ((handler_list.second & state_disable_bounding) != 0u)
+				return 0u;//Bounding disabled
+
+			handler_list.first.push_back(handler_info{
 				id,
 				handler_object
 			});
@@ -193,11 +209,11 @@ namespace winp::events{
 			++count_;
 			if (auto it = change_handlers_.find(key); it != change_handlers_.end()){//Call handlers
 				for (auto &handler : it->second)
-					handler(*this, key, handler_list.size(), (handler_list.size() - 1u));
+					handler(*this, key, handler_list.first.size(), (handler_list.first.size() - 1u));
 			}
 
 			for (auto &handler : general_change_handlers_)
-				handler(*this, key, handler_list.size(), (handler_list.size() - 1u));
+				handler(*this, key, handler_list.first.size(), (handler_list.first.size() - 1u));
 
 			return id;
 		}
@@ -214,20 +230,20 @@ namespace winp::events{
 				return;
 
 			for (auto &info : handlers_){
-				for (auto it = info.second.begin(); it != info.second.end(); ++it){
+				for (auto it = info.second.first.begin(); it != info.second.first.end(); ++it){
 					if (it->id != id)
 						continue;
 
-					info.second.erase(it);
+					info.second.first.erase(it);
 					--count_;
 
 					if (auto it = change_handlers_.find(info.first); it != change_handlers_.end()){//Call handlers
 						for (auto &handler : it->second)
-							handler(*this, info.first, info.second.size(), (info.second.size() + 1u));
+							handler(*this, info.first, info.second.first.size(), (info.second.first.size() + 1u));
 					}
 
 					for (auto &handler : general_change_handlers_)
-						handler(*this, info.first, info.second.size(), (info.second.size() + 1u));
+						handler(*this, info.first, info.second.first.size(), (info.second.first.size() + 1u));
 
 					return;
 				}
@@ -239,7 +255,10 @@ namespace winp::events{
 				return;
 
 			if (auto it = handlers_.find(get_key(e)); it != handlers_.end()){
-				for (auto &handler_info : it->second){
+				if ((it->second.second & state_disable_triggering) != 0u)
+					return;//Triggering disabled
+
+				for (auto &handler_info : it->second.first){
 					handler_info.handler->call(e);
 					if ((e.get_states() & object::state_propagation_stopped) != 0u)
 						break;//Propagation stopped
@@ -260,6 +279,41 @@ namespace winp::events{
 		void add_change_handler_(const change_callback_type &handler){
 			add_change_handler_<first_object_type>(handler);
 			add_change_handler_<second_object_type, other_object_types...>(handler);
+		}
+
+		template <typename object_type>
+		void set_state_(unsigned int state, bool combine){
+			if (auto it = handlers_.find(get_key<object_type>()); it != handlers_.end()){
+				if (combine)
+					it->second.second |= state;
+				else//Replace
+					it->second.second = state;
+			}
+		}
+
+		template <typename first_object_type, typename second_object_type, typename... other_object_types>
+		void set_state_(unsigned int state, bool combine){
+			set_state_<first_object_type>(state, combine);
+			set_state_<second_object_type, other_object_types...>(state, combine);
+		}
+
+		template <typename object_type>
+		void remove_state_(unsigned int state){
+			if (auto it = handlers_.find(get_key<object_type>()); it != handlers_.end())
+				it->second.second &= ~state;
+		}
+
+		template <typename first_object_type, typename second_object_type, typename... other_object_types>
+		void remove_state_(unsigned int state){
+			remove_state_<first_object_type>(state);
+			remove_state_<second_object_type, other_object_types...>(state);
+		}
+
+		template <typename object_type>
+		unsigned int get_states_() const{
+			if (auto it = handlers_.find(get_key<object_type>()); it != handlers_.end())
+				return it->second.second;
+			return state_nil;
 		}
 
 		m_owner_type &owner_;
