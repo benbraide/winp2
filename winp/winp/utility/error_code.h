@@ -6,6 +6,7 @@ namespace winp::utility{
 		not_supported,
 		action_prevented,
 		action_could_not_be_completed,
+		object_destructed,
 		object_not_created,
 		parent_not_created,
 		invalid_parent,

@@ -40,6 +40,9 @@ winp::utility::error_code winp::ui::non_window_surface::create_(){
 	if (is_created_())
 		return utility::error_code::nil;
 
+	if (is_destructed_)
+		return utility::error_code::object_destructed;
+
 	if (parent_ != nullptr)
 		parent_->auto_create();
 

@@ -84,6 +84,9 @@ winp::utility::error_code winp::control::tool_tip_item::create_(){
 	if (handle_ != nullptr)
 		return utility::error_code::nil;
 
+	if (is_destructed_)
+		return utility::error_code::object_destructed;
+
 	auto tool_tip_parent = dynamic_cast<tool_tip *>(parent_);
 	if (tool_tip_parent == nullptr || !tool_tip_parent->is_created())
 		return utility::error_code::parent_not_created;

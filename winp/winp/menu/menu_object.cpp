@@ -24,6 +24,9 @@ winp::utility::error_code winp::menu::object::create_(){
 	if (handle_ != nullptr)
 		return utility::error_code::nil;
 
+	if (is_destructed_)
+		return utility::error_code::object_destructed;
+
 	if ((handle_ = create_handle_()) == nullptr)
 		return utility::error_code::action_could_not_be_completed;
 

@@ -335,6 +335,25 @@ void winp::thread::object::animate_(const std::chrono::time_point<std::chrono::s
 	});
 }
 
+void winp::thread::object::begin_draw_(){
+	if (++begin_draw_count_ == 1u){
+		if (auto render_target = get_device_render_target(); render_target != nullptr)
+			render_target->BeginDraw();
+	}
+}
+
+void winp::thread::object::end_draw_(){
+	if (0u < begin_draw_count_ && --begin_draw_count_ == 0u && device_render_target_ != nullptr){
+		switch (device_render_target_->EndDraw()){
+		case D2DERR_RECREATE_TARGET:
+			discard_d2d_resources();
+			break;
+		default:
+			break;
+		}
+	}
+}
+
 void winp::thread::object::initialize_dpi_scale_(){
 	if (draw_factory_ == nullptr)
 		D2D1CreateFactory(D2D1_FACTORY_TYPE::D2D1_FACTORY_TYPE_SINGLE_THREADED, &draw_factory_);

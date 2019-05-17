@@ -127,6 +127,9 @@ winp::utility::error_code winp::menu::item::create_(){
 	if (handle_ != nullptr)
 		return utility::error_code::nil;
 
+	if (is_destructed_)
+		return utility::error_code::object_destructed;
+
 	if (parent_ != nullptr && parent_->auto_create() != utility::error_code::nil)
 		return utility::error_code::parent_not_created;
 

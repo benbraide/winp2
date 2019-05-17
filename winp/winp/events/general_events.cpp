@@ -225,7 +225,7 @@ winp::utility::error_code winp::events::draw::begin(){
 
 	render_target_->BindDC(info_.hdc, &window_client_rect);
 	render_target_->SetTransform(D2D1::IdentityMatrix());
-	render_target_->BeginDraw();
+	target_.get_thread().begin_draw_();
 
 	return utility::error_code::nil;
 }
@@ -237,19 +237,7 @@ winp::utility::error_code winp::events::draw::end(){
 	if (render_target_ == nullptr)
 		return utility::error_code::nil;
 
-	auto error_code = utility::error_code::nil;
-	switch (render_target_->EndDraw()){
-	case D2DERR_RECREATE_TARGET:
-		target_.get_thread().discard_d2d_resources();
-		error_code = utility::error_code::action_could_not_be_completed;
-		break;
-	case S_OK:
-		break;
-	default:
-		error_code = utility::error_code::action_could_not_be_completed;
-		break;
-	}
-
+	target_.get_thread().end_draw_();
 	RestoreDC(info_.hdc, -1);
 	end_();
 
@@ -257,7 +245,7 @@ winp::utility::error_code winp::events::draw::end(){
 	color_brush_ = nullptr;
 	info_ = PAINTSTRUCT{};
 
-	return error_code;
+	return utility::error_code::nil;
 }
 
 ID2D1RenderTarget *winp::events::draw::get_render_target() const{

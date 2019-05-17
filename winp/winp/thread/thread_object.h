@@ -138,6 +138,7 @@ namespace winp::thread{
 
 		friend class app::object;
 		friend class events::object;
+		friend class events::draw;
 
 		explicit object();
 
@@ -154,6 +155,10 @@ namespace winp::thread{
 		void animate_(const std::function<float(float)> &timing, const std::function<bool(float, bool)> &callback, const std::chrono::nanoseconds &duration);
 
 		void animate_(const std::chrono::time_point<std::chrono::steady_clock> &start, const std::function<float(float)> &timing, const std::function<bool(float, bool)> &callback, const std::chrono::nanoseconds &duration);
+
+		void begin_draw_();
+
+		void end_draw_();
 
 		void initialize_dpi_scale_();
 
@@ -181,6 +186,7 @@ namespace winp::thread{
 		DWORD control_ids_ = 0;
 		mutable std::unordered_map<std::wstring, WNDPROC> class_info_map_;
 
+		unsigned int begin_draw_count_ = 0u;
 		events::object *current_event_ = nullptr;
 		D2D1_POINT_2F dpi_scale_{};
 	};
