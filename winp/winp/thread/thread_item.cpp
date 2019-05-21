@@ -105,13 +105,45 @@ winp::utility::error_code winp::thread::item::destruct_(){
 	return utility::error_code::nil;
 }
 
-void winp::thread::item::trigger_event_handler_(events::object &e) const{
-	e.states_ |= events::object::state_default_done;
-	event_handlers_.trigger_(e);
+bool winp::thread::item::event_is_supported_(event_manager_type::key_type key) const{
+	return true;
 }
 
-void winp::thread::item::trigger_event_(events::object &e) const{
-	events_manager_.trigger_(e);
+bool winp::thread::item::adding_event_handler_(event_manager_type &manager, event_manager_type::key_type key) const{
+	return true;
+}
+
+void winp::thread::item::added_event_handler_(event_manager_type &manager, event_manager_type::key_type key, unsigned __int64 id) const{
+	std::chrono::milliseconds duration;
+	if (key == event_manager_type::get_key<events::timer>())
+		duration = std::chrono::milliseconds(trigger_single_event_<events::timer>(id, true).second);
+	else if (key == event_manager_type::get_key<events::interval>())
+		duration = std::chrono::milliseconds(trigger_single_event_<events::interval>(id, true).second);
+	else
+		return;
+
+	thread_.add_timer_(duration, [=]{
+		if (key == event_manager_type::get_key<events::timer>()){
+			trigger_single_event_<events::timer>(id, false);
+			thread_.remove_timer_(id);
+		}
+		else
+			trigger_single_event_<events::interval>(id, false);
+	}, id);
+}
+
+void winp::thread::item::removed_event_handler_(event_manager_type &manager, event_manager_type::key_type key, unsigned __int64 id) const{
+	if (key == event_manager_type::get_key<events::timer>() || key == event_manager_type::get_key<events::interval>())
+		thread_.remove_timer_(id);
+}
+
+void winp::thread::item::trigger_event_handler_(events::object &e) const{
+	e.states_ |= events::object::state_default_done;
+	event_handlers_.trigger_(e, 0u);
+}
+
+void winp::thread::item::trigger_event_(events::object &e, unsigned __int64 id) const{
+	events_manager_.trigger_(e, id);
 	e.do_default();
 }
 

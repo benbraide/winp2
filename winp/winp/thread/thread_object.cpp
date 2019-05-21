@@ -287,6 +287,14 @@ void winp::thread::object::remove_item_(unsigned __int64 id){
 		items_.erase(id);
 }
 
+void winp::thread::object::add_timer_(const std::chrono::milliseconds &duration, const std::function<void()> &callback, unsigned __int64 id){
+	item_manager_.add_timer_(duration, callback, id);
+}
+
+void winp::thread::object::remove_timer_(unsigned __int64 id){
+	item_manager_.remove_timer_(id);
+}
+
 WNDPROC winp::thread::object::get_class_entry_(const std::wstring &class_name) const{
 	if (&class_name == &app::object::get_class_name())
 		return DefWindowProcW;

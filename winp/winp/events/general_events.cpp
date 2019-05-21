@@ -579,3 +579,15 @@ bool winp::events::enable::is_enabled() const{
 		throw utility::error_code::outside_thread_context;
 	return (original_message_.wParam != FALSE);
 }
+
+bool winp::events::timer::needs_duration() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return needs_duration_;
+}
+
+bool winp::events::interval::needs_duration() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return needs_duration_;
+}

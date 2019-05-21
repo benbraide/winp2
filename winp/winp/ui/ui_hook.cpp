@@ -2,6 +2,10 @@
 
 #include "ui_window_surface.h"
 
+std::size_t winp::ui::hook::get_max_allowed() const{
+	return 0u;
+}
+
 winp::ui::parent_size_hook::parent_size_hook(object &target, const std::function<void(hook &)> &callback)
 	: parent_size_hook(target){
 	callback_ = callback;

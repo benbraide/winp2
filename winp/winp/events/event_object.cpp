@@ -77,6 +77,13 @@ void winp::events::object::stop_propagation(){
 		throw utility::error_code::outside_thread_context;
 }
 
+void winp::events::object::unbind_on_exit(){
+	if (target_.get_thread().is_thread_context())
+		states_ |= state_unbind_on_exit;
+	else
+		throw utility::error_code::outside_thread_context;
+}
+
 unsigned int winp::events::object::get_states() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;

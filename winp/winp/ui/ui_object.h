@@ -104,9 +104,20 @@ namespace winp::ui{
 		}
 
 		template <typename hook_type, typename... args_types>
-		hook_type &insert_hook(args_types &&... args){
-			return *compute_task_inside_thread_context([&]{
+		hook_type *insert_hook(args_types &&... args){
+			return compute_task_inside_thread_context([&]() -> hook_type *{
 				auto hook = std::make_shared<hook_type>(*this, std::forward<args_types>(args)...);
+				if (hook == nullptr)//Failed to create object
+					return nullptr;
+
+				if (auto max_allowed = hook->get_max_allowed(); max_allowed != 0u && !hooks_.empty()){
+					std::size_t count = 0u;
+					for (auto &entry : hooks_){
+						if (dynamic_cast<hook_type *>(entry.first) != nullptr && max_allowed <= ++count)
+							return nullptr;//Max allowed reached
+					}
+				}
+
 				hooks_[hook.get()] = hook;
 				return hook.get();
 			});

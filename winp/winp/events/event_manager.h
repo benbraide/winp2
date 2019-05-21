@@ -128,6 +128,13 @@ namespace winp::events{
 			return owner_;
 		}
 		
+		template <typename object_type>
+		bool is_supported() const{
+			return owner_.compute_task_inside_thread_context([&]{
+				return owner_.event_is_supported_(get_key<object_type>());
+			});
+		}
+
 		template <typename handler_type>
 		unsigned __int64 bind(const handler_type &handler){
 			return owner_.compute_task_inside_thread_context([&]{
@@ -181,6 +188,11 @@ namespace winp::events{
 			return get_key(typeid(object_type));
 		}
 
+		template <typename object_type, typename... others>
+		static bool is_equal_key(key_type key){
+			return is_equal_key_<object_type, others...>(key);
+		}
+
 		static constexpr unsigned int state_nil							= (0u << 0x0000);
 		static constexpr unsigned int state_disable_bounding			= (1u << 0x0000);
 		static constexpr unsigned int state_disable_triggering			= (1u << 0x0001);
@@ -190,14 +202,17 @@ namespace winp::events{
 		
 		template <typename return_type, typename object_type>
 		unsigned __int64 bind_(const std::function<return_type(object_type &)> &handler){
+			auto key = get_key<object_type>();
+			if (!owner_.adding_event_handler_(*this, key))
+				return 0u;//Rejected
+
 			auto handler_object = std::make_shared<events::handler<object_type &, return_type>>(handler);
 			if (handler_object == nullptr)
 				return 0u;
 
 			auto id = reinterpret_cast<unsigned __int64>(handler_object.get());
-			auto key = get_key<object_type>();
-
 			auto &handler_list = handlers_[key];
+
 			if ((handler_list.second & state_disable_bounding) != 0u)
 				return 0u;//Bounding disabled
 
@@ -207,6 +222,8 @@ namespace winp::events{
 			});
 
 			++count_;
+			owner_.added_event_handler_(*this, key, id);
+
 			if (auto it = change_handlers_.find(key); it != change_handlers_.end()){//Call handlers
 				for (auto &handler : it->second)
 					handler(*this, key, handler_list.first.size(), (handler_list.first.size() - 1u));
@@ -226,7 +243,7 @@ namespace winp::events{
 		}
 
 		void unbind_(unsigned __int64 id){
-			if (count_ == 0u)
+			if (count_ == 0u || handlers_.empty())
 				return;
 
 			for (auto &info : handlers_){
@@ -234,8 +251,11 @@ namespace winp::events{
 					if (it->id != id)
 						continue;
 
+					auto key = get_key(*it->handler->get_type_info());
 					info.second.first.erase(it);
+
 					--count_;
+					owner_.removed_event_handler_(*this, key, id);
 
 					if (auto it = change_handlers_.find(info.first); it != change_handlers_.end()){//Call handlers
 						for (auto &handler : it->second)
@@ -250,20 +270,37 @@ namespace winp::events{
 			}
 		}
 
-		void trigger_(object &e) const{
-			if (count_ == 0u)
+		void trigger_(object &e, unsigned __int64 id) const{
+			if (count_ == 0u || handlers_.empty())
 				return;
 
-			if (auto it = handlers_.find(get_key(e)); it != handlers_.end()){
-				if ((it->second.second & state_disable_triggering) != 0u)
-					return;//Triggering disabled
+			auto it = handlers_.find(get_key(e));
+			if (it == handlers_.end())
+				return;
 
-				for (auto &handler_info : it->second.first){
-					handler_info.handler->call(e);
-					if ((e.get_states() & object::state_propagation_stopped) != 0u)
-						break;//Propagation stopped
+			if ((it->second.second & state_disable_triggering) != 0u)
+				return;//Triggering disabled
+
+			std::size_t index = 0u;
+			std::list<std::size_t> unbind_list;
+
+			for (auto &handler_info : it->second.first){
+				if (id != 0u && handler_info.id != id)
+					continue;
+
+				handler_info.handler->call(e);
+				if ((e.states_ & object::state_unbind_on_exit) != 0u){//Unbind
+					unbind_list.push_back(index);
+					e.states_ &= ~object::state_unbind_on_exit;
 				}
+
+				++index;
+				if (id != 0u || (e.states_ & object::state_propagation_stopped) != 0u)
+					break;//Propagation stopped
 			}
+
+			for (auto unbind_item : unbind_list)
+				it->second.first.erase(std::next(it->second.first.begin(), unbind_item));
 		}
 
 		void add_change_handler_(const change_callback_type &handler){
@@ -316,10 +353,20 @@ namespace winp::events{
 			return state_nil;
 		}
 
+		template <typename object_type>
+		static bool is_equal_key_(key_type key){
+			return (get_key<object_type>() == key);
+		}
+
+		template <typename first_object_type, typename second_object_type, typename... others>
+		static bool is_equal_key_(key_type key){
+			return (is_equal_key_<first_object_type>(key) || is_equal_key_<second_object_type, others...>(key));
+		}
+
 		m_owner_type &owner_;
 		std::size_t count_ = 0u;
 
-		map_type handlers_;
+		mutable map_type handlers_;
 		change_map_type change_handlers_;
 		general_change_list_type general_change_handlers_;
 	};

@@ -87,6 +87,10 @@ namespace winp::thread{
 
 		explicit item_manager(object &thread, DWORD thread_id);
 
+		void add_timer_(const std::chrono::milliseconds &duration, const std::function<void()> &callback, unsigned __int64 id);
+
+		void remove_timer_(unsigned __int64 id);
+
 		ui::window_surface *find_window_(HWND handle, bool cache) const;
 
 		menu::item *find_menu_item_(menu::object &menu, UINT id) const;
@@ -187,11 +191,14 @@ namespace winp::thread{
 
 		static LRESULT CALLBACK hook_entry_(int code, WPARAM wparam, LPARAM lparam);
 
+		static void CALLBACK timer_entry_(HWND handle, UINT message, UINT_PTR id, DWORD time);
+
 		object &thread_;
 		HHOOK hook_handle_ = nullptr;
 
 		std::unordered_map<HMENU, menu::object *> menus_;
 		std::unordered_map<HMENU, menu_items_map_type> menu_items_;
+		std::unordered_map<unsigned __int64, std::function<void()>> timers_;
 
 		std::unordered_map<HWND, ui::window_surface *> windows_;
 		std::unordered_map<HWND, ui::window_surface *> top_level_windows_;

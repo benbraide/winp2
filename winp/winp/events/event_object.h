@@ -24,6 +24,9 @@ namespace winp::menu{
 }
 
 namespace winp::events{
+	template <class owner_type>
+	class manager;
+
 	class object{
 	public:
 		explicit object(thread::item &target, const std::function<void(object &)> &default_handler = nullptr);
@@ -81,6 +84,8 @@ namespace winp::events{
 
 		virtual void stop_propagation();
 
+		virtual void unbind_on_exit();
+
 		virtual unsigned int get_states() const;
 
 		virtual bool is_thread_context() const;
@@ -92,9 +97,11 @@ namespace winp::events{
 		static constexpr unsigned int state_default_done				= (1u << 0x0003);
 		static constexpr unsigned int state_result_set					= (1u << 0x0004);
 		static constexpr unsigned int state_default_result_set			= (1u << 0x0005);
+		static constexpr unsigned int state_unbind_on_exit				= (1u << 0x0006);
 
 	protected:
 		friend class thread::item;
+		template <class> friend class manager;
 
 		template <typename result_type>
 		void set_result_(const result_type &result){

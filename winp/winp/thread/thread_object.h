@@ -146,6 +146,10 @@ namespace winp::thread{
 
 		void remove_item_(unsigned __int64 id);
 
+		void add_timer_(const std::chrono::milliseconds &duration, const std::function<void()> &callback, unsigned __int64 id);
+
+		void remove_timer_(unsigned __int64 id);
+
 		WNDPROC get_class_entry_(const std::wstring &class_name) const;
 
 		unsigned __int64 request_animation_frame_(const animation_frame_callback_type &callback);

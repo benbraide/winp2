@@ -175,6 +175,21 @@ void winp::thread::item_manager::remove_generated_item_id(menu::item &target){
 		it->second.erase(target.get_id());
 }
 
+void winp::thread::item_manager::add_timer_(const std::chrono::milliseconds &duration, const std::function<void()> &callback, unsigned __int64 id){
+	timers_[id] = callback;
+	SetTimer(thread_.message_hwnd_, static_cast<UINT_PTR>(id), static_cast<UINT>(duration.count()), timer_entry_);
+}
+
+void winp::thread::item_manager::remove_timer_(unsigned __int64 id){
+	if (timers_.empty())
+		return;
+
+	if (auto it = timers_.find(id); it != timers_.end()){
+		KillTimer(thread_.message_hwnd_, static_cast<UINT_PTR>(id));
+		timers_.erase(it);
+	}
+}
+
 winp::ui::window_surface *winp::thread::item_manager::find_window_(HWND handle, bool cache) const{
 	if (windows_.empty())
 		return nullptr;
@@ -871,4 +886,17 @@ LRESULT CALLBACK winp::thread::item_manager::hook_entry_(int code, WPARAM wparam
 		SetWindowLongPtrW(manager.window_cache_.handle, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(entry_));//Subclass window
 
 	return CallNextHookEx(nullptr, code, wparam, lparam);
+}
+
+void CALLBACK winp::thread::item_manager::timer_entry_(HWND handle, UINT message, UINT_PTR id, DWORD time){
+	auto current_thread = app::object::get_current_thread();
+	if (current_thread == nullptr)
+		return;
+
+	auto &manager = current_thread->get_item_manager();
+	if (manager.timers_.empty())
+		return;
+
+	if (auto it = manager.timers_.find(static_cast<unsigned __int64>(id)); it != manager.timers_.end())
+		it->second();//Call handler
 }

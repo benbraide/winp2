@@ -11,6 +11,8 @@ namespace winp::ui{
 	class hook{
 	public:
 		virtual ~hook() = default;
+
+		virtual std::size_t get_max_allowed() const;
 	};
 
 	class parent_size_hook : public hook{

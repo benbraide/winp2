@@ -59,7 +59,7 @@ namespace winp::events{
 		virtual HRGN get_handle() const;
 
 	protected:
-		HRGN handle_ = nullptr;
+		HRGN handle_;
 	};
 
 	class destroy_non_window_handle : public object{
@@ -71,7 +71,7 @@ namespace winp::events{
 		virtual HRGN get_handle() const;
 
 	protected:
-		HRGN handle_ = nullptr;
+		HRGN handle_;
 	};
 
 	class index_change : public object{
@@ -379,5 +379,29 @@ namespace winp::events{
 			: object_with_message(std::forward<args_types>(args)...){}
 
 		virtual bool is_enabled() const;
+	};
+
+	class timer : public object{
+	public:
+		template <typename... args_types>
+		explicit timer(bool needs_duration, args_types &&... args)
+			: object(std::forward<args_types>(args)...), needs_duration_(needs_duration){}
+
+		virtual bool needs_duration() const;
+
+	protected:
+		bool needs_duration_;
+	};
+
+	class interval : public object{
+	public:
+		template <typename... args_types>
+		explicit interval(bool needs_duration, args_types &&... args)
+			: object(std::forward<args_types>(args)...), needs_duration_(needs_duration){}
+
+		virtual bool needs_duration() const;
+
+	protected:
+		bool needs_duration_;
 	};
 }
