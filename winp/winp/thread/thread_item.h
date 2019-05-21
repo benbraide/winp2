@@ -117,11 +117,6 @@ namespace winp::thread{
 		virtual bool event_is_supported_(event_manager_type::key_type key) const;
 
 		template <typename event_type, typename... others>
-		void add_event_change_handler_(const std::function<void(std::size_t, std::size_t)> &handler){
-			events_manager_.add_change_handler_<event_type, others...>(handler);
-		}
-
-		template <typename event_type, typename... others>
 		void set_event_state_(unsigned int state, bool combine = true){
 			events_manager_.set_state_<event_type, others...>(state, combine);
 		}

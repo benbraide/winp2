@@ -60,13 +60,9 @@ namespace winp::events{
 			std::shared_ptr<handler_base> handler;
 		};
 
-		using list_type = std::list<handler_info>;
 		using key_type = unsigned __int64;
-		using map_type = std::unordered_map<key_type, std::pair<list_type, unsigned int>>;
-
-		using change_callback_type = std::function<void(manager &, key_type, std::size_t, std::size_t)>;
-		using change_map_type = std::unordered_map<key_type, std::list<change_callback_type>>;
-		using general_change_list_type = std::list<change_callback_type>;
+		using handler_list_type = std::list<handler_info>;
+		using map_type = std::unordered_map<key_type, std::pair<handler_list_type, unsigned int>>;
 
 		template <class return_type, class object_type, std::size_t>
 		struct bind_helper;
@@ -224,13 +220,8 @@ namespace winp::events{
 			++count_;
 			owner_.added_event_handler_(*this, key, id);
 
-			if (auto it = change_handlers_.find(key); it != change_handlers_.end()){//Call handlers
-				for (auto &handler : it->second)
-					handler(*this, key, handler_list.first.size(), (handler_list.first.size() - 1u));
-			}
-
-			for (auto &handler : general_change_handlers_)
-				handler(*this, key, handler_list.first.size(), (handler_list.first.size() - 1u));
+			activity e(key, (handler_list.first.size() - 1u), handler_list.first.size(), owner_);
+			trigger_(e, 0u);
 
 			return id;
 		}
@@ -257,13 +248,8 @@ namespace winp::events{
 					--count_;
 					owner_.removed_event_handler_(*this, key, id);
 
-					if (auto it = change_handlers_.find(info.first); it != change_handlers_.end()){//Call handlers
-						for (auto &handler : it->second)
-							handler(*this, info.first, info.second.first.size(), (info.second.first.size() + 1u));
-					}
-
-					for (auto &handler : general_change_handlers_)
-						handler(*this, info.first, info.second.first.size(), (info.second.first.size() + 1u));
+					activity e(key, (info.second.first.size() + 1u), info.second.first.size(), owner_);
+					trigger_(e, 0u);
 
 					return;
 				}
@@ -301,21 +287,6 @@ namespace winp::events{
 
 			for (auto unbind_item : unbind_list)
 				it->second.first.erase(std::next(it->second.first.begin(), unbind_item));
-		}
-
-		void add_change_handler_(const change_callback_type &handler){
-			general_change_handlers_.push_back(handler);
-		}
-
-		template <typename object_type>
-		void add_change_handler_(const change_callback_type &handler){
-			change_handlers_[get_key<object_type>()].push_back(handler);
-		}
-
-		template <typename first_object_type, typename second_object_type, typename... other_object_types>
-		void add_change_handler_(const change_callback_type &handler){
-			add_change_handler_<first_object_type>(handler);
-			add_change_handler_<second_object_type, other_object_types...>(handler);
 		}
 
 		template <typename object_type>
@@ -365,9 +336,6 @@ namespace winp::events{
 
 		m_owner_type &owner_;
 		std::size_t count_ = 0u;
-
 		mutable map_type handlers_;
-		change_map_type change_handlers_;
-		general_change_list_type general_change_handlers_;
 	};
 }

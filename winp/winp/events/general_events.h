@@ -13,6 +13,24 @@ namespace winp::events{
 			: object_with_message(std::forward<args_types>(args)...){}
 	};
 
+	class activity : public object{
+	public:
+		template <typename... args_types>
+		explicit activity(unsigned __int64 key, std::size_t previous_count, std::size_t current_count, args_types &&... args)
+			: object(std::forward<args_types>(args)...), key_(key), previous_count_(previous_count), current_count_(current_count){}
+
+		virtual unsigned __int64 get_key() const;
+
+		virtual std::size_t get_previous_count() const;
+
+		virtual std::size_t get_current_count() const;
+
+	protected:
+		unsigned __int64 key_;
+		std::size_t previous_count_;
+		std::size_t current_count_;
+	};
+
 	class create : public object_with_message{
 	public:
 		template <typename... args_types>

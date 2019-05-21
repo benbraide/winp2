@@ -2,7 +2,27 @@
 #include "../ui/ui_window_surface.h"
 #include "../ui/ui_non_window_surface.h"
 
+unsigned __int64 winp::events::activity::get_key() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return key_;
+}
+
+std::size_t winp::events::activity::get_previous_count() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return previous_count_;
+}
+
+std::size_t winp::events::activity::get_current_count() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return current_count_;
+}
+
 bool winp::events::create::is_creating() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
 	return (original_message_.message == WM_NCCREATE);
 }
 
