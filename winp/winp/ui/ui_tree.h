@@ -71,6 +71,7 @@ namespace winp::ui{
 
 	protected:
 		friend class object;
+		friend class thread::item_manager;
 
 		virtual utility::error_code destruct_() override;
 

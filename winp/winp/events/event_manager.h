@@ -175,7 +175,8 @@ namespace winp::events{
 			return reinterpret_cast<key_type>(&info);
 		}
 
-		static key_type get_key(object &e){
+		template <typename object_type>
+		static key_type get_key(object_type &e){
 			return get_key(typeid(e));
 		}
 

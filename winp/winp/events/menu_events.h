@@ -10,7 +10,7 @@ namespace winp::events{
 			: object_with_message(std::forward<args_types>(args)...){}
 
 	protected:
-		virtual bool should_call_call_default_() const override;
+		virtual bool should_call_default_() const override;
 	};
 
 	class menu_item_highlight : public menu{
@@ -39,13 +39,13 @@ namespace winp::events{
 		template <typename... args_types>
 		explicit context_menu_base(args_types &&... args)
 			: object_with_message(std::forward<args_types>(args)...){
-			position_ = POINT{ GET_X_LPARAM(original_message_.lParam), GET_Y_LPARAM(original_message_.lParam) };
+			position_ = POINT{ GET_X_LPARAM(message_info_.lParam), GET_Y_LPARAM(message_info_.lParam) };
 		}
 
 		virtual const POINT &get_position() const;
 
 	protected:
-		virtual bool should_call_call_default_() const override;
+		virtual bool should_call_default_() const override;
 
 		POINT position_{};
 	};

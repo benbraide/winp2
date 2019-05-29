@@ -141,6 +141,8 @@ namespace winp::ui{
 		virtual bool has_grid(const std::function<void(bool)> &callback = nullptr) const;
 
 	protected:
+		friend class thread::item_manager;
+
 		explicit surface(tree *tree_self = nullptr);
 
 		void init_grid_(tree &tree_self);

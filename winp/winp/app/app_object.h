@@ -34,6 +34,12 @@ namespace winp::app{
 
 		static void traverse_threads(const std::function<void(thread::object &)> &callback, thread::object &context, int task_priority = thread::queue::urgent_task_priority, unsigned __int64 task_id = 0u);
 
+		static void enable_full_mouse_feature();
+
+		static void disable_full_mouse_feature();
+
+		static bool full_mouse_feature_is_enabled();
+
 	protected:
 		friend class thread::object;
 

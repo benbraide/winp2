@@ -190,4 +190,18 @@ namespace winp::ui{
 
 		SIZE offset_{};
 	};
+
+	class io_hook : public hook{
+	public:
+		io_hook(object &target);
+
+		virtual ~io_hook();
+
+		virtual std::size_t get_max_allowed() const override;
+
+	protected:
+		friend class thread::item_manager;
+
+		object &target_;
+	};
 }

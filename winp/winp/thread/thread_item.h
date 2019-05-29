@@ -198,8 +198,6 @@ namespace winp::thread{
 			return std::make_pair(e.states_, e.result_);
 		}
 
-		static bool bubble_event_(events::object &e);
-
 		object &thread_;
 		unsigned __int64 id_;
 

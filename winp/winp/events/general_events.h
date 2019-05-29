@@ -234,7 +234,7 @@ namespace winp::events{
 			: object_with_message(std::forward<args_types>(args)...){}
 
 	protected:
-		virtual bool should_call_call_default_() const override;
+		virtual bool should_call_default_() const override;
 
 		virtual LRESULT get_called_default_value_() override;
 	};
@@ -250,7 +250,7 @@ namespace winp::events{
 		void set_result(const D2D1::ColorF &result);
 
 	protected:
-		virtual bool should_call_call_default_() const override;
+		virtual bool should_call_default_() const override;
 
 		virtual LRESULT get_called_default_value_() override;
 	};
@@ -340,7 +340,7 @@ namespace winp::events{
 		virtual ~erase_background();
 
 	protected:
-		virtual bool should_call_call_default_() const override;
+		virtual bool should_call_default_() const override;
 
 		virtual LRESULT get_called_default_value_() override;
 
@@ -358,7 +358,7 @@ namespace winp::events{
 		virtual ~paint();
 
 	protected:
-		virtual bool should_call_call_default_() const override;
+		virtual bool should_call_default_() const override;
 
 		virtual utility::error_code begin_() override;
 
@@ -376,7 +376,7 @@ namespace winp::events{
 		virtual ~owner_draw();
 
 	protected:
-		virtual bool should_call_call_default_() const override;
+		virtual bool should_call_default_() const override;
 
 		virtual utility::error_code begin_() override;
 

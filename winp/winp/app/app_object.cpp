@@ -104,6 +104,20 @@ void winp::app::object::traverse_threads(const std::function<void(thread::object
 	}
 }
 
+void winp::app::object::enable_full_mouse_feature(){
+	if (current_thread_ != nullptr)
+		current_thread_->enable_full_mouse_feature();
+}
+
+void winp::app::object::disable_full_mouse_feature(){
+	if (current_thread_ != nullptr)
+		current_thread_->disable_full_mouse_feature();
+}
+
+bool winp::app::object::full_mouse_feature_is_enabled(){
+	return (current_thread_ != nullptr && current_thread_->full_mouse_feature_is_enabled());
+}
+
 std::wstring winp::app::object::class_name_;
 
 WNDCLASSEXW winp::app::object::class_info_{};

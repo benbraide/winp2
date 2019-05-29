@@ -29,9 +29,9 @@ namespace winp::events{
 
 	class object{
 	public:
-		explicit object(thread::item &target, const std::function<void(object &)> &default_handler = nullptr);
+		explicit object(thread::item &target);
 
-		object(thread::item &target, thread::item &context, const std::function<void(object &)> &default_handler = nullptr);
+		object(thread::item &target, thread::item &context);
 
 		virtual ~object();
 
@@ -80,7 +80,7 @@ namespace winp::events{
 
 		virtual void prevent_default();
 
-		virtual bool do_default();
+		virtual void do_default();
 
 		virtual void stop_propagation();
 
@@ -95,9 +95,10 @@ namespace winp::events{
 		static constexpr unsigned int state_propagation_stopped			= (1u << 0x0001);
 		static constexpr unsigned int state_doing_default				= (1u << 0x0002);
 		static constexpr unsigned int state_default_done				= (1u << 0x0003);
-		static constexpr unsigned int state_result_set					= (1u << 0x0004);
-		static constexpr unsigned int state_default_result_set			= (1u << 0x0005);
-		static constexpr unsigned int state_unbind_on_exit				= (1u << 0x0006);
+		static constexpr unsigned int state_default_called				= (1u << 0x0004);
+		static constexpr unsigned int state_result_set					= (1u << 0x0005);
+		static constexpr unsigned int state_default_result_set			= (1u << 0x0006);
+		static constexpr unsigned int state_unbind_on_exit				= (1u << 0x0007);
 
 	protected:
 		friend class thread::item;
@@ -114,40 +115,34 @@ namespace winp::events{
 		}
 
 		thread::item &target_;
-		thread::item *context_;
+		thread::item &context_;
 
 		LRESULT result_ = 0;
 		unsigned int states_ = state_nil;
-		std::function<void(object &)> default_handler_;
 	};
 
 	class object_with_message : public object{
 	public:
 		template <typename... args_types>
-		explicit object_with_message(MSG &message, WNDPROC default_callback, args_types &&... args)
-			: object_with_message(message, message, default_callback, args...){}
-
-		template <typename... args_types>
-		explicit object_with_message(MSG &message, MSG &original_message, WNDPROC default_callback, args_types &&... args)
-			: object(std::forward<args_types>(args)...), message_(message), original_message_(original_message), default_callback_(default_callback){}
+		explicit object_with_message(MSG &message_info, WNDPROC default_callback, args_types &&... args)
+			: object(std::forward<args_types>(args)...), message_info_(message_info), default_callback_(default_callback){}
 
 		virtual ~object_with_message();
 
-		virtual bool do_default() override;
+		virtual void do_default() override;
 
 		virtual const MSG &get_message() const;
 
 		virtual MSG &get_message();
 
 	protected:
-		virtual bool should_call_call_default_() const;
+		virtual bool should_call_default_() const;
 
-		virtual bool call_default_();
+		virtual void call_default_();
 
 		virtual LRESULT get_called_default_value_();
 
-		MSG &message_;
-		MSG &original_message_;
+		MSG &message_info_;
 		WNDPROC default_callback_;
 	};
 }

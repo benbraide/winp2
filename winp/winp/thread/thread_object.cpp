@@ -112,6 +112,35 @@ bool winp::thread::object::is_thread_context() const{
 	return (GetCurrentThreadId() == local_id_);
 }
 
+void winp::thread::object::enable_full_mouse_feature(){
+	if (!is_thread_context()){
+		queue_.post_task([this]{
+			item_manager_.mouse_.full_feature_enabled = true;
+		}, queue::default_task_priority, reinterpret_cast<unsigned __int64>(this));
+	}
+	else
+		item_manager_.mouse_.full_feature_enabled = true;
+}
+
+void winp::thread::object::disable_full_mouse_feature(){
+	if (!is_thread_context()){
+		queue_.post_task([this]{
+			item_manager_.mouse_.full_feature_enabled = false;
+		}, queue::default_task_priority, reinterpret_cast<unsigned __int64>(this));
+	}
+	else
+		item_manager_.mouse_.full_feature_enabled = false;
+}
+
+bool winp::thread::object::full_mouse_feature_is_enabled() const{
+	if (is_thread_context())
+		return item_manager_.mouse_.full_feature_enabled;
+
+	return queue_.compute_task([&]{
+		return item_manager_.mouse_.full_feature_enabled;
+	}, queue::default_task_priority, reinterpret_cast<unsigned __int64>(this));
+}
+
 unsigned __int64 winp::thread::object::request_animation_frame(const animation_frame_callback_type &callback, unsigned __int64 cancel_frame){
 	return queue_.compute_task([&]{
 		cancel_animation_frame_(cancel_frame);

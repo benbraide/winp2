@@ -23,7 +23,7 @@ std::size_t winp::events::activity::get_current_count() const{
 bool winp::events::create::is_creating() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
-	return (original_message_.message == WM_NCCREATE);
+	return (message_info_.message == WM_NCCREATE);
 }
 
 HRGN winp::events::update_non_window_handle::get_handle() const{
@@ -101,7 +101,7 @@ bool winp::events::children_change::is_changing() const{
 WINDOWPOS &winp::events::position_change::get_value() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
-	return *reinterpret_cast<WINDOWPOS *>(message_.lParam);
+	return *reinterpret_cast<WINDOWPOS *>(message_info_.lParam);
 }
 
 bool winp::events::position_change::is_changing() const{
@@ -146,16 +146,16 @@ bool winp::events::visibility_change::is_changing() const{
 	return is_changing_;
 }
 
-bool winp::events::background_brush::should_call_call_default_() const{
+bool winp::events::background_brush::should_call_default_() const{
 	return ((states_ & state_default_prevented) == 0u);
 }
 
 LRESULT winp::events::background_brush::get_called_default_value_(){
-	if (auto visible_context = dynamic_cast<ui::visible_surface *>(context_); visible_context != nullptr){
+	if (auto visible_context = dynamic_cast<ui::visible_surface *>(&context_); visible_context != nullptr){
 		auto brush = visible_context->get_background_brush();
 		if (brush == nullptr){
 			if (auto color_brush = target_.get_thread().get_color_brush(); color_brush != nullptr){
-				auto color = ui::visible_surface::convert_colorref_to_colorf(static_cast<COLORREF>(context_->get_thread().send_message(*context_, WINP_WM_GET_BACKGROUND_COLOR)));
+				auto color = ui::visible_surface::convert_colorref_to_colorf(static_cast<COLORREF>(context_.get_thread().send_message(context_, WINP_WM_GET_BACKGROUND_COLOR)));
 				if (color.a != 0.0f){//Non-transparent
 					color_brush->SetColor(color);
 					brush = color_brush;
@@ -173,12 +173,12 @@ void winp::events::background_color::set_result(const D2D1::ColorF &result){
 	set_result(ui::visible_surface::convert_colorf_to_colorref(result));
 }
 
-bool winp::events::background_color::should_call_call_default_() const{
+bool winp::events::background_color::should_call_default_() const{
 	return ((states_ & state_default_prevented) == 0u);
 }
 
 LRESULT winp::events::background_color::get_called_default_value_(){
-	if (auto visible_context = dynamic_cast<ui::visible_surface *>(context_); visible_context != nullptr)
+	if (auto visible_context = dynamic_cast<ui::visible_surface *>(&context_); visible_context != nullptr)
 		return static_cast<LRESULT>(ui::visible_surface::convert_colorf_to_colorref(visible_context->get_background_color()));
 	return 0;
 }
@@ -206,7 +206,7 @@ winp::utility::error_code winp::events::draw::begin(){
 	color_brush_ = target_.get_thread().get_color_brush();
 	SaveDC(info_.hdc);
 
-	if (auto non_window_context = dynamic_cast<ui::non_window_surface *>(context_); non_window_context != nullptr){
+	if (auto non_window_context = dynamic_cast<ui::non_window_surface *>(&context_); non_window_context != nullptr){
 		SelectClipRgn(info_.hdc, non_window_context->get_handle());
 
 		POINT offset{};
@@ -241,7 +241,7 @@ winp::utility::error_code winp::events::draw::begin(){
 	}
 
 	RECT window_client_rect{};
-	GetClientRect(original_message_.hwnd, &window_client_rect);
+	GetClientRect(message_info_.hwnd, &window_client_rect);
 
 	render_target_->BindDC(info_.hdc, &window_client_rect);
 	render_target_->SetTransform(D2D1::IdentityMatrix());
@@ -509,18 +509,18 @@ winp::events::erase_background::~erase_background(){
 	end();
 }
 
-bool winp::events::erase_background::should_call_call_default_() const{
+bool winp::events::erase_background::should_call_default_() const{
 	return ((states_ & state_default_prevented) == 0u);
 }
 
 LRESULT winp::events::erase_background::get_called_default_value_(){
-	if (dynamic_cast<ui::visible_surface *>(context_) == nullptr)
+	if (dynamic_cast<ui::visible_surface *>(&context_) == nullptr)
 		return object_with_message::get_called_default_value_();
 
-	if (auto window_context = dynamic_cast<ui::window_surface *>(context_); window_context != nullptr && window_context->get_thread().get_class_entry(window_context->get_class_name()) != DefWindowProcW)
+	if (auto window_context = dynamic_cast<ui::window_surface *>(&context_); window_context != nullptr && window_context->get_thread().get_class_entry(window_context->get_class_name()) != DefWindowProcW)
 		return object_with_message::get_called_default_value_();
 
-	auto background_brush = reinterpret_cast<ID2D1Brush *>(context_->get_thread().send_message(*context_, WINP_WM_GET_BACKGROUND_BRUSH));
+	auto background_brush = reinterpret_cast<ID2D1Brush *>(context_.get_thread().send_message(context_, WINP_WM_GET_BACKGROUND_BRUSH));
 	if (background_brush != nullptr && begin() == utility::error_code::nil)
 		fill_rectangle(info_.rcPaint, background_brush);
 
@@ -528,7 +528,7 @@ LRESULT winp::events::erase_background::get_called_default_value_(){
 }
 
 winp::utility::error_code winp::events::erase_background::begin_(){
-	info_.hdc = reinterpret_cast<HDC>(message_.wParam);
+	info_.hdc = reinterpret_cast<HDC>(message_info_.wParam);
 	GetClipBox(info_.hdc, &info_.rcPaint);
 	return utility::error_code::nil;
 }
@@ -539,27 +539,27 @@ winp::events::paint::~paint(){
 	end();
 }
 
-bool winp::events::paint::should_call_call_default_() const{
-	return (!began_paint_ && object_with_message::should_call_call_default_());
+bool winp::events::paint::should_call_default_() const{
+	return (!began_paint_ && object_with_message::should_call_default_());
 }
 
 winp::utility::error_code winp::events::paint::begin_(){
-	if (original_message_.hwnd == nullptr)
+	if (message_info_.hwnd == nullptr)
 		return utility::error_code::action_could_not_be_completed;
 
-	auto window_context = dynamic_cast<ui::window_surface *>(context_);
-	if (message_.message == WM_PRINTCLIENT){
-		info_.hdc = reinterpret_cast<HDC>(message_.wParam);
+	auto window_context = dynamic_cast<ui::window_surface *>(&context_);
+	if (message_info_.message == WM_PRINTCLIENT){
+		info_.hdc = reinterpret_cast<HDC>(message_info_.wParam);
 		GetClipBox(info_.hdc, &info_.rcPaint);
 	}
 	else if ((states_ & state_default_done) != 0u || window_context == nullptr){
-		if ((info_.hdc = GetDC(original_message_.hwnd)) == nullptr)
+		if ((info_.hdc = GetDC(message_info_.hwnd)) == nullptr)
 			return utility::error_code::action_could_not_be_completed;
 		info_.rcPaint = target_.get_thread().get_item_manager().get_update_rect();
 	}
 	else{//Begin paint
 		began_paint_ = true;
-		BeginPaint(original_message_.hwnd, &info_);
+		BeginPaint(message_info_.hwnd, &info_);
 	}
 
 	return utility::error_code::nil;
@@ -567,24 +567,24 @@ winp::utility::error_code winp::events::paint::begin_(){
 
 void winp::events::paint::end_(){
 	if (began_paint_){
-		EndPaint(original_message_.hwnd, &info_);
+		EndPaint(message_info_.hwnd, &info_);
 		began_paint_ = false;
 	}
-	else if (message_.message != WM_PRINTCLIENT)
-		ReleaseDC(original_message_.hwnd, info_.hdc);
+	else if (message_info_.message != WM_PRINTCLIENT)
+		ReleaseDC(message_info_.hwnd, info_.hdc);
 }
 
 winp::events::owner_draw::~owner_draw(){
 	end();
 }
 
-bool winp::events::owner_draw::should_call_call_default_() const{
+bool winp::events::owner_draw::should_call_default_() const{
 	return false;
 }
 
 winp::utility::error_code winp::events::owner_draw::begin_(){
-	if (original_message_.message == WM_DRAWITEM){
-		auto info = reinterpret_cast<DRAWITEMSTRUCT *>(original_message_.lParam);
+	if (message_info_.message == WM_DRAWITEM){
+		auto info = reinterpret_cast<DRAWITEMSTRUCT *>(message_info_.lParam);
 		info_.hdc = info->hDC;
 		info_.rcPaint = info->rcItem;
 	}
@@ -597,7 +597,7 @@ void winp::events::owner_draw::end_(){}
 bool winp::events::enable::is_enabled() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
-	return (original_message_.wParam != FALSE);
+	return (message_info_.wParam != FALSE);
 }
 
 bool winp::events::timer::needs_duration() const{

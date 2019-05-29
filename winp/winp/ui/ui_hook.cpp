@@ -483,3 +483,12 @@ void winp::ui::first_child_contain_hook::update_(){
 		}
 	}
 }
+
+winp::ui::io_hook::io_hook(object &target)
+	: target_(target){}
+
+winp::ui::io_hook::~io_hook() = default;
+
+std::size_t winp::ui::io_hook::get_max_allowed() const{
+	return 1u;
+}

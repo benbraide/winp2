@@ -35,6 +35,12 @@ namespace winp::thread{
 
 		bool is_thread_context() const;
 
+		void enable_full_mouse_feature();
+
+		void disable_full_mouse_feature();
+
+		bool full_mouse_feature_is_enabled() const;
+
 		unsigned __int64 request_animation_frame(const animation_frame_callback_type &callback, unsigned __int64 cancel_frame = 0u);
 
 		void cancel_animation_frame(unsigned __int64 id);
@@ -64,19 +70,24 @@ namespace winp::thread{
 
 		HWND get_message_handle() const;
 
-		template <typename wparam_type = WPARAM, typename lparam_type = LPARAM>
-		bool post_message(UINT message, wparam_type wparam = wparam_type(0), lparam_type lparam = lparam_type(0)) const{
-			return (PostThreadMessageW(local_id_, message, (WPARAM)wparam, (LPARAM)lparam) != FALSE);
-		}
-
 		template <typename result_type = LRESULT, typename wparam_type = WPARAM, typename lparam_type = LPARAM>
 		result_type send_message(UINT message, wparam_type wparam = wparam_type(0), lparam_type lparam = lparam_type(0)) const{
-			return (result_type)SendMessageW(message_hwnd_, message, (WPARAM)wparam, (LPARAM)lparam);
+			if (is_thread_context())
+				return (result_type)SendMessageW(message_hwnd_, message, (WPARAM)wparam, (LPARAM)lparam);
+
+			return queue_.compute_task([&]{
+				return (result_type)SendMessageW(message_hwnd_, message, (WPARAM)wparam, (LPARAM)lparam);
+			}, queue::default_task_priority, reinterpret_cast<unsigned __int64>(this));
 		}
 
 		template <typename result_type = LRESULT>
 		result_type send_message(item &target, MSG &msg) const{
-			return (result_type)SendMessageW(message_hwnd_, WINP_WM_SEND_MESSAGE, reinterpret_cast<WPARAM>(&msg), reinterpret_cast<LPARAM>(&target));
+			if (is_thread_context())
+				return (result_type)SendMessageW(message_hwnd_, WINP_WM_SEND_MESSAGE, reinterpret_cast<WPARAM>(&msg), reinterpret_cast<LPARAM>(&target));
+			
+			return queue_.compute_task([&]{
+				return (result_type)SendMessageW(message_hwnd_, WINP_WM_SEND_MESSAGE, reinterpret_cast<WPARAM>(&msg), reinterpret_cast<LPARAM>(&target));
+			}, queue::default_task_priority, reinterpret_cast<unsigned __int64>(this));
 		}
 
 		template <typename result_type = LRESULT, typename wparam_type = WPARAM, typename lparam_type = LPARAM>
@@ -92,6 +103,11 @@ namespace winp::thread{
 			return (PostMessageW(message_hwnd_, WINP_WM_POST_MESSAGE, reinterpret_cast<WPARAM>(new MSG{ nullptr, message, (WPARAM)wparam, (LPARAM)lparam }), reinterpret_cast<LPARAM>(&target)) != FALSE);
 		}
 
+		template <typename wparam_type = WPARAM, typename lparam_type = LPARAM>
+		bool post_message(UINT message, wparam_type wparam = wparam_type(0), lparam_type lparam = lparam_type(0)) const{
+			return (PostThreadMessageW(local_id_, message, (WPARAM)wparam, (LPARAM)lparam) != FALSE);
+		}
+
 		template <typename target_type>
 		target_type generate_random_integer(target_type from, target_type to){
 			if (is_thread_context())
@@ -99,7 +115,7 @@ namespace winp::thread{
 
 			return queue_.compute_task([&]{
 				return random_generator_(from, to);
-			}, queue::default_task_priority, queue::default_task_id);
+			}, queue::default_task_priority, reinterpret_cast<unsigned __int64>(this));
 		}
 
 		template <typename target_type>
@@ -109,7 +125,7 @@ namespace winp::thread{
 
 			return queue_.compute_task([&]{
 				return random_generator_(from_min_to);
-			}, queue::default_task_priority, queue::default_task_id);
+			}, queue::default_task_priority, reinterpret_cast<unsigned __int64>(this));
 		}
 
 		template <typename target_type>
@@ -119,7 +135,7 @@ namespace winp::thread{
 
 			return queue_.compute_task([&]{
 				return random_generator_.operator()<target_type>();
-			}, queue::default_task_priority, queue::default_task_id);
+			}, queue::default_task_priority, reinterpret_cast<unsigned __int64>(this));
 		}
 
 		float convert_pixel_to_dip_x(int x);

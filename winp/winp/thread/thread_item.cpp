@@ -5,7 +5,7 @@ winp::thread::item::item()
 	: item(app::object::get_thread()){}
 
 winp::thread::item::item(object &thread)
-	: thread_(thread), id_(reinterpret_cast<std::size_t>(this)), scope_thread_id_(std::this_thread::get_id()), local_scope_thread_id_(GetCurrentThreadId()){
+	: thread_(thread), id_(reinterpret_cast<unsigned __int64>(this)), scope_thread_id_(std::this_thread::get_id()), local_scope_thread_id_(GetCurrentThreadId()){
 	thread_.get_queue().execute_task([this]{
 		thread_.add_item_(*this);
 	}, queue::urgent_task_priority, id_);
@@ -145,20 +145,6 @@ void winp::thread::item::trigger_event_handler_(events::object &e) const{
 void winp::thread::item::trigger_event_(events::object &e, unsigned __int64 id) const{
 	events_manager_.trigger_(e, id);
 	e.do_default();
-}
-
-bool winp::thread::item::bubble_event_(events::object &e){
-	auto object_context = dynamic_cast<ui::object *>(e.context_);
-	if (object_context == nullptr)
-		return false;
-
-	if (auto parent = object_context->get_parent(); parent != nullptr){
-		e.context_ = parent;
-		e.states_ = events::object::state_nil;
-		return true;
-	}
-
-	return false;
 }
 
 winp::thread::synchronized_item::~synchronized_item() = default;

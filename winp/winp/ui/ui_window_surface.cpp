@@ -12,6 +12,7 @@ winp::ui::window_surface::window_surface(thread::object &thread, bool init_grid)
 	: tree(thread), system_menu_(*this), context_menu_(thread), menu_bar_(*this){
 	styles_ = (WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
 	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
+	insert_hook<io_hook>();
 
 	if (init_grid){
 		is_auto_createable_ = false;
@@ -41,12 +42,6 @@ winp::ui::window_surface::window_surface(tree &parent, std::size_t index)
 
 winp::ui::window_surface::~window_surface(){
 	destruct();
-}
-
-bool winp::ui::window_surface::is_dialog_message(MSG &msg) const{
-	return compute_task_inside_thread_context([&]{
-		return is_dialog_message_(msg);
-	});
 }
 
 winp::utility::error_code winp::ui::window_surface::show(int how, const std::function<void(window_surface &, utility::error_code)> &callback){

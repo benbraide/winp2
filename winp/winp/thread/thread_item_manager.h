@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ui/ui_object_collection.h"
+#include "../ui/ui_visible_surface.h"
 
 #define WINP_WM_SEND_MESSAGE					(WM_APP + 0x00)
 #define WINP_WM_POST_MESSAGE					(WM_APP + 0x01)
@@ -23,8 +23,18 @@
 #define WINP_WM_TOOLTIP_SHOW					(WM_APP + 0x10)
 #define WINP_WM_TOOLTIP_HIDE					(WM_APP + 0x11)
 
+#define WINP_WM_NCMOUSEENTER					(WM_APP + 0x20)
+#define WINP_WM_MOUSEENTER						(WM_APP + 0x21)
+
+#define WINP_WM_MOUSEDRAG						(WM_APP + 0x22)
+#define WINP_WM_MOUSEDRAGBEGIN					(WM_APP + 0x23)
+#define WINP_WM_MOUSEDRAGEND					(WM_APP + 0x24)
+
+#define WINP_WM_MOUSEDOWN						(WM_APP + 0x25)
+#define WINP_WM_MOUSEUP							(WM_APP + 0x26)
+#define WINP_WM_MOUSEDBLCLK						(WM_APP + 0x27)
+
 namespace winp::ui{
-	class interactive_surface;
 	class window_surface;
 }
 
@@ -42,6 +52,17 @@ namespace winp::thread{
 		struct window_cache_info{
 			HWND handle;
 			ui::window_surface *object;
+		};
+
+		struct mouse_info{
+			bool full_feature_enabled;
+			ui::object *target;
+			ui::object *dragging;
+			ui::object *tracking_leave;
+			unsigned int button_down;
+			POINT last_position;
+			POINT down_position;
+			SIZE drag_threshold;
 		};
 
 		explicit item_manager(object &thread);
@@ -82,6 +103,8 @@ namespace winp::thread{
 
 		void remove_generated_item_id(menu::item &target);
 
+		static ui::object *find_deepest_mouse_target(ui::object &target, const POINT &mouse_position);
+
 	private:
 		friend class object;
 
@@ -119,18 +142,55 @@ namespace winp::thread{
 
 		LRESULT style_changing_(item &target, MSG &msg);
 
-		LRESULT mouse_leave_(item &target, MSG &msg);
+		template <typename window_type, typename event_type, typename thread_type>
+		LRESULT mouse_message_(item &target, MSG &msg, unsigned int button, bool is_non_client, thread_type &thread){
+			if (auto window_target = dynamic_cast<window_type *>(&target); window_target != nullptr)//Window surface required
+				return trigger_event_<event_type>(target, button, is_non_client, msg, thread.get_class_entry_(window_target->get_class_name())).second;
+			return 0;
+		}
 
-		LRESULT mouse_move_(item &target, MSG &msg);
+		LRESULT mouse_leave_(item &target, MSG &msg, DWORD position);
+
+		LRESULT mouse_move_(item &target, MSG &msg, DWORD position);
 
 		template <typename window_type, typename event_type, typename thread_type>
-		LRESULT mouse_(item &target, MSG &msg, unsigned int button, bool is_non_client, thread_type &thread){
+		LRESULT mouse_button_(item &target, MSG &msg, DWORD position, unsigned int button, bool is_non_client, thread_type &thread, const std::function<void()> &callback){
 			auto window_target = dynamic_cast<window_type *>(&target);
 			if (window_target == nullptr)//Window surface required
-				return 0;
+				return trigger_event_<events::unhandled>(target, msg, nullptr).second;
 
-			return trigger_event_<event_type>(target, button, is_non_client, msg, thread.get_class_entry_(window_target->get_class_name())).second;
+			if (callback != nullptr)
+				callback();
+
+			LRESULT result = 0;
+			std::pair<unsigned int, LRESULT> result_info;
+
+			auto bubbled_to_target = false;
+			for (auto mouse_target = mouse_.target; mouse_target != nullptr; mouse_target = mouse_target->get_parent_()){
+				if (dynamic_cast<ui::visible_surface *>(mouse_target) == nullptr || !mouse_target->has_hook_<ui::io_hook>())
+					continue;
+
+				if (mouse_target == &target){
+					result = (result_info = trigger_event_with_target_<event_type>(*mouse_target, *mouse_.target, button, is_non_client, msg, thread.get_class_entry_(window_target->get_class_name()))).second;
+					bubbled_to_target = true;
+				}
+				else//Ignore result
+					result_info = trigger_event_with_target_<event_type>(*mouse_target, *mouse_.target, button, is_non_client, msg, nullptr);
+
+				if ((result_info.first & events::object::state_propagation_stopped) != 0u)
+					break;//Propagation stopped
+			}
+
+			return (bubbled_to_target ? result : CallWindowProcW(thread.get_class_entry_(window_target->get_class_name()), msg.hwnd, msg.message, msg.wParam, msg.lParam));
 		}
+
+		LRESULT mouse_down_(item &target, MSG &msg, DWORD position, unsigned int button, bool is_non_client);
+
+		LRESULT mouse_up_(item &target, MSG &msg, DWORD position, unsigned int button, bool is_non_client);
+
+		LRESULT mouse_dbl_clk_(item &target, MSG &msg, DWORD position, unsigned int button, bool is_non_client);
+
+		LRESULT mouse_wheel_(item &target, MSG &msg, DWORD position);
 
 		template <typename window_type, typename event_type, typename thread_type>
 		LRESULT key_(item &target, MSG &msg, thread_type &thread){
@@ -183,8 +243,6 @@ namespace winp::thread{
 			return context.trigger_event_with_target_and_value_<event_type>(target, value, args...);
 		}
 
-		static bool bubble_event_(events::object &e);
-
 		static LRESULT get_result_(const std::pair<unsigned int, LRESULT> &info, LRESULT prevented_result);
 
 		static LRESULT CALLBACK entry_(HWND handle, UINT message, WPARAM wparam, LPARAM lparam);
@@ -204,12 +262,12 @@ namespace winp::thread{
 		std::unordered_map<HWND, ui::window_surface *> top_level_windows_;
 
 		mutable window_cache_info window_cache_{};
+		mouse_info mouse_{};
+
 		HDC paint_device_ = nullptr;
 		RECT update_rect_{};
 
-		ui::window_surface *focused_window_ = nullptr;
-		item *tracking_mouse_leave_ = nullptr;
-
+		ui::object *focused_object_ = nullptr;
 		std::shared_ptr<ui::object_collection<menu::popup>> active_context_menu_;
 		menu::object *active_context_menu_object_ = nullptr;
 	};

@@ -138,8 +138,23 @@ void winp::ui::object::traverse_all_siblings(const std::function<void(object &)>
 
 void winp::ui::object::remove_hook(hook &target){
 	execute_task_inside_thread_context([&]{
-		if (!hooks_.empty())
-			hooks_.erase(&target);
+		if (hooks_.empty())
+			return;
+
+		if (auto it = hooks_.find(event_manager_type::template get_key(target)); it != hooks_.end()){
+			for (auto list_it = it->second.begin(); list_it != it->second.end(); ++list_it){
+				if (list_it->get() == &target){
+					it->second.erase(list_it);
+					break;
+				}
+			}
+		}
+	});
+}
+
+bool winp::ui::object::is_dialog_message(MSG &msg) const{
+	return compute_task_inside_thread_context([&]{
+		return is_dialog_message_(msg);
 	});
 }
 
@@ -247,4 +262,8 @@ void winp::ui::object::traverse_siblings_(const std::function<bool(object &)> &c
 		if (sibling != this && !callback(*sibling))
 			break;
 	}
+}
+
+bool winp::ui::object::is_dialog_message_(MSG &msg) const{
+	return false;
 }

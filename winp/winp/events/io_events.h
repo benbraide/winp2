@@ -14,7 +14,7 @@ namespace winp::events{
 		virtual WORD get_mouse_button() const;
 
 	protected:
-		virtual bool call_default_() override;
+		virtual void call_default_() override;
 	};
 
 	class hit_test : public object_with_message{
@@ -22,8 +22,8 @@ namespace winp::events{
 		template <typename... args_types>
 		explicit hit_test(args_types &&... args)
 			: object_with_message(std::forward<args_types>(args)...){
-			position_.x = GET_X_LPARAM(original_message_.lParam);
-			position_.y = GET_Y_LPARAM(original_message_.lParam);
+			position_.x = GET_X_LPARAM(message_info_.lParam);
+			position_.y = GET_Y_LPARAM(message_info_.lParam);
 		}
 
 		virtual const POINT &get_position() const;
@@ -35,8 +35,8 @@ namespace winp::events{
 	class mouse : public object_with_message{
 	public:
 		template <typename... args_types>
-		explicit mouse(args_types &&... args)
-			: object_with_message(std::forward<args_types>(args)...){
+		explicit mouse(unsigned int button, bool is_non_client, args_types &&... args)
+			: object_with_message(std::forward<args_types>(args)...), button_(button), is_non_client_(is_non_client){
 			auto position = ::GetMessagePos();
 			position_.x = GET_X_LPARAM(position);
 			position_.y = GET_Y_LPARAM(position);
@@ -48,85 +48,101 @@ namespace winp::events{
 
 		virtual unsigned int get_button() const;
 
-		static const unsigned int button_type_nil = (0 << 0x00);
-		static const unsigned int button_type_left = (1 << 0x00);
-		static const unsigned int button_type_middle = (1 << 0x01);
-		static const unsigned int button_type_right = (1 << 0x02);
+		static const unsigned int button_type_nil			= (0 << 0x00);
+		static const unsigned int button_type_left			= (1 << 0x00);
+		static const unsigned int button_type_middle		= (1 << 0x01);
+		static const unsigned int button_type_right			= (1 << 0x02);
 
 	protected:
-		unsigned int button_ = button_type_nil;
+		unsigned int button_;
+		bool is_non_client_;
 		POINT position_{};
 	};
 
 	class mouse_leave : public mouse{
 	public:
 		template <typename... args_types>
-		explicit mouse_leave(unsigned int button, bool is_non_client, args_types &&... args)
+		explicit mouse_leave(args_types &&... args)
 			: mouse(std::forward<args_types>(args)...){}
+	};
 
-		virtual bool is_non_client() const override;
+	class mouse_client_change : public mouse{
+	public:
+		template <typename... args_types>
+		explicit mouse_client_change(args_types &&... args)
+			: mouse(std::forward<args_types>(args)...){}
+	};
+
+	class mouse_enter : public mouse{
+	public:
+		template <typename... args_types>
+		explicit mouse_enter(args_types &&... args)
+			: mouse(std::forward<args_types>(args)...){}
 	};
 
 	class mouse_move : public mouse{
 	public:
 		template <typename... args_types>
-		explicit mouse_move(unsigned int button, bool is_non_client, args_types &&... args)
+		explicit mouse_move(args_types &&... args)
 			: mouse(std::forward<args_types>(args)...){}
-
-		virtual bool is_non_client() const override;
 	};
 
 	class mouse_down : public mouse{
 	public:
 		template <typename... args_types>
-		mouse_down(unsigned int button, bool is_non_client, args_types &&... args)
-			: mouse(std::forward<args_types>(args)...), is_non_client_(is_non_client){
-			button_ = button;
-		}
-
-		virtual bool is_non_client() const override;
-
-	protected:
-		bool is_non_client_;
+		explicit mouse_down(args_types &&... args)
+			: mouse(std::forward<args_types>(args)...){}
 	};
 
 	class mouse_up : public mouse{
 	public:
 		template <typename... args_types>
-		mouse_up(unsigned int button, bool is_non_client, args_types &&... args)
-			: mouse(std::forward<args_types>(args)...), is_non_client_(is_non_client){
-			button_ = button;
-		}
-
-		virtual bool is_non_client() const override;
-
-	protected:
-		bool is_non_client_;
+		explicit mouse_up(args_types &&... args)
+			: mouse(std::forward<args_types>(args)...){}
 	};
 
 	class mouse_dbl_clk : public mouse{
 	public:
 		template <typename... args_types>
-		mouse_dbl_clk(unsigned int button, bool is_non_client, args_types &&... args)
-			: mouse(std::forward<args_types>(args)...), is_non_client_(is_non_client){
-			button_ = button;
-		}
-
-		virtual bool is_non_client() const override;
-
-	protected:
-		bool is_non_client_;
+		explicit mouse_dbl_clk(args_types &&... args)
+			: mouse(std::forward<args_types>(args)...){}
 	};
 
 	class mouse_wheel : public mouse{
 	public:
 		template <typename... args_types>
-		explicit mouse_wheel(unsigned int button, bool is_non_client, args_types &&... args)
+		explicit mouse_wheel(args_types &&... args)
 			: mouse(std::forward<args_types>(args)...){}
 
 		virtual bool is_vertical() const;
 
 		virtual SIZE get_delta() const;
+	};
+
+	class mouse_drag_begin : public mouse{
+	public:
+		template <typename... args_types>
+		explicit mouse_drag_begin(args_types &&... args)
+			: mouse(std::forward<args_types>(args)...){}
+	};
+
+	class mouse_drag : public mouse{
+	public:
+		template <typename... args_types>
+		explicit mouse_drag(const POINT &mouse_down_position, args_types &&... args)
+			: mouse(std::forward<args_types>(args)...), mouse_down_position_(mouse_down_position){}
+
+		virtual POINT get_offset() const;
+
+	protected:
+		POINT mouse_down_position_;
+	};
+
+	class mouse_drag_end : public mouse{
+	public:
+		template <typename... args_types>
+		explicit mouse_drag_end(args_types &&... args)
+			: mouse(std::forward<args_types>(args)...){}
 	};
 
 	class key : public object_with_message{

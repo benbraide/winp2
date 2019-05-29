@@ -17,12 +17,7 @@ winp::control::object::object(thread::object &thread, const std::wstring &class_
 winp::control::object::~object() = default;
 
 bool winp::control::object::is_dialog_message_(MSG &msg) const{
-	for (auto ancestor = parent_; ancestor != nullptr; ancestor = ancestor->get_parent()){
-		if (auto window_ancestor = dynamic_cast<ui::window_surface *>(ancestor); window_ancestor != nullptr)
-			return window_ancestor->is_dialog_message(msg);
-	}
-
-	return false;
+	return (parent_ != nullptr && parent_->is_dialog_message(msg));
 }
 
 winp::ui::window_surface::system_menu_type &winp::control::object::get_system_menu_() const{

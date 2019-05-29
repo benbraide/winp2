@@ -7,6 +7,9 @@ namespace winp::ui{
 
 	class object : public thread::item{
 	public:
+		using hook_ptr_type = std::shared_ptr<hook>;
+		using hook_list_type = std::list<hook_ptr_type>;
+
 		object();
 
 		explicit object(thread::object &thread);
@@ -110,23 +113,31 @@ namespace winp::ui{
 				if (hook == nullptr)//Failed to create object
 					return nullptr;
 
+				auto key = event_manager_type::template get_key<hook_type>();
 				if (auto max_allowed = hook->get_max_allowed(); max_allowed != 0u && !hooks_.empty()){
-					std::size_t count = 0u;
-					for (auto &entry : hooks_){
-						if (dynamic_cast<hook_type *>(entry.first) != nullptr && max_allowed <= ++count)
-							return nullptr;//Max allowed reached
-					}
+					if (auto it = hooks_.find(key); it != hooks_.end() && max_allowed <= it->second.size())
+						return nullptr;//Max allowed reached
 				}
 
-				hooks_[hook.get()] = hook;
+				hooks_[key].push_back(hook);
 				return hook.get();
 			});
 		}
 
 		virtual void remove_hook(hook &target);
 
+		template <typename hook_type>
+		bool has_hook(const std::function<void(bool)> &callback = nullptr) const{
+			return compute_or_post_task_inside_thread_context([=]{
+				return pass_return_value_to_callback(callback, has_hook_<hook_type>());
+			}, (callback != nullptr), false);
+		}
+
+		virtual bool is_dialog_message(MSG &msg) const;
+
 	protected:
 		friend class tree;
+		friend class thread::item_manager;
 
 		virtual utility::error_code destruct_() override;
 
@@ -191,9 +202,22 @@ namespace winp::ui{
 			});
 		}
 
+		template <typename hook_type>
+		bool has_hook_() const{
+			if (hooks_.empty())
+				return false;
+
+			if (auto it = hooks_.find(event_manager_type::template get_key<hook_type>()); it == hooks_.end() || it->second.empty())
+				return false;
+
+			return true;
+		}
+
+		virtual bool is_dialog_message_(MSG &msg) const;
+
 		tree *parent_ = nullptr;
 		std::size_t index_ = static_cast<std::size_t>(-1);
-		std::unordered_map<hook *, std::shared_ptr<hook>> hooks_;
+		std::unordered_map<event_manager_type::key_type, hook_list_type> hooks_;
 		bool is_auto_createable_ = true;
 	};
 }

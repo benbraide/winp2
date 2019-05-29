@@ -23,8 +23,6 @@ namespace winp::ui{
 
 		virtual ~window_surface();
 
-		virtual bool is_dialog_message(MSG &msg) const;
-
 		using visible_surface::show;
 
 		virtual utility::error_code show(int how, const std::function<void(window_surface &, utility::error_code)> &callback = nullptr);
@@ -106,7 +104,7 @@ namespace winp::ui{
 
 		virtual UINT absolute_hit_test_(int x, int y) const override;
 
-		virtual bool is_dialog_message_(MSG &msg) const;
+		virtual bool is_dialog_message_(MSG &msg) const override;
 
 		virtual utility::error_code show_(int how);
 
