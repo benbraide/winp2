@@ -8,7 +8,6 @@ namespace winp::ui{
 	class object : public thread::item{
 	public:
 		using hook_ptr_type = std::shared_ptr<hook>;
-		using hook_list_type = std::list<hook_ptr_type>;
 
 		object();
 
@@ -27,10 +26,6 @@ namespace winp::ui{
 		virtual utility::error_code destroy(const std::function<void(object &, utility::error_code)> &callback = nullptr);
 
 		virtual bool is_created(const std::function<void(bool)> &callback = nullptr) const;
-
-		virtual utility::error_code set_auto_create_state(bool state, const std::function<void(object &, utility::error_code)> &callback = nullptr);
-
-		virtual bool is_auto_createable(const std::function<void(bool)> &callback = nullptr) const;
 
 		virtual utility::error_code set_parent(tree *value, const std::function<void(object &, utility::error_code)> &callback = nullptr);
 
@@ -111,24 +106,25 @@ namespace winp::ui{
 		}
 
 		template <typename hook_type, typename... args_types>
-		hook_type *insert_hook(args_types &&... args){
-			return compute_task_inside_thread_context([&]() -> hook_type *{
-				auto hook = std::make_shared<hook_type>(*this, std::forward<args_types>(args)...);
-				if (hook == nullptr)//Failed to create object
-					return nullptr;
-
+		void insert_hook(args_types &&... args){
+			execute_task_inside_thread_context([&]{
 				auto key = event_manager_type::template get_key<hook_type>();
-				if (auto max_allowed = hook->get_max_allowed(); max_allowed != 0u && !hooks_.empty()){
-					if (auto it = hooks_.find(key); it != hooks_.end() && max_allowed <= it->second.size())
-						return nullptr;//Max allowed reached
-				}
+				if (hooks_.find(key) != hooks_.end())
+					return;//Duplicate
 
-				hooks_[key].push_back(hook);
-				return hook.get();
+				auto hook = std::make_shared<hook_type>(*this, std::forward<args_types>(args)...);
+				if (hook != nullptr)
+					hooks_[key] = hook;
 			});
 		}
 
-		virtual void remove_hook(hook &target);
+		template <typename hook_type>
+		void remove_hook(){
+			execute_task_inside_thread_context([&]{
+				if (!hooks_.empty())
+					hooks_.erase(event_manager_type::template get_key<hook_type>());
+			});
+		}
 
 		template <typename hook_type>
 		bool has_hook(const std::function<void(bool)> &callback = nullptr) const{
@@ -144,9 +140,9 @@ namespace winp::ui{
 			}, (callback != nullptr), false);
 		}
 
-		virtual void traverse_hooks(const std::function<bool(hook &)> &callback, bool unique_only, bool block) const;
+		virtual void traverse_hooks(const std::function<bool(hook &)> &callback, bool block) const;
 
-		virtual void traverse_all_hooks(const std::function<void(hook &)> &callback, bool unique_only, bool block) const;
+		virtual void traverse_all_hooks(const std::function<void(hook &)> &callback, bool block) const;
 
 		virtual bool is_dialog_message(MSG &msg) const;
 
@@ -163,8 +159,6 @@ namespace winp::ui{
 		virtual utility::error_code destroy_();
 
 		virtual bool is_created_() const;
-
-		virtual utility::error_code set_auto_create_state_(bool state);
 
 		virtual utility::error_code set_parent_(tree *value, std::size_t index);
 
@@ -221,32 +215,28 @@ namespace winp::ui{
 
 		template <typename hook_type>
 		bool has_hook_() const{
-			if (hooks_.empty())
-				return false;
-
-			if (auto it = hooks_.find(event_manager_type::template get_key<hook_type>()); it == hooks_.end() || it->second.empty())
-				return false;
-
-			return true;
+			return (!hooks_.empty() && hooks_.find(event_manager_type::template get_key<hook_type>()) != hooks_.end());
 		}
 
 		template <typename hook_type>
 		bool has_similar_hook_() const{
-			auto has_similar_hook = false;
-			traverse_hooks_([&](hook &hk){
-				return !(has_similar_hook = (dynamic_cast<hook_type *>(&hk) != nullptr));
-			}, true);
+			if (hooks_.empty())
+				return false;
 
-			return has_similar_hook;
+			for (auto &info : hooks_){
+				if (dynamic_cast<hook_type *>(info.second.get()) != nullptr)
+					return true;
+			}
+
+			return false;
 		}
 
-		virtual void traverse_hooks_(const std::function<bool(hook &)> &callback, bool unique_only) const;
+		virtual void traverse_hooks_(const std::function<bool(hook &)> &callback) const;
 
 		virtual bool is_dialog_message_(MSG &msg) const;
 
 		tree *parent_ = nullptr;
 		std::size_t index_ = static_cast<std::size_t>(-1);
-		std::unordered_map<event_manager_type::key_type, hook_list_type> hooks_;
-		bool is_auto_createable_ = true;
+		std::unordered_map<event_manager_type::key_type, hook_ptr_type> hooks_;
 	};
 }

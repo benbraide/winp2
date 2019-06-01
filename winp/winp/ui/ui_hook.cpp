@@ -7,10 +7,6 @@ winp::ui::hook::hook(object &target)
 
 winp::ui::hook::~hook() = default;
 
-std::size_t winp::ui::hook::get_max_allowed() const{
-	return 0u;
-}
-
 winp::ui::parent_size_hook::parent_size_hook(object &target, const std::function<void(hook &)> &callback)
 	: parent_size_hook(target){
 	callback_ = callback;
@@ -217,10 +213,6 @@ winp::ui::sibling_size_and_position_hook::~sibling_size_and_position_hook(){
 	tree_event_id_ = position_event_id_ = parent_tree_event_id_ = 0u;
 }
 
-std::size_t winp::ui::sibling_size_and_position_hook::get_max_allowed() const{
-	return 1u;
-}
-
 winp::ui::sibling_size_and_position_hook::sibling_type winp::ui::sibling_size_and_position_hook::get_sibling_type(const std::function<void(sibling_type)> &callback) const{
 	return target_.compute_or_post_task_inside_thread_context([=]{
 		return target_.pass_return_value_to_callback(callback, sibling_type_);
@@ -368,10 +360,6 @@ winp::ui::placement_hook::placement_hook(object &target, alignment_type alignmen
 
 winp::ui::placement_hook::~placement_hook() = default;
 
-std::size_t winp::ui::placement_hook::get_max_allowed() const{
-	return 1u;
-}
-
 void winp::ui::placement_hook::update_(){
 	auto surface_target = dynamic_cast<surface *>(&target_);
 	if (surface_target == nullptr)
@@ -443,10 +431,6 @@ winp::ui::parent_fill_hook::parent_fill_hook(object &target, const D2D1_SIZE_F &
 }
 
 winp::ui::parent_fill_hook::~parent_fill_hook() = default;
-
-std::size_t winp::ui::parent_fill_hook::get_max_allowed() const{
-	return 1u;
-}
 
 winp::utility::error_code winp::ui::parent_fill_hook::set_offset(const SIZE &value, const std::function<void(parent_fill_hook &, utility::error_code)> &callback){
 	return set_offset(value.cx, value.cy, callback);
@@ -542,10 +526,6 @@ winp::ui::children_contain_hook::children_contain_hook(object &target, const SIZ
 
 winp::ui::children_contain_hook::~children_contain_hook() = default;
 
-std::size_t winp::ui::children_contain_hook::get_max_allowed() const{
-	return 1u;
-}
-
 winp::utility::error_code winp::ui::children_contain_hook::set_padding(const SIZE &value, const std::function<void(children_contain_hook &, utility::error_code)> &callback){
 	return target_.compute_or_post_task_inside_thread_context([=]{
 		return target_.pass_return_value_to_callback(callback, *this, set_padding_(value));
@@ -591,10 +571,6 @@ winp::ui::io_hook::io_hook(object &target)
 
 winp::ui::io_hook::~io_hook() = default;
 
-std::size_t winp::ui::io_hook::get_max_allowed() const{
-	return 1u;
-}
-
 winp::ui::drag_hook::drag_hook(object &target)
 	: hook(target){
 	target_.insert_hook<io_hook>();
@@ -614,10 +590,6 @@ winp::ui::drag_hook::~drag_hook(){
 	drag_begin_event_id_ = drag_event_id_ = 0u;
 }
 
-std::size_t winp::ui::drag_hook::get_max_allowed() const{
-	return 1u;
-}
-
 winp::ui::sibling_placement_hook::sibling_placement_hook(object &target, sibling_type type, relative_type relativity)
 	: sibling_placement_hook(target, type, alignment_type::top_left, POINT{}, relativity){}
 
@@ -634,10 +606,6 @@ winp::ui::sibling_placement_hook::sibling_placement_hook(object &target, sibling
 }
 
 winp::ui::sibling_placement_hook::~sibling_placement_hook() = default;
-
-std::size_t winp::ui::sibling_placement_hook::get_max_allowed() const{
-	return 1u;
-}
 
 bool winp::ui::sibling_placement_hook::should_react_to_relativity_() const{
 	return true;
@@ -714,3 +682,8 @@ void winp::ui::sibling_placement_hook::update_(){
 		break;
 	}
 }
+
+winp::ui::auto_create::auto_create(object &target)
+	: hook(target){}
+
+winp::ui::auto_create::~auto_create() = default;

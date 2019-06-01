@@ -13,8 +13,6 @@ namespace winp::ui{
 
 		virtual ~hook();
 
-		virtual std::size_t get_max_allowed() const;
-
 	protected:
 		object &target_;
 	};
@@ -87,8 +85,6 @@ namespace winp::ui{
 		sibling_size_and_position_hook(object &target, sibling_type type, const std::function<void(change_type)> &callback);
 
 		virtual ~sibling_size_and_position_hook();
-
-		virtual std::size_t get_max_allowed() const override;
 
 		virtual sibling_type get_sibling_type(const std::function<void(sibling_type)> &callback = nullptr) const;
 
@@ -177,8 +173,6 @@ namespace winp::ui{
 
 		virtual ~placement_hook();
 
-		virtual std::size_t get_max_allowed() const override;
-
 	protected:
 		virtual bool should_react_to_relativity_() const override;
 
@@ -194,8 +188,6 @@ namespace winp::ui{
 		parent_fill_hook(object &target, const D2D1_SIZE_F &offset);
 
 		virtual ~parent_fill_hook();
-
-		virtual std::size_t get_max_allowed() const override;
 
 		virtual utility::error_code set_offset(const SIZE &value, const std::function<void(parent_fill_hook &, utility::error_code)> &callback = nullptr);
 
@@ -227,8 +219,6 @@ namespace winp::ui{
 
 		virtual ~children_contain_hook();
 
-		virtual std::size_t get_max_allowed() const override;
-
 		virtual utility::error_code set_padding(const SIZE &value, const std::function<void(children_contain_hook &, utility::error_code)> &callback = nullptr);
 
 		virtual const SIZE &get_padding(const std::function<void(const SIZE &)> &callback = nullptr) const;
@@ -246,8 +236,6 @@ namespace winp::ui{
 		explicit io_hook(object &target);
 
 		virtual ~io_hook();
-
-		virtual std::size_t get_max_allowed() const override;
 	};
 
 	class drag_hook : public hook{
@@ -255,8 +243,6 @@ namespace winp::ui{
 		explicit drag_hook(object &target);
 
 		virtual ~drag_hook();
-
-		virtual std::size_t get_max_allowed() const override;
 
 	protected:
 		unsigned __int64 drag_begin_event_id_ = 0u;
@@ -273,11 +259,16 @@ namespace winp::ui{
 
 		virtual ~sibling_placement_hook();
 
-		virtual std::size_t get_max_allowed() const override;
-
 	protected:
 		virtual bool should_react_to_relativity_() const override;
 
 		virtual void update_() override;
+	};
+
+	class auto_create : public hook{
+	public:
+		explicit auto_create(object &target);
+
+		virtual ~auto_create();
 	};
 }

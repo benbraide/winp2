@@ -6,7 +6,9 @@ winp::ui::object::object()
 	: object(app::object::get_thread()){}
 
 winp::ui::object::object(thread::object &thread)
-	: item(thread){}
+	: item(thread){
+	insert_hook<ui::auto_create>();
+}
 
 winp::ui::object::object(tree &parent)
 	: object(parent, static_cast<std::size_t>(-1)){}
@@ -41,18 +43,6 @@ winp::utility::error_code winp::ui::object::destroy(const std::function<void(obj
 bool winp::ui::object::is_created(const std::function<void(bool)> &callback) const{
 	return compute_or_post_task_inside_thread_context([=]{
 		return pass_return_value_to_callback(callback, is_created_());
-	}, (callback != nullptr), false);
-}
-
-winp::utility::error_code winp::ui::object::set_auto_create_state(bool state, const std::function<void(object &, utility::error_code)> &callback){
-	return compute_or_post_task_inside_thread_context([=]{
-		return pass_return_value_to_callback(callback, *this, set_auto_create_state_(state));
-	}, (callback != nullptr), utility::error_code::nil);
-}
-
-bool winp::ui::object::is_auto_createable(const std::function<void(bool)> &callback) const{
-	return compute_or_post_task_inside_thread_context([=]{
-		return pass_return_value_to_callback(callback, is_auto_createable_);
 	}, (callback != nullptr), false);
 }
 
@@ -148,33 +138,17 @@ void winp::ui::object::traverse_all_siblings(const std::function<void(object &)>
 	}, block);
 }
 
-void winp::ui::object::remove_hook(hook &target){
-	execute_task_inside_thread_context([&]{
-		if (hooks_.empty())
-			return;
-
-		if (auto it = hooks_.find(event_manager_type::template get_key(target)); it != hooks_.end()){
-			for (auto list_it = it->second.begin(); list_it != it->second.end(); ++list_it){
-				if (list_it->get() == &target){
-					it->second.erase(list_it);
-					break;
-				}
-			}
-		}
-	});
-}
-
-void winp::ui::object::traverse_hooks(const std::function<bool(hook &)> &callback, bool unique_only, bool block) const{
+void winp::ui::object::traverse_hooks(const std::function<bool(hook &)> &callback, bool block) const{
 	execute_or_post_task_inside_thread_context([&]{
-		traverse_hooks_(callback, unique_only);
+		traverse_hooks_(callback);
 	}, !block);
 }
 
-void winp::ui::object::traverse_all_hooks(const std::function<void(hook &)> &callback, bool unique_only, bool block) const{
+void winp::ui::object::traverse_all_hooks(const std::function<void(hook &)> &callback, bool block) const{
 	traverse_hooks([callback](hook &value){
 		callback(value);
 		return true;
-	}, unique_only, block);
+	}, block);
 }
 
 bool winp::ui::object::is_dialog_message(MSG &msg) const{
@@ -200,7 +174,7 @@ winp::utility::error_code winp::ui::object::create_(){
 winp::utility::error_code winp::ui::object::auto_create_(){
 	if (is_created_())
 		return utility::error_code::nil;
-	return (is_auto_createable_ ? create_() : utility::error_code::action_could_not_be_completed);
+	return (has_hook<ui::auto_create>() ? create_() : utility::error_code::action_could_not_be_completed);
 }
 
 winp::utility::error_code winp::ui::object::destroy_(){
@@ -209,11 +183,6 @@ winp::utility::error_code winp::ui::object::destroy_(){
 
 bool winp::ui::object::is_created_() const{
 	return true;
-}
-
-winp::utility::error_code winp::ui::object::set_auto_create_state_(bool state){
-	is_auto_createable_ = state;
-	return utility::error_code::nil;
 }
 
 winp::utility::error_code winp::ui::object::set_parent_(tree *value, std::size_t index){
@@ -313,21 +282,12 @@ void winp::ui::object::traverse_siblings_(const std::function<bool(object &)> &c
 	}
 }
 
-void winp::ui::object::traverse_hooks_(const std::function<bool(hook &)> &callback, bool unique_only) const{
+void winp::ui::object::traverse_hooks_(const std::function<bool(hook &)> &callback) const{
 	if (hooks_.empty())
 		return;//Empty list
 
 	for (auto &info : hooks_){
-		if (info.second.empty())
-			continue;
-
-		if (!unique_only){
-			for (auto entry : info.second){
-				if (!callback(*entry))
-					return;
-			}
-		}
-		else if (!callback(**info.second.begin()))//Unique
+		if (!callback(*info.second))
 			return;
 	}
 }
