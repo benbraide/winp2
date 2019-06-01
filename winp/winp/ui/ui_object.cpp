@@ -110,6 +110,18 @@ std::size_t winp::ui::object::get_index(const std::function<void(std::size_t)> &
 	}, (callback != nullptr), static_cast<std::size_t>(-1));
 }
 
+winp::ui::object *winp::ui::object::get_previous_sibling(const std::function<void(object *)> &callback) const{
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, get_sibling_(true));
+	}, (callback != nullptr), nullptr);
+}
+
+winp::ui::object *winp::ui::object::get_next_sibling(const std::function<void(object *)> &callback) const{
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, get_sibling_(false));
+	}, (callback != nullptr), nullptr);
+}
+
 void winp::ui::object::traverse_ancestors(const std::function<bool(tree &)> &callback, bool block) const{
 	execute_or_post_task_inside_thread_context([&]{
 		traverse_ancestors_(callback);
@@ -150,6 +162,19 @@ void winp::ui::object::remove_hook(hook &target){
 			}
 		}
 	});
+}
+
+void winp::ui::object::traverse_hooks(const std::function<bool(hook &)> &callback, bool unique_only, bool block) const{
+	execute_or_post_task_inside_thread_context([&]{
+		traverse_hooks_(callback, unique_only);
+	}, !block);
+}
+
+void winp::ui::object::traverse_all_hooks(const std::function<void(hook &)> &callback, bool unique_only, bool block) const{
+	traverse_hooks([callback](hook &value){
+		callback(value);
+		return true;
+	}, unique_only, block);
 }
 
 bool winp::ui::object::is_dialog_message(MSG &msg) const{
@@ -247,6 +272,30 @@ std::size_t winp::ui::object::get_index_() const{
 	return ((parent_ == nullptr) ? index_ : parent_->find_child_(*this));
 }
 
+winp::ui::object *winp::ui::object::get_sibling_(bool is_previous) const{
+	if (parent_ == nullptr || parent_->children_.empty())
+		return nullptr;//No siblings
+
+	auto past_self = false;
+	object *target_sibling = nullptr;
+
+	for (auto sibling : parent_->children_){
+		if (past_self)
+			return (is_previous ? nullptr : sibling);
+
+		if (sibling != this){
+			if (is_previous)
+				target_sibling = sibling;
+		}
+		else if (!is_previous)
+			past_self = true;
+		else
+			break;
+	}
+
+	return target_sibling;
+}
+
 void winp::ui::object::traverse_ancestors_(const std::function<bool(tree &)> &callback) const{
 	for (auto ancestor = parent_; ancestor != nullptr; ancestor = ancestor->parent_){
 		if (!callback(*ancestor))
@@ -261,6 +310,25 @@ void winp::ui::object::traverse_siblings_(const std::function<bool(object &)> &c
 	for (auto sibling : parent_->children_){
 		if (sibling != this && !callback(*sibling))
 			break;
+	}
+}
+
+void winp::ui::object::traverse_hooks_(const std::function<bool(hook &)> &callback, bool unique_only) const{
+	if (hooks_.empty())
+		return;//Empty list
+
+	for (auto &info : hooks_){
+		if (info.second.empty())
+			continue;
+
+		if (!unique_only){
+			for (auto entry : info.second){
+				if (!callback(*entry))
+					return;
+			}
+		}
+		else if (!callback(**info.second.begin()))//Unique
+			return;
 	}
 }
 

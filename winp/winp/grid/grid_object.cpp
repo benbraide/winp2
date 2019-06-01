@@ -6,7 +6,7 @@ winp::grid::object::object()
 	: object(app::object::get_thread()){}
 
 winp::grid::object::object(thread::object &thread)
-	: custom(thread, false){
+	: custom(thread){
 	background_color_.a = 0.0f;
 	add_event_handler_([this](events::create_non_window_handle &e) -> HRGN{
 		if ((e.get_states() & events::object::state_result_set) == 0u)
@@ -59,6 +59,10 @@ winp::utility::error_code winp::grid::object::set_dimension_(int x, int y, int w
 		refresh_();
 
 	return error_code;
+}
+
+winp::ui::surface::grid_type *winp::grid::object::get_grid_() const{
+	return nullptr;
 }
 
 winp::utility::error_code winp::grid::object::refresh_(){

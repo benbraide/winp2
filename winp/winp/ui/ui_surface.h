@@ -136,16 +136,12 @@ namespace winp::ui{
 
 		virtual UINT absolute_hit_test(int x, int y, const std::function<void(UINT)> &callback = nullptr) const;
 
-		virtual grid_type &get_grid(const std::function<void(grid_type &)> &callback = nullptr) const;
+		virtual grid_type *get_grid(const std::function<void(grid_type &)> &callback = nullptr) const;
 
 		virtual bool has_grid(const std::function<void(bool)> &callback = nullptr) const;
 
 	protected:
 		friend class thread::item_manager;
-
-		explicit surface(tree *tree_self = nullptr);
-
-		void init_grid_(tree &tree_self);
 
 		virtual utility::error_code set_size_(int width, int height);
 
@@ -191,9 +187,11 @@ namespace winp::ui{
 
 		virtual UINT absolute_hit_test_(int x, int y) const;
 
+		virtual grid_type *get_grid_() const;
+
 		SIZE size_{};
 		POINT position_{};
-		std::shared_ptr<grid_type> grid_;
+		mutable std::shared_ptr<grid_type> grid_;
 
 		unsigned __int64 size_animation_state_ = 0;
 		unsigned __int64 position_animation_state_ = 0;

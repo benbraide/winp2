@@ -14,8 +14,5 @@ namespace winp::non_window{
 		rectangle(tree &parent, std::size_t index);
 
 		virtual ~rectangle();
-
-	protected:
-		rectangle(thread::object &thread, bool init_grid);
 	};
 }

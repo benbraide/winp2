@@ -22,8 +22,6 @@ namespace winp::non_window{
 		virtual const SIZE &get_border_curve_size(const std::function<void(const SIZE &)> &callback = nullptr) const;
 
 	protected:
-		round_rectangle(thread::object &thread, bool init_grid);
-
 		virtual utility::error_code set_border_curve_size_(int width, int height);
 
 		SIZE border_curve_size_{};

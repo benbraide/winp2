@@ -6,10 +6,7 @@ winp::non_window::ellipsis::ellipsis()
 	: ellipsis(app::object::get_thread()){}
 
 winp::non_window::ellipsis::ellipsis(thread::object &thread)
-	: ellipsis(thread, true){}
-
-winp::non_window::ellipsis::ellipsis(thread::object &thread, bool init_grid)
-	: non_window_surface(thread, init_grid){
+	: non_window_surface(thread){
 	set_event_state_<events::create_non_window_handle, events::update_non_window_handle, events::destroy_non_window_handle>((event_manager_type::state_disable_bounding | event_manager_type::state_disable_triggering));
 	add_event_handler_([this](events::create_non_window_handle &e) -> HRGN{
 		return CreateEllipticRgn(0, 0, size_.cx, size_.cy);
@@ -34,10 +31,7 @@ winp::non_window::circle::circle()
 	: circle(app::object::get_thread()){}
 
 winp::non_window::circle::circle(thread::object &thread)
-	: circle(thread, true){}
-
-winp::non_window::circle::circle(thread::object &thread, bool init_grid)
-	: ellipsis(thread, init_grid){}
+	: ellipsis(thread){}
 
 winp::non_window::circle::circle(tree &parent)
 	: circle(parent, static_cast<std::size_t>(-1)){}

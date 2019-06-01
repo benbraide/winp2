@@ -6,13 +6,17 @@
 
 namespace winp::ui{
 	class object;
-	class tree;
 
 	class hook{
 	public:
-		virtual ~hook() = default;
+		explicit hook(object &target);
+
+		virtual ~hook();
 
 		virtual std::size_t get_max_allowed() const;
+
+	protected:
+		object &target_;
 	};
 
 	class parent_size_hook : public hook{
@@ -24,11 +28,10 @@ namespace winp::ui{
 		virtual ~parent_size_hook();
 
 	protected:
-		parent_size_hook(object &target);
+		explicit parent_size_hook(object &target);
 
 		virtual void bind_size_event_(tree *parent, tree *previous_parent);
 
-		object &target_;
 		std::function<void(hook &)> callback_;
 		unsigned __int64 size_event_id_ = 0u;
 		unsigned __int64 tree_event_id_ = 0u;
@@ -40,57 +43,72 @@ namespace winp::ui{
 		enum class change_type{
 			size,
 			position,
-			both,
+			all,
 		};
 
-		children_size_and_position_hook(tree &target, const std::function<void(hook &, change_type)> &callback);
+		struct event_id_info{
+			unsigned __int64 position;
+			unsigned __int64 creation;
+		};
 
-		children_size_and_position_hook(tree &target, const std::function<void(change_type)> &callback);
+		children_size_and_position_hook(object &target, const std::function<void(hook &, change_type)> &callback);
+
+		children_size_and_position_hook(object &target, const std::function<void(change_type)> &callback);
 
 		virtual ~children_size_and_position_hook();
 
 	protected:
-		children_size_and_position_hook(tree &target);
-
-		children_size_and_position_hook(tree &target, bool);
+		explicit children_size_and_position_hook(object &target);
 
 		virtual void children_change_(object &child, events::children_change::action_type action);
 
 		virtual void do_callback_(UINT flags);
 
-		virtual UINT get_target_flags_() const;
-
-		tree &target_;
 		std::function<void(hook &, change_type)> callback_;
-		std::unordered_map<object *, unsigned __int64> event_ids_;
+		std::unordered_map<object *, event_id_info> event_ids_;
 		unsigned __int64 tree_event_id_ = 0u;
 	};
 
-	class children_size_hook : public children_size_and_position_hook{
+	class sibling_size_and_position_hook : public hook{
 	public:
-		children_size_hook(tree &target, const std::function<void(hook &)> &callback);
+		enum class sibling_type{
+			previous,
+			next,
+		};
 
-		children_size_hook(tree &target, const std::function<void()> &callback);
+		enum class change_type{
+			size,
+			position,
+			all,
+		};
 
-		virtual ~children_size_hook();
+		sibling_size_and_position_hook(object &target, sibling_type type, const std::function<void(hook &, change_type)> &callback);
+
+		sibling_size_and_position_hook(object &target, sibling_type type, const std::function<void(change_type)> &callback);
+
+		virtual ~sibling_size_and_position_hook();
+
+		virtual std::size_t get_max_allowed() const override;
+
+		virtual sibling_type get_sibling_type(const std::function<void(sibling_type)> &callback = nullptr) const;
 
 	protected:
-		virtual UINT get_target_flags_() const override;
+		sibling_size_and_position_hook(object &target, sibling_type type);
+
+		virtual void siblings_change_();
+
+		virtual void do_callback_(UINT flags);
+
+		sibling_type sibling_type_;
+		std::function<void(hook &, change_type)> callback_;
+
+		object *sibling_ = nullptr;
+		unsigned __int64 position_event_id_ = 0u;
+		unsigned __int64 tree_event_id_ = 0u;
+		unsigned __int64 parent_tree_event_id_ = 0u;
 	};
 
-	class children_position_hook : public children_size_and_position_hook{
-	public:
-		children_position_hook(tree &target, const std::function<void(hook &)> &callback);
-
-		children_position_hook(tree &target, const std::function<void()> &callback);
-
-		virtual ~children_position_hook();
-
-	protected:
-		virtual UINT get_target_flags_() const override;
-	};
-
-	class placement_hook : public parent_size_hook{
+	class generic_placement_hook{
 	public:
 		enum class alignment_type{
 			top_left,
@@ -104,7 +122,54 @@ namespace winp::ui{
 			bottom_right,
 		};
 
-		placement_hook(object &target);
+		enum class relative_type{
+			target,
+			self,
+		};
+
+		explicit generic_placement_hook(object &target, relative_type relativity);
+
+		generic_placement_hook(object &target, alignment_type alignment, relative_type relativity);
+
+		generic_placement_hook(object &target, alignment_type alignment, const POINT &offset, relative_type relativity);
+
+		virtual ~generic_placement_hook();
+
+		virtual utility::error_code set_alignment(alignment_type value, const std::function<void(generic_placement_hook &, utility::error_code)> &callback = nullptr);
+
+		virtual alignment_type get_alignment(const std::function<void(alignment_type)> &callback = nullptr) const;
+
+		virtual utility::error_code set_offset(const POINT &value, const std::function<void(generic_placement_hook &, utility::error_code)> &callback = nullptr);
+
+		virtual utility::error_code set_offset(int x, int y, const std::function<void(generic_placement_hook &, utility::error_code)> &callback = nullptr);
+
+		virtual const POINT &get_offset(const std::function<void(const POINT &)> &callback = nullptr) const;
+
+		virtual utility::error_code set_relativity(relative_type value, const std::function<void(generic_placement_hook &, utility::error_code)> &callback = nullptr);
+
+		virtual relative_type get_relativity(const std::function<void(relative_type)> &callback = nullptr) const;
+
+	protected:
+		virtual utility::error_code set_alignment_(alignment_type value);
+
+		virtual utility::error_code set_offset_(int x, int y);
+
+		virtual utility::error_code set_relativity_(relative_type value);
+
+		virtual bool should_react_to_relativity_() const = 0;
+
+		virtual void update_() = 0;
+
+		unsigned __int64 generic_size_event_id_ = 0u;
+		object &generic_target_;
+		alignment_type alignment_;
+		POINT offset_;
+		relative_type relativity_;
+	};
+
+	class placement_hook : public parent_size_hook, public generic_placement_hook{
+	public:
+		explicit placement_hook(object &target);
 
 		placement_hook(object &target, alignment_type alignment);
 
@@ -112,36 +177,25 @@ namespace winp::ui{
 
 		virtual ~placement_hook();
 
-		virtual utility::error_code set_alignment(alignment_type value, const std::function<void(placement_hook &, utility::error_code)> &callback = nullptr);
-
-		virtual alignment_type get_alignment(const std::function<void(alignment_type)> &callback = nullptr) const;
-
-		virtual utility::error_code set_offset(const POINT &value, const std::function<void(placement_hook &, utility::error_code)> &callback = nullptr);
-
-		virtual utility::error_code set_offset(int x, int y, const std::function<void(placement_hook &, utility::error_code)> &callback = nullptr);
-
-		virtual const POINT &get_offset(const std::function<void(const POINT &)> &callback = nullptr) const;
+		virtual std::size_t get_max_allowed() const override;
 
 	protected:
-		virtual utility::error_code set_alignment_(alignment_type value);
+		virtual bool should_react_to_relativity_() const override;
 
-		virtual utility::error_code set_offset_(int x, int y);
-
-		virtual void update_();
-
-		alignment_type alignment_ = alignment_type::top_left;
-		POINT offset_{};
+		virtual void update_() override;
 	};
 
 	class parent_fill_hook : public parent_size_hook{
 	public:
-		parent_fill_hook(object &target);
+		explicit parent_fill_hook(object &target);
 
 		parent_fill_hook(object &target, const SIZE &offset);
 
 		parent_fill_hook(object &target, const D2D1_SIZE_F &offset);
 
 		virtual ~parent_fill_hook();
+
+		virtual std::size_t get_max_allowed() const override;
 
 		virtual utility::error_code set_offset(const SIZE &value, const std::function<void(parent_fill_hook &, utility::error_code)> &callback = nullptr);
 
@@ -165,43 +219,65 @@ namespace winp::ui{
 		std::variant<SIZE, D2D1_SIZE_F> offset_ = SIZE{};
 	};
 
-	class first_child_contain_hook : public children_size_and_position_hook{
+	class children_contain_hook : public children_size_and_position_hook{
 	public:
-		first_child_contain_hook(tree &target);
+		explicit children_contain_hook(object &target);
 
-		first_child_contain_hook(tree &target, const SIZE &offset);
+		children_contain_hook(object &target, const SIZE &padding);
 
-		virtual ~first_child_contain_hook();
+		virtual ~children_contain_hook();
 
-		virtual utility::error_code set_offset(const SIZE &value, const std::function<void(first_child_contain_hook &, utility::error_code)> &callback = nullptr);
+		virtual std::size_t get_max_allowed() const override;
 
-		virtual utility::error_code set_offset(int width, int height, const std::function<void(first_child_contain_hook &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_padding(const SIZE &value, const std::function<void(children_contain_hook &, utility::error_code)> &callback = nullptr);
 
-		virtual const SIZE &get_offset(const std::function<void(const SIZE &)> &callback = nullptr) const;
+		virtual const SIZE &get_padding(const std::function<void(const SIZE &)> &callback = nullptr) const;
 
 	protected:
-		virtual void children_change_(object &child, events::children_change::action_type action) override;
-
-		virtual UINT get_target_flags_() const override;
-
-		virtual utility::error_code set_offset_(int width, int height);
+		virtual utility::error_code set_padding_(const SIZE &value);
 
 		virtual void update_();
 
-		SIZE offset_{};
+		SIZE padding_{};
 	};
 
 	class io_hook : public hook{
 	public:
-		io_hook(object &target);
+		explicit io_hook(object &target);
 
 		virtual ~io_hook();
 
 		virtual std::size_t get_max_allowed() const override;
+	};
+
+	class drag_hook : public hook{
+	public:
+		explicit drag_hook(object &target);
+
+		virtual ~drag_hook();
+
+		virtual std::size_t get_max_allowed() const override;
 
 	protected:
-		friend class thread::item_manager;
+		unsigned __int64 drag_begin_event_id_ = 0u;
+		unsigned __int64 drag_event_id_ = 0u;
+	};
 
-		object &target_;
+	class sibling_placement_hook : public sibling_size_and_position_hook, public generic_placement_hook{
+	public:
+		sibling_placement_hook(object &target, sibling_type type, relative_type relativity = relative_type::self);
+
+		sibling_placement_hook(object &target, sibling_type type, alignment_type alignment, relative_type relativity = relative_type::self);
+
+		sibling_placement_hook(object &target, sibling_type type, alignment_type alignment, const POINT &offset, relative_type relativity = relative_type::self);
+
+		virtual ~sibling_placement_hook();
+
+		virtual std::size_t get_max_allowed() const override;
+
+	protected:
+		virtual bool should_react_to_relativity_() const override;
+
+		virtual void update_() override;
 	};
 }

@@ -28,6 +28,8 @@ namespace winp::grid{
 
 		virtual utility::error_code set_dimension_(int x, int y, int width, int height) override;
 
+		virtual grid_type *get_grid_() const override;
+
 		virtual utility::error_code refresh_();
 
 		bool is_updating_ = false;

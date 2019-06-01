@@ -14,8 +14,5 @@ namespace winp::non_window{
 		custom(tree &parent, std::size_t index);
 
 		virtual ~custom();
-
-	protected:
-		custom(thread::object &thread, bool init_grid);
 	};
 }

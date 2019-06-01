@@ -6,19 +6,10 @@ winp::ui::window_surface::window_surface()
 	: window_surface(app::object::get_thread()){}
 
 winp::ui::window_surface::window_surface(thread::object &thread)
-	: window_surface(thread, true){}
-
-winp::ui::window_surface::window_surface(thread::object &thread, bool init_grid)
 	: tree(thread), system_menu_(*this), context_menu_(thread), menu_bar_(*this){
 	styles_ = (WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
 	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
 	insert_hook<io_hook>();
-
-	if (init_grid){
-		is_auto_createable_ = false;
-		init_grid_(*this);
-		is_auto_createable_ = true;
-	}
 
 	add_event_handler_([this](events::get_context_menu_handle &e){
 		auto context_menu_handle = get_context_menu_handle_(e);

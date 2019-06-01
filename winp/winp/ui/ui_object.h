@@ -64,6 +64,10 @@ namespace winp::ui{
 
 		virtual std::size_t get_index(const std::function<void(std::size_t)> &callback = nullptr) const;
 
+		virtual object *get_previous_sibling(const std::function<void(object *)> &callback = nullptr) const;
+
+		virtual object *get_next_sibling(const std::function<void(object *)> &callback = nullptr) const;
+
 		virtual void traverse_ancestors(const std::function<bool(tree &)> &callback, bool block) const;
 
 		virtual void traverse_all_ancestors(const std::function<void(tree &)> &callback, bool block) const;
@@ -133,6 +137,17 @@ namespace winp::ui{
 			}, (callback != nullptr), false);
 		}
 
+		template <typename hook_type>
+		bool has_similar_hook(const std::function<void(bool)> &callback = nullptr) const{
+			return compute_or_post_task_inside_thread_context([=]{
+				return pass_return_value_to_callback(callback, has_similar_hook_<hook_type>());
+			}, (callback != nullptr), false);
+		}
+
+		virtual void traverse_hooks(const std::function<bool(hook &)> &callback, bool unique_only, bool block) const;
+
+		virtual void traverse_all_hooks(const std::function<void(hook &)> &callback, bool unique_only, bool block) const;
+
 		virtual bool is_dialog_message(MSG &msg) const;
 
 	protected:
@@ -180,6 +195,8 @@ namespace winp::ui{
 
 		virtual std::size_t get_index_() const;
 
+		virtual object *get_sibling_(bool is_previous) const;
+
 		virtual void traverse_ancestors_(const std::function<bool(tree &)> &callback) const;
 
 		virtual void traverse_siblings_(const std::function<bool(object &)> &callback) const;
@@ -212,6 +229,18 @@ namespace winp::ui{
 
 			return true;
 		}
+
+		template <typename hook_type>
+		bool has_similar_hook_() const{
+			auto has_similar_hook = false;
+			traverse_hooks_([&](hook &hk){
+				return !(has_similar_hook = (dynamic_cast<hook_type *>(&hk) != nullptr));
+			}, true);
+
+			return has_similar_hook;
+		}
+
+		virtual void traverse_hooks_(const std::function<bool(hook &)> &callback, bool unique_only) const;
 
 		virtual bool is_dialog_message_(MSG &msg) const;
 

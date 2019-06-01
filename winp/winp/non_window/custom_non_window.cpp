@@ -6,10 +6,7 @@ winp::non_window::custom::custom()
 	: custom(app::object::get_thread()){}
 
 winp::non_window::custom::custom(thread::object &thread)
-	: custom(thread, true){}
-
-winp::non_window::custom::custom(thread::object &thread, bool init_grid)
-	: non_window_surface(thread, init_grid){}
+	: non_window_surface(thread){}
 
 winp::non_window::custom::custom(tree &parent)
 	: custom(parent, static_cast<std::size_t>(-1)){}

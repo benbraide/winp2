@@ -14,9 +14,6 @@ namespace winp::non_window{
 		ellipsis(tree &parent, std::size_t index);
 
 		virtual ~ellipsis();
-
-	protected:
-		ellipsis(thread::object &thread, bool init_grid);
 	};
 
 	class circle : public ellipsis{
@@ -36,8 +33,6 @@ namespace winp::non_window{
 		virtual int get_radius(const std::function<void(int)> &callback = nullptr) const;
 
 	protected:
-		circle(thread::object &thread, bool init_grid);
-
 		virtual utility::error_code set_dimension_(int x, int y, int width, int height) override;
 	};
 }

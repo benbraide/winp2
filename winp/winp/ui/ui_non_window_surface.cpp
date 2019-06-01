@@ -6,16 +6,8 @@ winp::ui::non_window_surface::non_window_surface()
 	: non_window_surface(app::object::get_thread()){}
 
 winp::ui::non_window_surface::non_window_surface(thread::object &thread)
-	: non_window_surface(thread, true){}
-
-winp::ui::non_window_surface::non_window_surface(thread::object &thread, bool init_grid)
 	: tree(thread){
 	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
-	if (init_grid){
-		is_auto_createable_ = false;
-		init_grid_(*this);
-		is_auto_createable_ = true;
-	}
 }
 
 winp::ui::non_window_surface::non_window_surface(tree &parent)

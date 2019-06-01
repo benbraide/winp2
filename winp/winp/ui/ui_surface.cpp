@@ -2,11 +2,6 @@
 
 #include "../grid/grid_object.h"
 
-winp::ui::surface::surface(tree *tree_self){
-	if (tree_self != nullptr)
-		init_grid_(*tree_self);
-}
-
 winp::ui::surface::~surface() = default;
 
 winp::utility::error_code winp::ui::surface::set_size(const SIZE &value, const std::function<void(surface &, utility::error_code)> &callback){
@@ -359,23 +354,19 @@ UINT winp::ui::surface::absolute_hit_test(int x, int y, const std::function<void
 	}, (callback != nullptr), 0u);
 }
 
-winp::ui::surface::grid_type &winp::ui::surface::get_grid(const std::function<void(grid_type &)> &callback) const{
-	return *synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return &thread::item::pass_return_ref_value_to_callback(callback, grid_.get());
-	}, (callback != nullptr), grid_.get());
+winp::ui::surface::grid_type *winp::ui::surface::get_grid(const std::function<void(grid_type &)> &callback) const{
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		auto grid = get_grid_();
+		if (grid != nullptr && callback != nullptr)
+			callback(*grid);
+		return grid;
+	}, (callback != nullptr), nullptr);
 }
 
 bool winp::ui::surface::has_grid(const std::function<void(bool)> &callback) const{
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
 		return synchronized_item_pass_return_value_to_callback(callback, (grid_ != nullptr));
 	}, (callback != nullptr), false);
-}
-
-void winp::ui::surface::init_grid_(tree &tree_self){
-	grid_ = std::make_shared<grid_type>(tree_self);
-	grid_->insert_hook<parent_fill_hook>();
-	grid_->insert_hook<placement_hook>(placement_hook::alignment_type::top_left);
-	grid_->create();
 }
 
 winp::utility::error_code winp::ui::surface::set_size_(int width, int height){
@@ -598,4 +589,15 @@ UINT winp::ui::surface::hit_test_(int x, int y) const{
 UINT winp::ui::surface::absolute_hit_test_(int x, int y) const{
 	auto relative_position = convert_position_from_absolute_value_(x, y);
 	return hit_test_(relative_position.x, relative_position.y);
+}
+
+winp::ui::surface::grid_type *winp::ui::surface::get_grid_() const{
+	if (grid_ == nullptr){
+		grid_ = std::make_shared<grid_type>(*dynamic_cast<tree *>(const_cast<surface *>(this)));
+		grid_->insert_hook<parent_fill_hook>();
+		grid_->insert_hook<placement_hook>(placement_hook::alignment_type::top_left);
+		grid_->create();
+	}
+
+	return grid_.get();
 }

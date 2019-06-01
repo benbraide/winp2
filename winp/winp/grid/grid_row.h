@@ -31,6 +31,8 @@ namespace winp::grid{
 
 		virtual void child_erased_(ui::object &child) override;
 
+		virtual grid_type *get_grid_() const override;
+
 		virtual int compute_fixed_height_(int grid_height) const;
 
 		virtual bool is_fixed_() const;

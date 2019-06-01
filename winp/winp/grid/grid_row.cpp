@@ -6,7 +6,7 @@ winp::grid::row::row()
 	: row(app::object::get_thread()){}
 
 winp::grid::row::row(thread::object &thread)
-	: custom(thread, false){
+	: custom(thread){
 	background_color_.a = 0.0f;
 	add_event_handler_([this](events::create_non_window_handle &e) -> HRGN{
 		if ((e.get_states() & events::object::state_result_set) == 0u)
@@ -57,6 +57,10 @@ void winp::grid::row::child_inserted_(ui::object &child){
 void winp::grid::row::child_erased_(ui::object &child){
 	custom::child_erased_(child);
 	refresh_();
+}
+
+winp::ui::surface::grid_type *winp::grid::row::get_grid_() const{
+	return nullptr;
 }
 
 int winp::grid::row::compute_fixed_height_(int grid_height) const{
