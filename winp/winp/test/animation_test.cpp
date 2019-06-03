@@ -25,7 +25,22 @@ void winp::test::animation::run(int cmd_show){
 		nwo.set_position(30, 30);
 		nwo.set_size(200, 100);
 		nwo.set_background_color(D2D1::ColorF::Red);
+
+		std::thread([&]{
+			for (;;){
+				std::this_thread::sleep_for(std::chrono::seconds(2));
+				if (ui::visible_surface::compare_colors(nwo.get_background_color(), D2D1::ColorF(D2D1::ColorF::Red)))
+					nwo.set_background_color(D2D1::ColorF::Blue);
+				else
+					nwo.set_background_color(D2D1::ColorF::Red);
+			}
+		}).detach();
 	});
+
+	nws->insert_hook<ui::drag_hook>();
+	auto hk = nws->insert_hook<ui::animation_hook>(std::chrono::milliseconds(1000));
+	if (hk == nullptr)
+		return;
 
 	ws.get_system_menu([&](ui::window_surface::system_menu_type &smn){
 		smn.add_object([](menu::separator &item){});
@@ -38,10 +53,11 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::linear::ease);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::linear::ease, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::linear::ease, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 			});
@@ -51,30 +67,33 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::back::ease_in);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::back::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::back::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::back::ease_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::back::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::back::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::back::ease_in_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::back::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::back::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 			});
@@ -84,30 +103,33 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::bounce::ease_in);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::bounce::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::bounce::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::bounce::ease_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::bounce::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::bounce::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::bounce::ease_in_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::bounce::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::bounce::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 			});
@@ -117,30 +139,33 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::circle::ease_in);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::circle::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::circle::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::circle::ease_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::circle::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::circle::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::circle::ease_in_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::circle::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::circle::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 			});
@@ -150,30 +175,33 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::cubic::ease_in);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::cubic::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::cubic::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::cubic::ease_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::cubic::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::cubic::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::cubic::ease_in_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::cubic::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::cubic::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 			});
@@ -183,30 +211,33 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::elastic::ease_in);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::elastic::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::elastic::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::elastic::ease_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::elastic::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::elastic::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::elastic::ease_in_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::elastic::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::elastic::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 			});
@@ -216,30 +247,33 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::exponential::ease_in);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::exponential::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::exponential::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::exponential::ease_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::exponential::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::exponential::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::exponential::ease_in_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::exponential::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::exponential::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 			});
@@ -249,30 +283,33 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::quadratic::ease_in);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::quadratic::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::quadratic::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::quadratic::ease_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::quadratic::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::quadratic::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::quadratic::ease_in_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::quadratic::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::quadratic::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 			});
@@ -282,30 +319,33 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::quart::ease_in);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::quart::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::quart::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::quart::ease_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::quart::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::quart::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::quart::ease_in_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::quart::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::quart::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 			});
@@ -315,30 +355,33 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::quint::ease_in);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::quint::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::quint::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::quint::ease_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::quint::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::quint::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::quint::ease_in_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::quint::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::quint::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 			});
@@ -348,30 +391,33 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::sine::ease_in);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::sine::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::sine::ease_in, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::sine::ease_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::sine::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::sine::ease_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
+						hk->set_easing(utility::animation_timing::sine::ease_in_out);
 						if (nws->get_x_position() == 30)
-							nws->animate_x_position(320, utility::animation_timing::sine::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(320);
 						else
-							nws->animate_x_position(30, utility::animation_timing::sine::ease_in_out, std::chrono::milliseconds(1000));
+							nws->set_x_position(30);
 					});
 				});
 			});

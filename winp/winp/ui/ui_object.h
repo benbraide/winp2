@@ -4,6 +4,7 @@
 
 namespace winp::ui{
 	class tree;
+	class surface;
 
 	class object : public thread::item{
 	public:
@@ -106,15 +107,17 @@ namespace winp::ui{
 		}
 
 		template <typename hook_type, typename... args_types>
-		void insert_hook(args_types &&... args){
-			execute_task_inside_thread_context([&]{
+		hook_type *insert_hook(args_types &&... args){
+			return compute_task_inside_thread_context([&]{
 				auto key = event_manager_type::template get_key<hook_type>();
-				if (hooks_.find(key) != hooks_.end())
-					return;//Duplicate
+				if (auto it = hooks_.find(key); it != hooks_.end())
+					return dynamic_cast<hook_type *>(it->second.get());//Duplicate
 
 				auto hook = std::make_shared<hook_type>(*this, std::forward<args_types>(args)...);
 				if (hook != nullptr)
 					hooks_[key] = hook;
+
+				return hook.get();
 			});
 		}
 
@@ -124,6 +127,13 @@ namespace winp::ui{
 				if (!hooks_.empty())
 					hooks_.erase(event_manager_type::template get_key<hook_type>());
 			});
+		}
+
+		template <typename hook_type>
+		hook_type *find_hook(const std::function<void(hook_type *)> &callback = nullptr) const{
+			return compute_or_post_task_inside_thread_context([=]{
+				return pass_return_value_to_callback(callback, find_hook_<hook_type>());
+			}, (callback != nullptr), false);
 		}
 
 		template <typename hook_type>
@@ -148,6 +158,7 @@ namespace winp::ui{
 
 	protected:
 		friend class tree;
+		friend class surface;
 		friend class thread::item_manager;
 
 		virtual utility::error_code destruct_() override;
@@ -211,6 +222,17 @@ namespace winp::ui{
 					return callback(*target_sibling);
 				return true;
 			});
+		}
+
+		template <typename hook_type>
+		hook_type *find_hook_() const{
+			if (hooks_.empty())
+				return nullptr;
+
+			if (auto it = hooks_.find(event_manager_type::template get_key<hook_type>()); it != hooks_.end())
+				return dynamic_cast<hook_type *>(it->second.get());
+
+			return nullptr;
 		}
 
 		template <typename hook_type>

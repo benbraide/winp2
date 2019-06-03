@@ -7,7 +7,7 @@ winp::ui::object::object()
 
 winp::ui::object::object(thread::object &thread)
 	: item(thread){
-	insert_hook<ui::auto_create>();
+	insert_hook<ui::auto_create_hook>();
 }
 
 winp::ui::object::object(tree &parent)
@@ -174,7 +174,7 @@ winp::utility::error_code winp::ui::object::create_(){
 winp::utility::error_code winp::ui::object::auto_create_(){
 	if (is_created_())
 		return utility::error_code::nil;
-	return (has_hook<ui::auto_create>() ? create_() : utility::error_code::action_could_not_be_completed);
+	return (has_hook<ui::auto_create_hook>() ? create_() : utility::error_code::action_could_not_be_completed);
 }
 
 winp::utility::error_code winp::ui::object::destroy_(){

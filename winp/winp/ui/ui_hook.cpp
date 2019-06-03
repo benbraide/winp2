@@ -1,4 +1,5 @@
 #include "../app/app_object.h"
+#include "../utility/animation_timing.h"
 
 #include "ui_window_surface.h"
 
@@ -579,8 +580,10 @@ winp::ui::drag_hook::drag_hook(object &target)
 	});
 
 	drag_event_id_ = target_.events().bind([this](events::mouse_drag &e){
-		if (auto surface_target = dynamic_cast<surface *>(&target_); surface_target != nullptr)
+		if (auto surface_target = dynamic_cast<surface *>(&target_); surface_target != nullptr){
+			target_.insert_hook<animation_suppression_hook>();
 			surface_target->offset_position(e.get_offset());
+		}
 	});
 }
 
@@ -683,7 +686,66 @@ void winp::ui::sibling_placement_hook::update_(){
 	}
 }
 
-winp::ui::auto_create::auto_create(object &target)
+winp::ui::auto_create_hook::auto_create_hook(object &target)
 	: hook(target){}
 
-winp::ui::auto_create::~auto_create() = default;
+winp::ui::auto_create_hook::~auto_create_hook() = default;
+
+winp::ui::animation_hook::animation_hook(object &target)
+	: animation_hook(target, utility::animation_timing::linear::ease, std::chrono::milliseconds(500)){}
+
+winp::ui::animation_hook::animation_hook(object &target, const easing_type &easing)
+	: animation_hook(target, easing, std::chrono::milliseconds(500)){}
+
+winp::ui::animation_hook::animation_hook(object &target, const std::chrono::microseconds &duration)
+	: animation_hook(target, utility::animation_timing::linear::ease, duration){}
+
+winp::ui::animation_hook::animation_hook(object &target, const easing_type &easing, const std::chrono::microseconds &duration)
+	: hook(target), easing_(easing), duration_(duration){}
+
+winp::ui::animation_hook::~animation_hook() = default;
+
+winp::utility::error_code winp::ui::animation_hook::set_easing(const easing_type &value, const std::function<void(animation_hook &, utility::error_code)> &callback){
+	return target_.compute_or_post_task_inside_thread_context([=]{
+		return target_.pass_return_value_to_callback(callback, *this, set_easing_(value));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
+const winp::ui::animation_hook::easing_type &winp::ui::animation_hook::get_easing(const std::function<void(const easing_type &)> &callback) const{
+	return *target_.compute_or_post_task_inside_thread_context([=]{
+		return &target_.pass_return_ref_value_to_callback(callback, &easing_);
+	}, (callback != nullptr), &easing_);
+}
+
+winp::utility::error_code winp::ui::animation_hook::set_duration(const std::chrono::microseconds &value, const std::function<void(animation_hook &, utility::error_code)> &callback){
+	return target_.compute_or_post_task_inside_thread_context([=]{
+		return target_.pass_return_value_to_callback(callback, *this, set_duration_(value));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
+const std::chrono::microseconds &winp::ui::animation_hook::get_duration(const std::function<void(const std::chrono::microseconds &)> &callback) const{
+	return *target_.compute_or_post_task_inside_thread_context([=]{
+		return &target_.pass_return_ref_value_to_callback(callback, &duration_);
+	}, (callback != nullptr), &duration_);
+}
+
+winp::utility::error_code winp::ui::animation_hook::set_easing_(const easing_type &value){
+	easing_ = value;
+	return utility::error_code::nil;
+}
+
+winp::utility::error_code winp::ui::animation_hook::set_duration_(const std::chrono::microseconds &value){
+	duration_ = value;
+	return utility::error_code::nil;
+}
+
+winp::ui::animation_suppression_hook::animation_suppression_hook(object &target, bool once)
+	: hook(target), once_(once){}
+
+winp::ui::animation_suppression_hook::~animation_suppression_hook() = default;
+
+bool winp::ui::animation_suppression_hook::is_once(const std::function<void(bool)> &callback) const{
+	return target_.compute_or_post_task_inside_thread_context([=]{
+		return target_.pass_return_value_to_callback(callback, once_);
+	}, (callback != nullptr), false);
+}

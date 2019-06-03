@@ -19,7 +19,9 @@ namespace winp::ui{
 		virtual HRGN get_handle(const std::function<void(HRGN)> &callback = nullptr) const;
 
 	protected:
+		friend class surface;
 		friend class thread::item_manager;
+		friend class events::draw;
 
 		virtual utility::error_code create_() override;
 
@@ -27,7 +29,7 @@ namespace winp::ui{
 
 		virtual bool is_created_() const override;
 
-		virtual utility::error_code set_dimension_(int x, int y, int width, int height) override;
+		virtual utility::error_code dimension_change_(int x, int y, int width, int height, UINT flags) override;
 
 		virtual utility::error_code redraw_() const override;
 
@@ -51,6 +53,6 @@ namespace winp::ui{
 
 		HRGN handle_ = nullptr;
 		bool visible_ = true;
-		RECT previous_dimension_{};
+		RECT current_dimension_{};
 	};
 }

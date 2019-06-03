@@ -179,7 +179,7 @@ bool winp::events::background_color::should_call_default_() const{
 
 LRESULT winp::events::background_color::get_called_default_value_(){
 	if (auto visible_context = dynamic_cast<ui::visible_surface *>(&context_); visible_context != nullptr)
-		return static_cast<LRESULT>(ui::visible_surface::convert_colorf_to_colorref(visible_context->get_background_color()));
+		return static_cast<LRESULT>(ui::visible_surface::convert_colorf_to_colorref(visible_context->current_background_color_));
 	return 0;
 }
 
@@ -209,26 +209,8 @@ winp::utility::error_code winp::events::draw::begin(){
 	if (auto non_window_context = dynamic_cast<ui::non_window_surface *>(&context_); non_window_context != nullptr){
 		SelectClipRgn(info_.hdc, non_window_context->get_handle());
 
-		POINT offset{};
-		auto context_dimension = non_window_context->get_dimension();
-
-		auto window_ancestor = non_window_context->get_first_ancestor_of<ui::window_surface>([&](ui::tree &ancestor){
-			if (auto surface_ancestor = dynamic_cast<ui::surface *>(&ancestor); surface_ancestor != nullptr){
-				auto ancestor_position = surface_ancestor->get_position();
-				auto ancestor_client_offset = surface_ancestor->get_client_offset();
-
-				offset.x += (ancestor_position.x + ancestor_client_offset.x);
-				offset.y += (ancestor_position.y + ancestor_client_offset.y);
-			}
-
-			return true;
-		});
-
-		if (window_ancestor != nullptr){
-			auto ancestor_client_start_offset = window_ancestor->get_client_start_offset();
-			offset.x += ancestor_client_start_offset.x;
-			offset.y += ancestor_client_start_offset.y;
-		}
+		auto context_dimension = non_window_context->current_dimension_;
+		auto offset = non_window_context->convert_position_relative_to_window_ancestor(0, 0);
 
 		OffsetRect(&context_dimension, offset.x, offset.y);//Move relative to offset
 		OffsetClipRgn(info_.hdc, context_dimension.left, context_dimension.top);

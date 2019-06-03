@@ -265,10 +265,53 @@ namespace winp::ui{
 		virtual void update_() override;
 	};
 
-	class auto_create : public hook{
+	class auto_create_hook : public hook{
 	public:
-		explicit auto_create(object &target);
+		explicit auto_create_hook(object &target);
 
-		virtual ~auto_create();
+		virtual ~auto_create_hook();
+	};
+
+	class animation_hook : public hook{
+	public:
+		using easing_type = std::function<float(float)>;
+
+		explicit animation_hook(object &target);
+
+		animation_hook(object &target, const easing_type &easing);
+
+		animation_hook(object &target, const std::chrono::microseconds &duration);
+
+		animation_hook(object &target, const easing_type &easing, const std::chrono::microseconds &duration);
+
+		virtual ~animation_hook();
+
+		virtual utility::error_code set_easing(const easing_type &value, const std::function<void(animation_hook &, utility::error_code)> &callback = nullptr);
+
+		virtual const easing_type &get_easing(const std::function<void(const easing_type &)> &callback = nullptr) const;
+
+		virtual utility::error_code set_duration(const std::chrono::microseconds &value, const std::function<void(animation_hook &, utility::error_code)> &callback = nullptr);
+
+		virtual const std::chrono::microseconds &get_duration(const std::function<void(const std::chrono::microseconds &)> &callback = nullptr) const;
+
+	protected:
+		virtual utility::error_code set_easing_(const easing_type &value);
+
+		virtual utility::error_code set_duration_(const std::chrono::microseconds &value);
+
+		easing_type easing_;
+		std::chrono::microseconds duration_;
+	};
+
+	class animation_suppression_hook : public hook{
+	public:
+		explicit animation_suppression_hook(object &target, bool once = true);
+
+		virtual ~animation_suppression_hook();
+
+		virtual bool is_once(const std::function<void(bool)> &callback = nullptr) const;
+
+	protected:
+		bool once_;
 	};
 }

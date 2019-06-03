@@ -27,10 +27,6 @@ namespace winp::ui{
 
 		virtual utility::error_code set_background_color(const D2D1::ColorF &value, const std::function<void(visible_surface, utility::error_code)> &callback = nullptr);
 
-		virtual utility::error_code animate_background_color(const D2D1_COLOR_F &value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
-
-		virtual utility::error_code animate_background_color(const D2D1::ColorF &value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
-
 		virtual const D2D1_COLOR_F &get_background_color(const std::function<void(const D2D1_COLOR_F &)> &callback = nullptr) const;
 
 		static COLORREF convert_rgb_to_rgba(COLORREF rgb, BYTE a = 255);
@@ -48,6 +44,8 @@ namespace winp::ui{
 		static bool compare_colors(const D2D1::ColorF &first, const D2D1::ColorF &second);
 
 	protected:
+		friend class events::background_color;
+
 		virtual utility::error_code redraw_() const;
 
 		virtual utility::error_code redraw_(const RECT &region) const;
@@ -64,11 +62,13 @@ namespace winp::ui{
 
 		virtual utility::error_code set_background_color_(const D2D1_COLOR_F &value);
 
-		virtual utility::error_code animate_background_color_(const D2D1_COLOR_F &value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback);
+		virtual utility::error_code background_color_change_(const D2D1_COLOR_F &value);
 
 		virtual const D2D1_COLOR_F &get_background_color_() const;
 
 		D2D1_COLOR_F background_color_{};
+		D2D1_COLOR_F current_background_color_{};
+
 		ID2D1Brush *background_brush_ = nullptr;
 		unsigned __int64 background_color_animation_state_ = 0;
 	};

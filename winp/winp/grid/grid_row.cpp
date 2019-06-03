@@ -7,7 +7,7 @@ winp::grid::row::row()
 
 winp::grid::row::row(thread::object &thread)
 	: custom(thread){
-	background_color_.a = 0.0f;
+	current_background_color_.a = background_color_.a = 0.0f;
 	add_event_handler_([this](events::create_non_window_handle &e) -> HRGN{
 		if ((e.get_states() & events::object::state_result_set) == 0u)
 			return CreateRectRgn(0, 0, size_.cx, size_.cy);

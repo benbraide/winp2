@@ -565,9 +565,10 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 				if (auto surface_ancestor = dynamic_cast<ui::surface *>(&ancestor); surface_ancestor != nullptr){
 					auto ancestor_position = surface_ancestor->get_position();
 					auto ancestor_client_offset = surface_ancestor->get_client_offset();
+					auto ancestor_client_start_offset = surface_ancestor->get_client_start_offset();
 
-					offset.x += (ancestor_position.x + ancestor_client_offset.x);
-					offset.y += (ancestor_position.y + ancestor_client_offset.y);
+					offset.x += (ancestor_position.x + ancestor_client_offset.x + ancestor_client_start_offset.x);
+					offset.y += (ancestor_position.y + ancestor_client_offset.y + ancestor_client_start_offset.y);
 				}
 
 				return true;
@@ -576,8 +577,10 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 			if (window_ancestor == nullptr)
 				return 0;//Window ancestor required
 
+			auto non_window_context = dynamic_cast<ui::non_window_surface *>(&context);
 			auto update_rect = update_rect_;
-			auto context_dimension = visible_context->get_dimension();
+
+			auto context_dimension = ((non_window_context == nullptr) ? visible_context->get_dimension() : non_window_context->current_dimension_);
 			auto ancestor_client_start_offset = window_ancestor->get_client_start_offset();
 
 			offset.x += ancestor_client_start_offset.x;
@@ -622,29 +625,30 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 }
 
 LRESULT winp::thread::item_manager::position_change_(item &target, MSG &msg, bool changing){
-	auto surface_target = dynamic_cast<ui::surface *>(&target);
-	if (surface_target == nullptr)
-		return 0;
-
 	auto window_target = dynamic_cast<ui::window_surface *>(&target);
-	auto info = reinterpret_cast<WINDOWPOS *>(msg.lParam);
+	if (window_target == nullptr)
+		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
 
 	LRESULT result = 0;
-	if (changing){
+	auto info = reinterpret_cast<WINDOWPOS *>(msg.lParam);
+
+	if (!changing){
+		if ((info->flags & SWP_NOMOVE) == 0u){
+			auto relative_position = window_target->convert_position_relative_to_window_ancestor_(0, 0);
+			window_target->position_ = POINT{ (info->x - relative_position.x), (info->y - relative_position.y) };
+		}
+
+		if ((info->flags & SWP_NOSIZE) == 0u)
+			window_target->size_ = SIZE{ info->cx, info->cy };
+
+		result = trigger_event_<events::position_change>(target, false, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
+	}
+	else{//Changing
 		auto result_info = trigger_event_<events::position_change>(target, true, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name())));
 		if ((result_info.first & events::object::state_default_prevented) != 0u)
 			info->flags |= (SWP_NOMOVE | SWP_NOSIZE);
 
 		result = result_info.second;
-	}
-	else{//Changed
-		if ((info->flags & SWP_NOMOVE) == 0u)
-			surface_target->position_ = POINT{ info->x, info->y };
-
-		if ((info->flags & SWP_NOSIZE) == 0u)
-			surface_target->size_ = SIZE{ info->cx, info->cy };
-
-		result = trigger_event_<events::position_change>(target, false, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	}
 
 	return result;

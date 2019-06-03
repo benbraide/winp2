@@ -7,7 +7,7 @@ winp::ui::non_window_surface::non_window_surface()
 
 winp::ui::non_window_surface::non_window_surface(thread::object &thread)
 	: tree(thread){
-	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
+	current_background_color_ = background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
 }
 
 winp::ui::non_window_surface::non_window_surface(tree &parent)
@@ -80,64 +80,59 @@ bool winp::ui::non_window_surface::is_created_() const{
 	return (handle_ != nullptr);
 }
 
-winp::utility::error_code winp::ui::non_window_surface::set_dimension_(int x, int y, int width, int height){
-	previous_dimension_ = get_dimension_();
-	if (auto error_code = visible_surface::set_dimension_(x, y, width, height); error_code != utility::error_code::nil)
-		return error_code;
-
-	if (!is_created_())
-		return utility::error_code::nil;//Do nothing
-
-	SIZE previous_size{ (previous_dimension_.right - previous_dimension_.left), (previous_dimension_.bottom - previous_dimension_.top) };
-	if (size_.cx != previous_size.cx || size_.cy != previous_size.cy)
-		update_handle_();
-
-	if (!is_created_() || !is_visible_())
-		return utility::error_code::nil;//Do nothing
-
-	POINT offset{};
-	auto window_ancestor = get_first_ancestor_of_<window_surface>([&](tree &ancestor){
-		if (auto surface_ancestor = dynamic_cast<surface *>(&ancestor); surface_ancestor != nullptr){
-			auto ancestor_position = surface_ancestor->get_position();
-			auto ancestor_client_offset = surface_ancestor->get_client_offset();
-
-			offset.x += (ancestor_position.x + ancestor_client_offset.x);
-			offset.y += (ancestor_position.y + ancestor_client_offset.y);
-		}
-
-		return true;
-	});
-
-	if (window_ancestor == nullptr)//Do nothing
+winp::utility::error_code winp::ui::non_window_surface::dimension_change_(int x, int y, int width, int height, UINT flags){
+	if ((flags & (SWP_NOMOVE | SWP_NOSIZE)) == (SWP_NOMOVE | SWP_NOSIZE))
 		return utility::error_code::nil;
 
-	auto dimension = get_dimension_();
-	OffsetRect(&previous_dimension_, offset.x, offset.y);
-	OffsetRect(&dimension, offset.x, offset.y);
+	auto previous_dimension = current_dimension_;
+	if ((flags & SWP_NOMOVE) == 0u){
+		current_dimension_.right += (x - current_dimension_.left);
+		current_dimension_.bottom += (y - current_dimension_.top);
+		current_dimension_.left = x;
+		current_dimension_.top = y;
+	}
 
-	window_ancestor->redraw(previous_dimension_);
-	window_ancestor->redraw(dimension);
+	if ((flags & SWP_NOSIZE) == 0u){
+		current_dimension_.right = (current_dimension_.left + width);
+		current_dimension_.bottom = (current_dimension_.top + height);
+		update_handle_();
+	}
 
-	return utility::error_code::nil;
+	auto visible_parent = dynamic_cast<visible_surface *>(parent_);
+	if (!is_visible_() || visible_parent == nullptr || !visible_parent->is_visible())
+		return utility::error_code::nil;
+
+	if (IsRectEmpty(&current_dimension_) == FALSE)//Flush previous dimension
+		visible_parent->redraw(previous_dimension);
+
+	if ((flags & (SWP_NOMOVE | SWP_NOSIZE)) != (SWP_NOMOVE | SWP_NOSIZE))//Update view
+		visible_parent->redraw(current_dimension_);
+
+	return visible_surface::dimension_change_(x, y, width, height, flags);
 }
 
 winp::utility::error_code winp::ui::non_window_surface::redraw_() const{
-	auto dimension = get_dimension_();
-	OffsetRect(&dimension, -dimension.left, -dimension.top);
-	return redraw_(dimension);
+	return redraw_(RECT{ 0, 0, (current_dimension_.right - current_dimension_.left), (current_dimension_.bottom - current_dimension_.top) });
 }
 
 winp::utility::error_code winp::ui::non_window_surface::redraw_(const RECT &region) const{
+	if (IsRectEmpty(&region) != FALSE)
+		return utility::error_code::nil;
+
 	if (handle_ == nullptr)
 		return utility::error_code::object_not_created;
 
-	if (parent_ == nullptr || !parent_->is_created())
+	auto visible_parent = get_first_ancestor_of_<visible_surface>(nullptr);
+	if (visible_parent == nullptr || !dynamic_cast<tree *>(visible_parent)->is_created())
 		return utility::error_code::parent_not_created;
 
-	if (auto visible_parent = dynamic_cast<visible_surface *>(parent_); visible_parent != nullptr)
-		return visible_parent->redraw(RECT{ (region.left + position_.x), (region.top + position_.y), (region.right + position_.x), (region.bottom + position_.y) });
+	if (!is_visible_() || !visible_parent->is_visible())
+		return utility::error_code::nil;
 
-	return utility::error_code::nil;
+	RECT update_region{ (region.left + position_.x), (region.top + position_.y), (region.right + position_.x), (region.bottom + position_.y) };
+	IntersectRect(&update_region, &update_region, &current_dimension_);
+
+	return ((IsRectEmpty(&update_region) == FALSE) ? visible_parent->redraw() : utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::non_window_surface::set_visibility_(bool is_visible, bool redraw){
@@ -186,13 +181,8 @@ winp::utility::error_code winp::ui::non_window_surface::update_handle_(){
 		return utility::error_code::action_prevented;
 
 	if (auto value = reinterpret_cast<HRGN>(result.second); value != nullptr){
-		RECT dimension{};
-
 		destroy_handle_();
-		GetRgnBox((handle_ = value), &dimension);
-		OffsetRgn(handle_, -dimension.left, -dimension.top);
-
-		size_ = SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
+		handle_ = value;
 	}
 
 	return utility::error_code::nil;

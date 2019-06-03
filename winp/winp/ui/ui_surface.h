@@ -22,15 +22,9 @@ namespace winp::ui{
 
 		virtual utility::error_code set_size(int width, int height, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual utility::error_code animate_size(int width, int height, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
-
 		virtual utility::error_code set_width(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual utility::error_code animate_width(int value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
-
 		virtual utility::error_code set_height(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
-
-		virtual utility::error_code animate_height(int value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
 		virtual utility::error_code offset_size(const SIZE &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
@@ -64,15 +58,9 @@ namespace winp::ui{
 
 		virtual utility::error_code set_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual utility::error_code animate_position(int x, int y, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
-
 		virtual utility::error_code set_x_position(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
-		virtual utility::error_code animate_x_position(int value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
-
 		virtual utility::error_code set_y_position(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
-
-		virtual utility::error_code animate_y_position(int value, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
 		virtual utility::error_code offset_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
@@ -107,6 +95,10 @@ namespace winp::ui{
 		virtual RECT get_dimension(const std::function<void(const RECT &)> &callback = nullptr) const;
 
 		virtual RECT get_absolute_dimension(const std::function<void(const RECT &)> &callback = nullptr) const;
+
+		virtual POINT convert_position_relative_to_window_ancestor(const POINT &value, const std::function<void(const POINT &)> &callback = nullptr) const;
+
+		virtual POINT convert_position_relative_to_window_ancestor(int x, int y, const std::function<void(const POINT &)> &callback = nullptr) const;
 
 		virtual POINT convert_position_from_absolute_value(const POINT &value, const std::function<void(const POINT &)> &callback = nullptr) const;
 
@@ -145,8 +137,6 @@ namespace winp::ui{
 
 		virtual utility::error_code set_size_(int width, int height);
 
-		virtual utility::error_code animate_size_(int width, int height, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback);
-
 		virtual const SIZE &get_size_() const;
 
 		virtual SIZE get_client_size_() const;
@@ -157,8 +147,6 @@ namespace winp::ui{
 
 		virtual utility::error_code set_position_(int x, int y);
 
-		virtual utility::error_code animate_position_(int x, int y, const easing_type &easing, const std::chrono::microseconds &duration, const std::function<void(surface &, utility::error_code)> &callback);
-
 		virtual const POINT &get_position_() const;
 
 		virtual utility::error_code set_absolute_position_(int x, int y);
@@ -167,13 +155,13 @@ namespace winp::ui{
 
 		virtual utility::error_code set_dimension_(int x, int y, int width, int height);
 
-		virtual utility::error_code position_change_(bool is_changing);
-
-		virtual utility::error_code size_change_(bool is_changing);
+		virtual utility::error_code dimension_change_(int x, int y, int width, int height, UINT flags);
 
 		virtual RECT get_dimension_() const;
 
 		virtual RECT get_absolute_dimension_() const;
+
+		virtual POINT convert_position_relative_to_window_ancestor_(int x, int y) const;
 
 		virtual POINT convert_position_from_absolute_value_(int x, int y) const;
 

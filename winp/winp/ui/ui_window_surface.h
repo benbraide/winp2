@@ -64,6 +64,7 @@ namespace winp::ui{
 		virtual void traverse_all_child_windows(const std::function<void(window_surface &)> &callback, bool block) const;
 
 	protected:
+		friend class surface;
 		friend class thread::item_manager;
 
 		virtual utility::error_code create_() override;
@@ -82,17 +83,13 @@ namespace winp::ui{
 
 		virtual bool is_visible_() const override;
 
-		virtual utility::error_code set_size_(int width, int height) override;
-
 		virtual SIZE get_client_size_() const override;
 
 		virtual POINT get_client_offset_() const override;
 
-		virtual utility::error_code set_position_(int x, int y) override;
-
 		virtual POINT get_absolute_position_() const override;
 
-		virtual utility::error_code set_dimension_(int x, int y, int width, int height) override;
+		virtual utility::error_code dimension_change_(int x, int y, int width, int height, UINT flags) override;
 
 		virtual RECT get_absolute_dimension_() const override;
 
@@ -103,6 +100,8 @@ namespace winp::ui{
 		virtual UINT absolute_hit_test_(int x, int y) const override;
 
 		virtual bool is_dialog_message_(MSG &msg) const override;
+
+		virtual void update_position_() const;
 
 		virtual utility::error_code show_(int how);
 
