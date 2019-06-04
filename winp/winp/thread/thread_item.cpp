@@ -114,15 +114,18 @@ bool winp::thread::item::adding_event_handler_(event_manager_type &manager, even
 }
 
 void winp::thread::item::added_event_handler_(event_manager_type &manager, event_manager_type::key_type key, unsigned __int64 id) const{
-	std::chrono::milliseconds duration;
+	std::pair<unsigned int, LRESULT> result_info{};
 	if (key == event_manager_type::get_key<events::timer>())
-		duration = std::chrono::milliseconds(trigger_single_event_<events::timer>(id, true).second);
+		result_info = trigger_single_event_<events::timer>(id, true);
 	else if (key == event_manager_type::get_key<events::interval>())
-		duration = std::chrono::milliseconds(trigger_single_event_<events::interval>(id, true).second);
+		result_info = trigger_single_event_<events::interval>(id, true);
 	else
 		return;
 
-	thread_.add_timer_(duration, [=]{
+	if ((result_info.first & events::object::state_default_prevented) != 0u)
+		return;
+
+	thread_.add_timer_(std::chrono::milliseconds(result_info.second), [=]{
 		if (key == event_manager_type::get_key<events::timer>()){
 			trigger_single_event_<events::timer>(id, false);
 			thread_.remove_timer_(id);

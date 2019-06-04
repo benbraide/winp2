@@ -16,10 +16,14 @@ void winp::test::animation::run(int cmd_show){
 			if (e.is_type<D2D1_COLOR_F>() && e.get_progress() == events::animation::progress_type::end){
 				if (ui::visible_surface::compare_colors(nwo.get_background_color(), D2D1::ColorF(D2D1::ColorF::Red)))
 					nwo.set_background_color(D2D1::ColorF::Blue);
+				else if (ui::visible_surface::compare_colors(nwo.get_background_color(), D2D1::ColorF(D2D1::ColorF::Blue)))
+					nwo.set_background_color(D2D1::ColorF::White);
 				else
 					nwo.set_background_color(D2D1::ColorF::Red);
 			}
 		});
+
+		nwo.insert_hook<ui::auto_hide_cursor_hook>();
 	});
 
 	nws->insert_hook<ui::drag_hook>();
