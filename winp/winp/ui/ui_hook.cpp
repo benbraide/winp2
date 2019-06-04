@@ -581,8 +581,10 @@ winp::ui::drag_hook::drag_hook(object &target)
 
 	drag_event_id_ = target_.events().bind([this](events::mouse_drag &e){
 		if (auto surface_target = dynamic_cast<surface *>(&target_); surface_target != nullptr){
-			target_.insert_hook<animation_suppression_hook>();
-			surface_target->offset_position(e.get_offset());
+			if (auto shk = target_.insert_hook<animation_suppression_hook>(); shk != nullptr){
+				shk->suppress_type<POINT>();
+				surface_target->offset_position(e.get_offset());
+			}
 		}
 	});
 }
@@ -729,6 +731,31 @@ const std::chrono::microseconds &winp::ui::animation_hook::get_duration(const st
 	}, (callback != nullptr), &duration_);
 }
 
+void winp::ui::animation_hook::allow_type(key_type key){
+	target_.execute_task_inside_thread_context([=]{
+		allowed_list_[key] = true;
+	});
+}
+
+void winp::ui::animation_hook::disallow_type(key_type key){
+	target_.execute_task_inside_thread_context([=]{
+		if (!allowed_list_.empty()){
+			if (auto it = allowed_list_.find(key); it != allowed_list_.end())
+				it->second = false;
+		}
+	});
+}
+
+bool winp::ui::animation_hook::type_is_allowed(key_type key) const{
+	return target_.compute_task_inside_thread_context([=]{
+		if (allowed_list_.empty())
+			return true;
+
+		auto it = allowed_list_.find(key);
+		return (it != allowed_list_.end() && it->second);
+	});
+}
+
 winp::utility::error_code winp::ui::animation_hook::set_easing_(const easing_type &value){
 	easing_ = value;
 	return utility::error_code::nil;
@@ -748,4 +775,29 @@ bool winp::ui::animation_suppression_hook::is_once(const std::function<void(bool
 	return target_.compute_or_post_task_inside_thread_context([=]{
 		return target_.pass_return_value_to_callback(callback, once_);
 	}, (callback != nullptr), false);
+}
+
+void winp::ui::animation_suppression_hook::suppress_type(key_type key){
+	target_.execute_task_inside_thread_context([=]{
+		suppressed_list_[key] = true;
+	});
+}
+
+void winp::ui::animation_suppression_hook::unsuppress_type(key_type key){
+	target_.execute_task_inside_thread_context([=]{
+		if (!suppressed_list_.empty()){
+			if (auto it = suppressed_list_.find(key); it != suppressed_list_.end())
+				it->second = false;
+		}
+	});
+}
+
+bool winp::ui::animation_suppression_hook::type_is_suppressed(key_type key) const{
+	return target_.compute_task_inside_thread_context([=]{
+		if (suppressed_list_.empty())
+			return true;
+
+		auto it = suppressed_list_.find(key);
+		return (it != suppressed_list_.end() && it->second);
+	});
 }

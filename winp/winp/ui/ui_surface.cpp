@@ -447,16 +447,35 @@ winp::utility::error_code winp::ui::surface::set_dimension_(int x, int y, int wi
 
 	auto animation_suppression_hk = object_self->find_hook<animation_suppression_hook>();
 	if (animation_suppression_hk != nullptr){
-		if (animation_suppression_hk->is_once())
-			object_self->remove_hook<animation_suppression_hook>();
+		auto move_suppressed = true, size_suppressed = true;
+		if ((info.flags & SWP_NOMOVE) == 0u){
+			if (animation_suppression_hk->type_is_suppressed<POINT>() || animation_suppression_hk->type_is_suppressed<RECT>())
+				++position_animation_state_;//Cancel animation, if any
+			else
+				move_suppressed = false;
+		}
 
-		if ((info.flags & SWP_NOMOVE) == 0u)
-			++position_animation_state_;//Cancel animation, if any
+		if ((info.flags & SWP_NOSIZE) == 0u){
+			if (animation_suppression_hk->type_is_suppressed<SIZE>() || animation_suppression_hk->type_is_suppressed<RECT>())
+				++size_animation_state_;//Cancel animation, if any
+			else
+				size_suppressed = false;
+		}
 
-		if ((info.flags & SWP_NOSIZE) == 0u)
-			++size_animation_state_;//Cancel animation, if any
+		if ((move_suppressed || size_suppressed) && animation_suppression_hk->is_once())
+			object_self->remove_hook<animation_suppression_hook>();//Remove hook
 
-		return dimension_change_(position_.x, position_.y, size_.cx, size_.cy, info.flags);
+		if (move_suppressed && size_suppressed)
+			return dimension_change_(position_.x, position_.y, size_.cx, size_.cy, info.flags);
+
+		if (move_suppressed && (info.flags & SWP_NOMOVE) == 0u){//Move animation suppressed
+			dimension_change_(position_.x, position_.y, 0, 0, (info.flags & ~SWP_NOSIZE));
+			info.flags &= ~SWP_NOMOVE;
+		}
+		else if (size_suppressed && (info.flags & SWP_NOSIZE) == 0u){//Size animation suppressed
+			dimension_change_(0, 0, size_.cx, size_.cy, (info.flags & ~SWP_NOMOVE));
+			info.flags &= ~SWP_NOSIZE;
+		}
 	}
 
 	if (auto animation_hk = object_self->find_hook<animation_hook>(); animation_hk != nullptr){//Animate values

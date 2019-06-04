@@ -167,9 +167,9 @@ winp::utility::error_code winp::ui::visible_surface::set_background_color_(const
 		return background_color_change_(value);
 
 	auto animation_suppression_hk = object_self->find_hook<animation_suppression_hook>();
-	if (animation_suppression_hk != nullptr){
+	if (animation_suppression_hk != nullptr && (animation_suppression_hk->type_is_suppressed<D2D1_COLOR_F>() || animation_suppression_hk->type_is_suppressed<COLORREF>())){
 		++background_color_animation_state_;//Cancel animation, if any
-		if (animation_suppression_hk->is_once())
+		if (animation_suppression_hk->is_once())//Remove hook
 			object_self->remove_hook<animation_suppression_hook>();
 
 		return background_color_change_(value);

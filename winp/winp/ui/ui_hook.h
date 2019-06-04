@@ -275,6 +275,7 @@ namespace winp::ui{
 	class animation_hook : public hook{
 	public:
 		using easing_type = std::function<float(float)>;
+		using key_type = thread::item::event_manager_type::key_type;
 
 		explicit animation_hook(object &target);
 
@@ -294,6 +295,27 @@ namespace winp::ui{
 
 		virtual const std::chrono::microseconds &get_duration(const std::function<void(const std::chrono::microseconds &)> &callback = nullptr) const;
 
+		template <typename target_type>
+		void allow_type(){
+			allow_type(thread::item::event_manager_type::get_key<target_type>());
+		}
+
+		virtual void allow_type(key_type key);
+
+		template <typename target_type>
+		void disallow_type(){
+			disallow_type(thread::item::event_manager_type::get_key<target_type>());
+		}
+
+		virtual void disallow_type(key_type key);
+
+		template <typename target_type>
+		bool type_is_allowed() const{
+			return type_is_allowed(thread::item::event_manager_type::get_key<target_type>());
+		}
+
+		virtual bool type_is_allowed(key_type key) const;
+
 	protected:
 		virtual utility::error_code set_easing_(const easing_type &value);
 
@@ -301,17 +323,42 @@ namespace winp::ui{
 
 		easing_type easing_;
 		std::chrono::microseconds duration_;
+		std::unordered_map<key_type, bool> allowed_list_;
 	};
 
 	class animation_suppression_hook : public hook{
 	public:
+		using key_type = thread::item::event_manager_type::key_type;
+
 		explicit animation_suppression_hook(object &target, bool once = true);
 
 		virtual ~animation_suppression_hook();
 
 		virtual bool is_once(const std::function<void(bool)> &callback = nullptr) const;
 
+		template <typename target_type>
+		void suppress_type(){
+			suppress_type(thread::item::event_manager_type::get_key<target_type>());
+		}
+
+		virtual void suppress_type(key_type key);
+
+		template <typename target_type>
+		void unsuppress_type(){
+			unsuppress_type(thread::item::event_manager_type::get_key<target_type>());
+		}
+
+		virtual void unsuppress_type(key_type key);
+
+		template <typename target_type>
+		bool type_is_suppressed() const{
+			return type_is_suppressed(thread::item::event_manager_type::get_key<target_type>());
+		}
+
+		virtual bool type_is_suppressed(key_type key) const;
+
 	protected:
 		bool once_;
+		std::unordered_map<key_type, bool> suppressed_list_;
 	};
 }
