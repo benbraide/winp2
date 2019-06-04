@@ -9,19 +9,6 @@ void winp::test::animation::run(int cmd_show){
 	ws.show(cmd_show);
 
 	auto nws = ws.add_object([&](non_window::rectangle &nwo){
-		nwo.events().bind([&](events::paint &e){
-			e.begin();
-			if (auto drawer = e.get_render_target(); drawer != nullptr){
-				e.get_color_brush()->SetColor(D2D1::ColorF(D2D1::ColorF::White));
-				auto size = dynamic_cast<ui::surface *>(&e.get_context())->get_size();
-
-				for (auto step = 10; step < size.cx; step += 10)
-					drawer->DrawLine(D2D1::Point2F((float)step, 0.f), D2D1::Point2F((float)step, (float)size.cy), e.get_color_brush());
-				for (auto step = 10; step < size.cy; step += 10)
-					drawer->DrawLine(D2D1::Point2F(0.f, (float)step), D2D1::Point2F((float)size.cx, (float)step), e.get_color_brush());
-			}
-		});
-
 		nwo.set_position(30, 30);
 		nwo.set_size(200, 100);
 		
@@ -36,7 +23,7 @@ void winp::test::animation::run(int cmd_show){
 	});
 
 	nws->insert_hook<ui::drag_hook>();
-	auto hk = nws->insert_hook<ui::animation_hook>(std::chrono::milliseconds(1000));
+	auto hk = nws->insert_hook<ui::animation_hook>(std::chrono::milliseconds(3000));
 	if (hk == nullptr)
 		return;
 

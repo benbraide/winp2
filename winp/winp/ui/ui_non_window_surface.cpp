@@ -88,6 +88,7 @@ winp::utility::error_code winp::ui::non_window_surface::dimension_change_(int x,
 	if ((flags & SWP_NOMOVE) == 0u){
 		current_dimension_.right += (x - current_dimension_.left);
 		current_dimension_.bottom += (y - current_dimension_.top);
+
 		current_dimension_.left = x;
 		current_dimension_.top = y;
 	}

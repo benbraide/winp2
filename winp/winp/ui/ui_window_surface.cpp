@@ -280,10 +280,21 @@ winp::utility::error_code winp::ui::window_surface::dimension_change_(int x, int
 	if (handle_ == nullptr)
 		return utility::error_code::nil;
 
-	if ((flags & SWP_NOMOVE) == 0u){//Set position
+	if ((flags & SWP_NOMOVE) == 0u){
 		auto relative_position = convert_position_relative_to_window_ancestor_(x, y);
 		x = relative_position.x;
 		y = relative_position.y;
+
+		current_dimension_.right += (x - current_dimension_.left);
+		current_dimension_.bottom += (y - current_dimension_.top);
+
+		current_dimension_.left = x;
+		current_dimension_.top = y;
+	}
+
+	if ((flags & SWP_NOSIZE) == 0u){
+		current_dimension_.right = (current_dimension_.left + width);
+		current_dimension_.bottom = (current_dimension_.top + height);
 	}
 
 	return ((SetWindowPos(handle_, nullptr, x, y, width, height, (flags | SWP_NOZORDER | SWP_NOACTIVATE)) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);

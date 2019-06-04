@@ -540,9 +540,9 @@ LRESULT winp::thread::item_manager::erase_background_(item &context, item &targe
 	auto window_context = dynamic_cast<ui::window_surface *>(&context);
 
 	if (object_context->is_created() && (window_context != nullptr || visible_context->is_visible()))
-		result = trigger_event_with_target_<events::erase_background>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_class_entry_(window_context->get_class_name()))).second;
+		return trigger_event_with_target_<events::erase_background>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_class_entry_(window_context->get_class_name()))).second;
 
-	return result;
+	return 0;
 }
 
 LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg, bool check_interception){
@@ -610,10 +610,10 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 		result = trigger_event_with_target_<events::paint>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_class_entry_(window_context->get_class_name()))).second;
 
 	if (auto tree_context = dynamic_cast<ui::tree *>(&context); tree_context != nullptr){
-		tree_context->traverse_all_children([&](ui::object &child){
-			if (dynamic_cast<ui::window_surface *>(&child) == nullptr)
-				paint_(child, target, msg, (window_context != nullptr));
-		}, true);
+		tree_context->traverse_children_of_<ui::non_window_surface>([&](ui::non_window_surface &child){
+			paint_(child, target, msg, (window_context != nullptr));
+			return true;
+		});
 	}
 
 	if (window_context != nullptr && paint_device_ != nullptr){

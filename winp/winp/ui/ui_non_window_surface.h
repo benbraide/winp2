@@ -21,7 +21,6 @@ namespace winp::ui{
 	protected:
 		friend class surface;
 		friend class thread::item_manager;
-		friend class events::draw;
 
 		virtual utility::error_code create_() override;
 
@@ -53,6 +52,5 @@ namespace winp::ui{
 
 		HRGN handle_ = nullptr;
 		bool visible_ = true;
-		RECT current_dimension_{};
 	};
 }

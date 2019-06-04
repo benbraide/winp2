@@ -135,6 +135,10 @@ namespace winp::ui{
 	protected:
 		friend class thread::item_manager;
 
+		friend class events::draw;
+		friend class events::erase_background;
+		friend class events::paint;
+
 		virtual utility::error_code set_size_(int width, int height);
 
 		virtual const SIZE &get_size_() const;
@@ -179,6 +183,8 @@ namespace winp::ui{
 
 		SIZE size_{};
 		POINT position_{};
+
+		RECT current_dimension_{};
 		mutable std::shared_ptr<grid_type> grid_;
 
 		unsigned __int64 size_animation_state_ = 0;

@@ -511,6 +511,20 @@ LRESULT winp::events::erase_background::get_called_default_value_(){
 
 winp::utility::error_code winp::events::erase_background::begin_(){
 	info_.hdc = reinterpret_cast<HDC>(message_info_.wParam);
+
+	POINT offset{};
+	auto surface_context = dynamic_cast<ui::surface *>(&context_);
+
+	if (dynamic_cast<ui::window_surface *>(&context_) == nullptr)
+		offset = surface_context->convert_position_relative_to_window_ancestor(surface_context->current_dimension_.left, surface_context->current_dimension_.top);
+
+	if (ui::tree *tree_context = dynamic_cast<ui::tree *>(&context_); tree_context != nullptr){
+		tree_context->traverse_all_children_of<ui::visible_surface>([&](ui::visible_surface &child){
+			if (child.is_visible() && IsRectEmpty(&child.current_dimension_) == FALSE)
+				ExcludeClipRect(info_.hdc, (child.current_dimension_.left - offset.x), (child.current_dimension_.top - offset.y), (child.current_dimension_.right - offset.x), (child.current_dimension_.bottom - offset.y));
+		}, true);
+	}
+
 	GetClipBox(info_.hdc, &info_.rcPaint);
 	return utility::error_code::nil;
 }
@@ -542,6 +556,19 @@ winp::utility::error_code winp::events::paint::begin_(){
 	else{//Begin paint
 		began_paint_ = true;
 		BeginPaint(message_info_.hwnd, &info_);
+	}
+
+	POINT offset{};
+	auto surface_context = dynamic_cast<ui::surface *>(&context_);
+
+	if (dynamic_cast<ui::window_surface *>(&context_) == nullptr)
+		offset = surface_context->convert_position_relative_to_window_ancestor(surface_context->current_dimension_.left, surface_context->current_dimension_.top);
+
+	if (ui::tree *tree_context = dynamic_cast<ui::tree *>(&context_); tree_context != nullptr){
+		tree_context->traverse_all_children_of<ui::visible_surface>([&](ui::visible_surface &child){
+			if (child.is_visible() && IsRectEmpty(&child.current_dimension_) == FALSE)
+				ExcludeClipRect(info_.hdc, (child.current_dimension_.left - offset.x), (child.current_dimension_.top - offset.y), (child.current_dimension_.right - offset.x), (child.current_dimension_.bottom - offset.y));
+		}, true);
 	}
 
 	return utility::error_code::nil;
