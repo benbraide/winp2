@@ -422,4 +422,34 @@ namespace winp::events{
 	protected:
 		bool needs_duration_;
 	};
+
+	class animation : public object{
+	public:
+		using key_type = unsigned __int64;
+
+		enum class progress_type{
+			nil,
+			begin,
+			step,
+			end,
+			cancel,
+		};
+
+		template <typename... args_types>
+		explicit animation(key_type type, progress_type progress, args_types &&... args)
+			: object(std::forward<args_types>(args)...), type_(type), progress_(progress){}
+
+		virtual key_type get_type() const;
+
+		template <typename target_type>
+		bool is_type() const{
+			return (get_type() == reinterpret_cast<key_type>(&typeid(target_type)));
+		}
+
+		virtual progress_type get_progress() const;
+
+	protected:
+		key_type type_;
+		progress_type progress_;
+	};
 }

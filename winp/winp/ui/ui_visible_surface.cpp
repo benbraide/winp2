@@ -182,15 +182,23 @@ winp::utility::error_code winp::ui::visible_surface::set_background_color_(const
 
 		auto duration = animation_hk->get_duration();
 		auto state = ++background_color_animation_state_;
-
 		D2D1_COLOR_F color_delta{ (value.r - start_color.r), (value.g - start_color.g), (value.b - start_color.b), (value.a - start_color.a) }, last_color = start_color;
+
+		synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<D2D1_COLOR_F>(), events::animation::progress_type::begin);
 		object_self->get_thread().animate(easing, [=](float progress, bool has_more) mutable{
 			if (background_color_animation_state_ == state){
 				D2D1_COLOR_F color{ (start_color.r + (color_delta.r * progress)), (start_color.g + (color_delta.g * progress)), (start_color.b + (color_delta.b * progress)), (start_color.a + (color_delta.a * progress)) };
 				if (!compare_colors(color, last_color))
 					background_color_change_(color);
+
 				last_color = color;
+				synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<D2D1_COLOR_F>(), events::animation::progress_type::step);
+
+				if (!has_more)//Ended
+					synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<D2D1_COLOR_F>(), events::animation::progress_type::end);
 			}
+			else//Canceled
+				synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<D2D1_COLOR_F>(), events::animation::progress_type::cancel);
 
 			return (background_color_animation_state_ == state);
 		}, duration);

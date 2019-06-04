@@ -24,17 +24,15 @@ void winp::test::animation::run(int cmd_show){
 
 		nwo.set_position(30, 30);
 		nwo.set_size(200, 100);
-		nwo.set_background_color(D2D1::ColorF::Red);
-
-		std::thread([&]{
-			for (;;){
-				std::this_thread::sleep_for(std::chrono::seconds(2));
+		
+		nwo.events().bind([&](events::animation &e){
+			if (e.is_type<D2D1_COLOR_F>() && e.get_progress() == events::animation::progress_type::end){
 				if (ui::visible_surface::compare_colors(nwo.get_background_color(), D2D1::ColorF(D2D1::ColorF::Red)))
 					nwo.set_background_color(D2D1::ColorF::Blue);
 				else
 					nwo.set_background_color(D2D1::ColorF::Red);
 			}
-		}).detach();
+		});
 	});
 
 	nws->insert_hook<ui::drag_hook>();
@@ -42,6 +40,7 @@ void winp::test::animation::run(int cmd_show){
 	if (hk == nullptr)
 		return;
 
+	nws->set_background_color(D2D1::ColorF::Red);
 	ws.get_system_menu([&](ui::window_surface::system_menu_type &smn){
 		smn.add_object([](menu::separator &item){});
 

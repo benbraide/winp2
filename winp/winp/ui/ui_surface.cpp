@@ -488,13 +488,21 @@ winp::utility::error_code winp::ui::surface::set_dimension_(int x, int y, int wi
 			auto state = ++position_animation_state_;
 			POINT position_delta{ (x - start_position.x), (y - start_position.y) }, last_position = start_position;
 
+			synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<POINT>(), events::animation::progress_type::begin);
 			object_self->get_thread().animate(easing, [=](float progress, bool has_more) mutable{
 				if (position_animation_state_ == state){
 					POINT position{ (start_position.x + static_cast<int>(position_delta.x * progress)), (start_position.y + static_cast<int>(position_delta.y * progress)) };
 					if (position.x != last_position.x || position.y != last_position.y)
 						dimension_change_(position.x, position.y, 0, 0, SWP_NOSIZE);
+
 					last_position = position;
+					synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<POINT>(), events::animation::progress_type::step);
+
+					if (!has_more)//Ended
+						synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<POINT>(), events::animation::progress_type::end);
 				}
+				else//Canceled
+					synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<POINT>(), events::animation::progress_type::cancel);
 
 				return (position_animation_state_ == state);
 			}, duration);
@@ -504,13 +512,21 @@ winp::utility::error_code winp::ui::surface::set_dimension_(int x, int y, int wi
 			auto state = ++size_animation_state_;
 			SIZE size_delta{ (width - start_size.cx), (height - start_size.cy) }, last_size = start_size;
 
+			synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<SIZE>(), events::animation::progress_type::begin);
 			object_self->get_thread().animate(easing, [=](float progress, bool has_more) mutable{
 				if (size_animation_state_ == state){
 					SIZE size{ (start_size.cx + static_cast<int>(size_delta.cx * progress)), (start_size.cy + static_cast<int>(size_delta.cy * progress)) };
 					if (size.cx != last_size.cx || size.cy != last_size.cy)
 						dimension_change_(0, 0, size.cx, size.cy, SWP_NOSIZE);
+
 					last_size = size;
+					synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<SIZE>(), events::animation::progress_type::step);
+
+					if (!has_more)//Ended
+						synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<SIZE>(), events::animation::progress_type::end);
 				}
+				else//Canceled
+					synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<SIZE>(), events::animation::progress_type::cancel);
 
 				return (size_animation_state_ == state);
 			}, duration);

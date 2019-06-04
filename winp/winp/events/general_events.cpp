@@ -593,3 +593,15 @@ bool winp::events::interval::needs_duration() const{
 		throw utility::error_code::outside_thread_context;
 	return needs_duration_;
 }
+
+winp::events::animation::key_type winp::events::animation::get_type() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return type_;
+}
+
+winp::events::animation::progress_type winp::events::animation::get_progress() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return progress_;
+}
