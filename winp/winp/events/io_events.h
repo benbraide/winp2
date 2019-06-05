@@ -239,4 +239,16 @@ namespace winp::events{
 
 		virtual bool is_indeterminate() const;
 	};
+
+	class mouse_hover : public object{
+	public:
+		template <typename... args_types>
+		explicit mouse_hover(bool hovered, args_types &&... args)
+			: object(std::forward<args_types>(args)...), hovered_(hovered){}
+
+		virtual bool is_hovered() const;
+
+	protected:
+		bool hovered_;
+	};
 }

@@ -136,3 +136,9 @@ bool winp::events::item_check::is_indeterminate() const{
 		throw utility::error_code::outside_thread_context;
 	return (message_info_.wParam == 2);
 }
+
+bool winp::events::mouse_hover::is_hovered() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return hovered_;
+}

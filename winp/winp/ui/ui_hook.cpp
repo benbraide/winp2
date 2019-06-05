@@ -600,40 +600,38 @@ winp::ui::drag_hook::~drag_hook(){
 	drag_begin_event_id_ = drag_event_id_ = 0u;
 }
 
-winp::ui::auto_hide_cursor_hook::auto_hide_cursor_hook(object &target, const std::chrono::milliseconds &delay)
+winp::ui::mouse_hover_hook::mouse_hover_hook(object &target, const std::chrono::milliseconds &delay)
 	: hook(target), delay_(delay){
 	target_.insert_hook<io_hook>();
 	move_event_id_ = target_.events().bind([this](events::mouse_move &e){
-		show_curosr_();
+		remove_hover_();
 		if (!e.is_non_client())
 			bind_timer_();
 	});
 
 	leave_event_id_ = target_.events().bind([this](events::mouse_leave &e){
-		show_curosr_();
+		remove_hover_();
 	});
 
 	down_event_id_ = target_.events().bind([this](events::mouse_down &e){
-		show_curosr_();
+		remove_hover_();
 		if (!e.is_non_client())
 			bind_timer_();
 	});
 
 	up_event_id_ = target_.events().bind([this](events::mouse_up &e){
-		show_curosr_();
+		remove_hover_();
 		if (!e.is_non_client())
 			bind_timer_();
 	});
 
 	wheel_event_id_ = target_.events().bind([this](events::mouse_wheel &e){
-		show_curosr_();
+		remove_hover_();
 		bind_timer_();
 	});
 }
 
-winp::ui::auto_hide_cursor_hook::~auto_hide_cursor_hook(){
-	show_curosr_();
-
+winp::ui::mouse_hover_hook::~mouse_hover_hook(){
 	target_.events().unbind(timer_event_id_);
 	target_.events().unbind(move_event_id_);
 	target_.events().unbind(leave_event_id_);
@@ -643,6 +641,77 @@ winp::ui::auto_hide_cursor_hook::~auto_hide_cursor_hook(){
 	target_.events().unbind(wheel_event_id_);
 
 	timer_event_id_ = move_event_id_ = leave_event_id_ = down_event_id_ = up_event_id_ = wheel_event_id_ = 0u;
+}
+
+winp::utility::error_code winp::ui::mouse_hover_hook::set_delay(const std::chrono::milliseconds &value, const std::function<void(mouse_hover_hook &, utility::error_code)> &callback){
+	return target_.compute_or_post_task_inside_thread_context([=]{
+		return target_.pass_return_value_to_callback(callback, *this, set_delay_(value));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
+const std::chrono::milliseconds &winp::ui::mouse_hover_hook::get_delay(const std::function<void(const std::chrono::milliseconds &)> &callback) const{
+	return *target_.compute_or_post_task_inside_thread_context([=]{
+		return &target_.pass_return_ref_value_to_callback(callback, &delay_);
+	}, (callback != nullptr), &delay_);
+}
+
+winp::utility::error_code winp::ui::mouse_hover_hook::set_delay_(const std::chrono::milliseconds &value){
+	delay_ = value;
+	return utility::error_code::nil;
+}
+
+void winp::ui::mouse_hover_hook::bind_timer_(){
+	auto state = ++state_;
+	timer_event_id_ = target_.events().bind([=](events::timer &e){
+		if (state_ != state){
+			e.prevent_default();
+			return 0ll;
+		}
+
+		if (e.needs_duration())
+			return delay_.count();
+
+		timer_event_id_ = 0u;
+		if (!is_hovered_)
+			target_.trigger_event_<events::mouse_hover>(is_hovered_ = true);
+
+		return 0ll;
+	});
+}
+
+void winp::ui::mouse_hover_hook::remove_hover_(){
+	target_.events().unbind(timer_event_id_);
+	++state_;
+
+	if (is_hovered_)
+		target_.trigger_event_<events::mouse_hover>(is_hovered_ = false);
+}
+
+winp::ui::auto_hide_cursor_hook::auto_hide_cursor_hook(object &target, const std::chrono::milliseconds &delay)
+	: hook(target), delay_(delay){
+	if (auto hk = target_.insert_hook<mouse_hover_hook>(); hk != nullptr)
+		hk->set_delay(delay_);
+	
+	event_id_ = target_.events().bind([this](events::mouse_hover &e){
+		if (e.is_hovered() && !is_hidden_){
+			ShowCursor(FALSE);
+			is_hidden_ = true;
+		}
+		else if (!e.is_hovered() && is_hidden_){
+			ShowCursor(TRUE);
+			is_hidden_ = false;
+		}
+	});
+}
+
+winp::ui::auto_hide_cursor_hook::~auto_hide_cursor_hook(){
+	target_.events().unbind(event_id_);
+	event_id_ = 0u;
+
+	if (is_hidden_){
+		ShowCursor(TRUE);
+		is_hidden_ = false;
+	}
 }
 
 winp::utility::error_code winp::ui::auto_hide_cursor_hook::set_delay(const std::chrono::milliseconds &value, const std::function<void(auto_hide_cursor_hook &, utility::error_code)> &callback){
@@ -659,38 +728,10 @@ const std::chrono::milliseconds &winp::ui::auto_hide_cursor_hook::get_delay(cons
 
 winp::utility::error_code winp::ui::auto_hide_cursor_hook::set_delay_(const std::chrono::milliseconds &value){
 	delay_ = value;
+	if (auto hk = target_.find_hook<mouse_hover_hook>(); hk != nullptr)
+		hk->set_delay(delay_);
+
 	return utility::error_code::nil;
-}
-
-void winp::ui::auto_hide_cursor_hook::bind_timer_(){
-	auto state = ++state_;
-	timer_event_id_ = target_.events().bind([=](events::timer &e){
-		if (state_ != state){
-			e.prevent_default();
-			return 0ll;
-		}
-
-		if (e.needs_duration())
-			return delay_.count();
-
-		timer_event_id_ = 0u;
-		if (!is_hidden_){
-			ShowCursor(FALSE);
-			is_hidden_ = true;
-		}
-		
-		return 0ll;
-	});
-}
-
-void winp::ui::auto_hide_cursor_hook::show_curosr_(){
-	target_.events().unbind(timer_event_id_);
-	++state_;
-
-	if (is_hidden_){
-		ShowCursor(TRUE);
-		is_hidden_ = false;
-	}
 }
 
 winp::ui::sibling_placement_hook::sibling_placement_hook(object &target, sibling_type type, relative_type relativity)

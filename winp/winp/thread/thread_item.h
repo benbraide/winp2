@@ -9,6 +9,7 @@
 #include "../events/event_manager.h"
 
 namespace winp::ui{
+	class mouse_hover_hook;
 	class object;
 }
 
@@ -109,8 +110,10 @@ namespace winp::thread{
 		friend class object;
 		friend class item_manager;
 		friend class synchronized_item;
+
 		friend class events::object;
 		friend class events::manager<item>;
+		friend class ui::mouse_hover_hook;
 
 		virtual utility::error_code destruct_();
 

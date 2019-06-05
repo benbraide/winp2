@@ -249,6 +249,36 @@ namespace winp::ui{
 		unsigned __int64 drag_event_id_ = 0u;
 	};
 
+	class mouse_hover_hook : public hook{
+	public:
+		explicit mouse_hover_hook(object &target, const std::chrono::milliseconds &delay = std::chrono::seconds(3));
+
+		virtual ~mouse_hover_hook();
+
+		virtual utility::error_code set_delay(const std::chrono::milliseconds &value, const std::function<void(mouse_hover_hook &, utility::error_code)> &callback = nullptr);
+
+		virtual const std::chrono::milliseconds &get_delay(const std::function<void(const std::chrono::milliseconds &)> &callback = nullptr) const;
+
+	protected:
+		virtual utility::error_code set_delay_(const std::chrono::milliseconds &value);
+
+		virtual void bind_timer_();
+
+		virtual void remove_hover_();
+
+		std::chrono::milliseconds delay_;
+		unsigned __int64 state_ = 0u;
+		bool is_hovered_ = false;
+
+		unsigned __int64 move_event_id_ = 0u;
+		unsigned __int64 leave_event_id_ = 0u;
+		unsigned __int64 timer_event_id_ = 0u;
+
+		unsigned __int64 down_event_id_ = 0u;
+		unsigned __int64 up_event_id_ = 0u;
+		unsigned __int64 wheel_event_id_ = 0u;
+	};
+
 	class auto_hide_cursor_hook : public hook{
 	public:
 		explicit auto_hide_cursor_hook(object &target, const std::chrono::milliseconds &delay = std::chrono::seconds(3));
@@ -262,21 +292,9 @@ namespace winp::ui{
 	protected:
 		virtual utility::error_code set_delay_(const std::chrono::milliseconds &value);
 
-		virtual void bind_timer_();
-
-		virtual void show_curosr_();
-
 		std::chrono::milliseconds delay_;
-		unsigned __int64 state_ = 0u;
+		unsigned __int64 event_id_ = 0u;
 		bool is_hidden_ = false;
-
-		unsigned __int64 move_event_id_ = 0u;
-		unsigned __int64 leave_event_id_ = 0u;
-		unsigned __int64 timer_event_id_ = 0u;
-
-		unsigned __int64 down_event_id_ = 0u;
-		unsigned __int64 up_event_id_ = 0u;
-		unsigned __int64 wheel_event_id_ = 0u;
 	};
 
 	class sibling_placement_hook : public sibling_size_and_position_hook, public generic_placement_hook{
