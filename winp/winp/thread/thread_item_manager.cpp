@@ -289,6 +289,8 @@ winp::menu::item *winp::thread::item_manager::find_sub_menu_item_(HMENU handle, 
 }
 
 bool winp::thread::item_manager::is_dialog_message_(MSG &msg) const{
+	if (mouse_.clicked != nullptr)
+		return mouse_.clicked->is_dialog_message_(msg);
 	return (focused_object_ != nullptr && focused_object_->is_dialog_message_(msg));
 }
 
@@ -421,18 +423,13 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 			return mouse_wheel_(target, msg, GetMessagePos());
 		return mouse_message_<ui::window_surface, events::mouse_wheel>(target, msg, events::mouse::button_type_right, false, thread_);
 	case WM_KEYDOWN:
-		return key_<ui::window_surface, events::key_down>(target, msg, thread_);
 	case WM_KEYUP:
-		return key_<ui::window_surface, events::key_up>(target, msg, thread_);
 	case WM_CHAR:
-		return key_<ui::window_surface, events::key_press>(target, msg, thread_);
+		return key_(target, msg);
 	case WM_SETFOCUS:
-		focused_object_ = window_target;
-		return trigger_event_<events::set_focus>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
+		return set_focus_(target, msg);
 	case WM_KILLFOCUS:
-		if (focused_object_ != nullptr && (focused_object_ == window_target || focused_object_->is_ancestor_(*window_target)))
-			focused_object_ = nullptr;
-		return trigger_event_<events::kill_focus>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
+		return kill_focus_(target, msg);
 	case WM_ACTIVATE:
 		return trigger_event_<events::activate>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_MOUSEACTIVATE:
@@ -820,13 +817,7 @@ LRESULT winp::thread::item_manager::mouse_down_(item &target, MSG &msg, DWORD po
 			mouse_.down_position = POINT{ GET_X_LPARAM(position), GET_Y_LPARAM(position) };
 
 		mouse_.button_down |= button;
-		if (dynamic_cast<ui::window_surface *>(mouse_.target) == nullptr){
-			if (focused_object_ != nullptr && dynamic_cast<ui::window_surface *>(focused_object_) == nullptr)
-				trigger_event_<events::kill_focus>(*focused_object_, msg, nullptr);
-
-			trigger_event_<events::set_focus>(*(focused_object_ = mouse_.target), msg, nullptr);
-			focused_object_ = mouse_.target;
-		}
+		mouse_.clicked = mouse_.target;
 	});
 }
 
@@ -846,6 +837,64 @@ LRESULT winp::thread::item_manager::mouse_dbl_clk_(item &target, MSG &msg, DWORD
 
 LRESULT winp::thread::item_manager::mouse_wheel_(item &target, MSG &msg, DWORD position){
 	return mouse_button_<ui::window_surface, events::mouse_wheel>(target, msg, position, events::mouse::button_type_nil, false, thread_, nullptr);
+}
+
+LRESULT winp::thread::item_manager::key_(item &target, MSG &msg){
+	auto window_target = dynamic_cast<ui::window_surface *>(&target);
+	if (!mouse_.full_feature_enabled)
+		return ((window_target == nullptr) ? 0 : trigger_key_event_<ui::window_surface>(target, target, true, msg, thread_).second);
+
+	auto key_target = ((mouse_.clicked == nullptr) ? window_target : mouse_.clicked);
+	if (key_target == nullptr)
+		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
+
+	LRESULT result = 0;
+	std::pair<unsigned int, LRESULT> result_info;
+
+	for (auto m_key_target = key_target; m_key_target != nullptr; m_key_target = m_key_target->get_parent_()){
+		auto visible_ancestor = dynamic_cast<ui::visible_surface *>(m_key_target);
+		if (visible_ancestor == nullptr || !visible_ancestor->is_visible() || !m_key_target->has_hook_<ui::io_hook>())
+			continue;
+
+		if (m_key_target == &target)
+			result = (result_info = trigger_key_event_<ui::window_surface>(*m_key_target, *key_target, true, msg, thread_)).second;
+		else//Ignore result
+			result_info = trigger_key_event_<ui::window_surface>(*m_key_target, *key_target, false, msg, thread_);
+
+		if ((result_info.first & events::object::state_propagation_stopped) != 0u)
+			break;//Propagation stopped
+	}
+
+	return result;
+}
+
+LRESULT winp::thread::item_manager::set_focus_(item &target, MSG &msg){
+	auto window_target = dynamic_cast<ui::window_surface *>(&target);
+	if (window_target == nullptr)
+		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
+
+	focused_object_ = window_target;
+	if (mouse_.full_feature_enabled && mouse_.clicked != nullptr && mouse_.clicked != focused_object_ && !mouse_.clicked->is_ancestor_(*window_target))
+		mouse_.clicked = nullptr;
+
+	return trigger_event_<events::set_focus>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
+}
+
+LRESULT winp::thread::item_manager::kill_focus_(item &target, MSG &msg){
+	auto window_target = dynamic_cast<ui::window_surface *>(&target);
+	if (window_target == nullptr)
+		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
+
+	focused_object_ = nullptr;
+	if (mouse_.full_feature_enabled && mouse_.clicked != window_target){
+		auto lost_focus_window = find_window_(reinterpret_cast<HWND>(msg.wParam), false);
+		if (lost_focus_window == nullptr || !mouse_.clicked->is_ancestor_(*lost_focus_window))
+			mouse_.clicked = nullptr;
+	}
+	else
+		mouse_.clicked = nullptr;
+
+	return trigger_event_<events::kill_focus>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 }
 
 LRESULT winp::thread::item_manager::menu_select_(item &target, MSG &msg){

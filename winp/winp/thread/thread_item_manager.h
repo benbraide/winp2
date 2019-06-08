@@ -56,10 +56,13 @@ namespace winp::thread{
 
 		struct mouse_info{
 			bool full_feature_enabled;
+			unsigned int button_down;
+
 			ui::object *target;
 			ui::object *dragging;
 			ui::object *tracking_leave;
-			unsigned int button_down;
+			ui::object *clicked;
+
 			POINT last_position;
 			POINT down_position;
 			SIZE drag_threshold;
@@ -192,14 +195,26 @@ namespace winp::thread{
 
 		LRESULT mouse_wheel_(item &target, MSG &msg, DWORD position);
 
-		template <typename window_type, typename event_type, typename thread_type>
-		LRESULT key_(item &target, MSG &msg, thread_type &thread){
-			auto window_target = dynamic_cast<window_type *>(&target);
-			if (window_target == nullptr)//Window surface required
-				return 0;
+		LRESULT key_(item &target, MSG &msg);
 
-			return trigger_event_<event_type>(target, msg, thread.get_class_entry_(window_target->get_class_name())).second;
+		template <typename window_type, typename thread_type>
+		std::pair<unsigned int, LRESULT> trigger_key_event_(item &context, item &target, bool is_original_target, MSG &msg, thread_type &thread){
+			auto window_target = dynamic_cast<window_type *>(&target);
+			switch (msg.message){
+			case WM_KEYUP:
+				return trigger_event_with_target_<events::key_up>(context, target, msg, ((!is_original_target || window_target == nullptr) ? nullptr : thread.get_class_entry_(window_target->get_class_name())));
+			case WM_CHAR:
+				return trigger_event_with_target_<events::key_press>(context, target, msg, ((!is_original_target || window_target == nullptr) ? nullptr : thread.get_class_entry_(window_target->get_class_name())));
+			default:
+				break;
+			}
+
+			return trigger_event_with_target_<events::key_down>(context, target, msg, ((!is_original_target || window_target == nullptr) ? nullptr : thread.get_class_entry_(window_target->get_class_name())));
 		}
+
+		LRESULT set_focus_(item &target, MSG &msg);
+
+		LRESULT kill_focus_(item &target, MSG &msg);
 
 		LRESULT menu_select_(item &target, MSG &msg);
 
