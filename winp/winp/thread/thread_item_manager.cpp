@@ -560,34 +560,13 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 			return 0;//Do nothing
 
 		if (check_interception){
-			POINT offset{};
-			auto window_ancestor = object_context->get_first_ancestor_of<ui::window_surface>([&](ui::tree &ancestor){
-				if (auto surface_ancestor = dynamic_cast<ui::surface *>(&ancestor); surface_ancestor != nullptr){
-					auto ancestor_position = surface_ancestor->get_position();
-					auto ancestor_client_offset = surface_ancestor->get_client_offset();
-					auto ancestor_client_start_offset = surface_ancestor->get_client_start_offset();
-
-					offset.x += (ancestor_position.x + ancestor_client_offset.x + ancestor_client_start_offset.x);
-					offset.y += (ancestor_position.y + ancestor_client_offset.y + ancestor_client_start_offset.y);
-				}
-
-				return true;
-			});
-
-			if (window_ancestor == nullptr)
-				return 0;//Window ancestor required
-
-			auto non_window_context = dynamic_cast<ui::non_window_surface *>(&context);
 			auto update_rect = update_rect_;
-
-			auto context_dimension = ((non_window_context == nullptr) ? visible_context->get_dimension() : non_window_context->current_dimension_);
-			auto ancestor_client_start_offset = window_ancestor->get_client_start_offset();
-
-			offset.x += ancestor_client_start_offset.x;
-			offset.y += ancestor_client_start_offset.y;
+			auto context_dimension = visible_context->current_dimension_;
+			auto offset = visible_context->convert_position_relative_to_ancestor_<ui::window_surface>(0, 0);
 
 			OffsetRect(&context_dimension, offset.x, offset.y);//Move relative to offset
 			IntersectRect(&update_rect, &update_rect, &context_dimension);
+
 			if (IsRectEmpty(&update_rect) != FALSE)
 				return 0;//Outside update region
 		}
@@ -596,7 +575,7 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 		erase_background_(context, target, paint_msg);
 	}
 	else if (msg.hwnd != nullptr){
-		if (msg.message != WM_PRINTCLIENT){
+		if (msg.message == WM_PAINT){
 			GetUpdateRect(msg.hwnd, &update_rect_, FALSE);
 			if ((paint_device_ = GetDC(msg.hwnd)) != nullptr)
 				IntersectClipRect(paint_device_, update_rect_.left, update_rect_.top, update_rect_.right, update_rect_.bottom);
@@ -634,7 +613,7 @@ LRESULT winp::thread::item_manager::position_change_(item &target, MSG &msg, boo
 
 	if (!changing){
 		if ((info->flags & SWP_NOMOVE) == 0u){
-			auto relative_position = window_target->convert_position_relative_to_window_ancestor_(0, 0);
+			auto relative_position = window_target->convert_position_relative_to_ancestor_<ui::window_surface>(0, 0);
 			window_target->position_ = POINT{ (info->x - relative_position.x), (info->y - relative_position.y) };
 		}
 

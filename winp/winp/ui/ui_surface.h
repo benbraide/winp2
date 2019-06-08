@@ -3,6 +3,7 @@
 #include "../thread/thread_item.h"
 
 #include "ui_object_collection.h"
+#include "ui_tree.h"
 
 namespace winp::grid{
 	class object;
@@ -96,9 +97,17 @@ namespace winp::ui{
 
 		virtual RECT get_absolute_dimension(const std::function<void(const RECT &)> &callback = nullptr) const;
 
-		virtual POINT convert_position_relative_to_window_ancestor(const POINT &value, const std::function<void(const POINT &)> &callback = nullptr) const;
+		template <typename ancestor_type>
+		POINT convert_position_relative_to_ancestor(const POINT &value, const std::function<void(const POINT &)> &callback = nullptr) const{
+			return convert_position_relative_to_ancestor<ancestor_type>(value.x, value.y, callback);
+		}
 
-		virtual POINT convert_position_relative_to_window_ancestor(int x, int y, const std::function<void(const POINT &)> &callback = nullptr) const;
+		template <typename ancestor_type>
+		POINT convert_position_relative_to_ancestor(int x, int y, const std::function<void(const POINT &)> &callback = nullptr) const{
+			return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+				return synchronized_item_pass_return_value_to_callback(callback, convert_position_relative_to_ancestor_<ancestor_type>(x, y));
+			}, (callback != nullptr), POINT{});
+		}
 
 		virtual POINT convert_position_from_absolute_value(const POINT &value, const std::function<void(const POINT &)> &callback = nullptr) const;
 
@@ -165,7 +174,33 @@ namespace winp::ui{
 
 		virtual RECT get_absolute_dimension_() const;
 
-		virtual POINT convert_position_relative_to_window_ancestor_(int x, int y) const;
+		template <typename ancestor_type>
+		POINT convert_position_relative_to_ancestor_(int x, int y) const{
+			auto object_self = dynamic_cast<const object *>(this);
+			if (object_self == nullptr)
+				return POINT{ x, y };
+
+			auto ancestor = object_self->get_first_ancestor_of_<ancestor_type>([&](tree &ancestor){
+				if (auto surface_ancestor = dynamic_cast<surface *>(&ancestor); surface_ancestor != nullptr){
+					auto ancestor_position = POINT{ surface_ancestor->current_dimension_.left, surface_ancestor->current_dimension_.top };
+					auto ancestor_client_offset = surface_ancestor->get_client_offset();
+					auto ancestor_client_start_offset = surface_ancestor->get_client_start_offset();
+
+					x += (ancestor_position.x + ancestor_client_offset.x + ancestor_client_start_offset.x);
+					y += (ancestor_position.y + ancestor_client_offset.y + ancestor_client_start_offset.y);
+				}
+
+				return true;
+			});
+
+			if (auto surface_ancestor = dynamic_cast<surface *>(ancestor); surface_ancestor != nullptr){
+				auto ancestor_client_start_offset = surface_ancestor->get_client_start_offset_();
+				x += ancestor_client_start_offset.x;
+				y += ancestor_client_start_offset.y;
+			}
+
+			return POINT{ x, y };
+		}
 
 		virtual POINT convert_position_from_absolute_value_(int x, int y) const;
 

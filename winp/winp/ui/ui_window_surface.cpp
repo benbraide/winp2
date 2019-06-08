@@ -281,7 +281,7 @@ winp::utility::error_code winp::ui::window_surface::dimension_change_(int x, int
 		return utility::error_code::nil;
 
 	if ((flags & SWP_NOMOVE) == 0u){
-		auto relative_position = convert_position_relative_to_window_ancestor_(x, y);
+		auto relative_position = convert_position_relative_to_ancestor_<window_surface>(x, y);
 		x = relative_position.x;
 		y = relative_position.y;
 
@@ -340,7 +340,7 @@ bool winp::ui::window_surface::is_dialog_message_(MSG &msg) const{
 
 void winp::ui::window_surface::update_position_() const{
 	if (handle_ != nullptr){
-		auto relative_position = convert_position_relative_to_window_ancestor_(position_.x, position_.y);
+		auto relative_position = convert_position_relative_to_ancestor_<window_surface>(position_.x, position_.y);
 		SetWindowPos(handle_, nullptr, relative_position.x, relative_position.y, 0, 0, (SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE));
 	}
 }

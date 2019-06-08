@@ -232,16 +232,6 @@ RECT winp::ui::surface::get_absolute_dimension(const std::function<void(const RE
 	}, (callback != nullptr), RECT{});
 }
 
-POINT winp::ui::surface::convert_position_relative_to_window_ancestor(const POINT &value, const std::function<void(const POINT &)> &callback) const{
-	return convert_position_relative_to_window_ancestor(value.x, value.y, callback);
-}
-
-POINT winp::ui::surface::convert_position_relative_to_window_ancestor(int x, int y, const std::function<void(const POINT &)> &callback) const{
-	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return synchronized_item_pass_return_value_to_callback(callback, convert_position_relative_to_window_ancestor_(x, y));
-	}, (callback != nullptr), POINT{});
-}
-
 POINT winp::ui::surface::convert_position_from_absolute_value(const POINT &value, const std::function<void(const POINT &)> &callback) const{
 	return convert_position_from_absolute_value(value.x, value.y, callback);
 }
@@ -555,34 +545,6 @@ RECT winp::ui::surface::get_dimension_() const{
 RECT winp::ui::surface::get_absolute_dimension_() const{
 	auto absolute_position = get_absolute_position_();
 	return RECT{ absolute_position.x, absolute_position.y, (absolute_position.x + size_.cx), (absolute_position.y + size_.cy) };
-}
-
-POINT winp::ui::surface::convert_position_relative_to_window_ancestor_(int x, int y) const{
-	auto object_self = dynamic_cast<const object *>(this);
-	if (object_self == nullptr)
-		return POINT{ x, y };
-
-	auto window_ancestor = object_self->get_first_ancestor_of_<window_surface>([&](tree &ancestor){
-		if (auto surface_ancestor = dynamic_cast<surface *>(&ancestor); surface_ancestor != nullptr){
-			auto non_window_ancestor = dynamic_cast<non_window_surface *>(&ancestor);
-			auto ancestor_position = ((non_window_ancestor == nullptr) ? surface_ancestor->get_position() : POINT{ non_window_ancestor->current_dimension_.left, non_window_ancestor->current_dimension_.top });
-			auto ancestor_client_offset = surface_ancestor->get_client_offset();
-			auto ancestor_client_start_offset = surface_ancestor->get_client_start_offset();
-
-			x += (ancestor_position.x + ancestor_client_offset.x + ancestor_client_start_offset.x);
-			y += (ancestor_position.y + ancestor_client_offset.y + ancestor_client_start_offset.y);
-		}
-
-		return true;
-	});
-
-	if (window_ancestor != nullptr){
-		auto ancestor_client_start_offset = window_ancestor->get_client_start_offset();
-		x += ancestor_client_start_offset.x;
-		y += ancestor_client_start_offset.y;
-	}
-
-	return POINT{ x, y };
 }
 
 POINT winp::ui::surface::convert_position_from_absolute_value_(int x, int y) const{

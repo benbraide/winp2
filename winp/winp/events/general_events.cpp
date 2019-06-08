@@ -210,7 +210,7 @@ winp::utility::error_code winp::events::draw::begin(){
 		SelectClipRgn(info_.hdc, non_window_context->get_handle());
 
 		auto context_dimension = non_window_context->current_dimension_;
-		auto offset = non_window_context->convert_position_relative_to_window_ancestor(0, 0);
+		auto offset = non_window_context->convert_position_relative_to_ancestor_<ui::window_surface>(0, 0);
 
 		OffsetRect(&context_dimension, offset.x, offset.y);//Move relative to offset
 		OffsetClipRgn(info_.hdc, context_dimension.left, context_dimension.top);
@@ -516,7 +516,7 @@ winp::utility::error_code winp::events::erase_background::begin_(){
 	auto surface_context = dynamic_cast<ui::surface *>(&context_);
 
 	if (dynamic_cast<ui::window_surface *>(&context_) == nullptr)
-		offset = surface_context->convert_position_relative_to_window_ancestor(surface_context->current_dimension_.left, surface_context->current_dimension_.top);
+		offset = surface_context->convert_position_relative_to_ancestor_<ui::window_surface>(surface_context->current_dimension_.left, surface_context->current_dimension_.top);
 
 	if (ui::tree *tree_context = dynamic_cast<ui::tree *>(&context_); tree_context != nullptr){
 		tree_context->traverse_all_children_of<ui::visible_surface>([&](ui::visible_surface &child){
@@ -562,7 +562,7 @@ winp::utility::error_code winp::events::paint::begin_(){
 	auto surface_context = dynamic_cast<ui::surface *>(&context_);
 
 	if (dynamic_cast<ui::window_surface *>(&context_) == nullptr)
-		offset = surface_context->convert_position_relative_to_window_ancestor(surface_context->current_dimension_.left, surface_context->current_dimension_.top);
+		offset = surface_context->convert_position_relative_to_ancestor_<ui::window_surface>(surface_context->current_dimension_.left, surface_context->current_dimension_.top);
 
 	if (ui::tree *tree_context = dynamic_cast<ui::tree *>(&context_); tree_context != nullptr){
 		tree_context->traverse_all_children_of<ui::visible_surface>([&](ui::visible_surface &child){
