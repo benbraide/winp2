@@ -7,6 +7,7 @@ void winp::test::animation::run(int cmd_show){
 	ws.set_size(900, 500);
 	ws.create();
 	ws.show(cmd_show);
+	ws.insert_hook<ui::fullscreen_hook>();
 
 	auto nws = ws.add_object([&](non_window::rectangle &nwo){
 		nwo.set_position(30, 30);

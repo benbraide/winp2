@@ -22,14 +22,6 @@ DWORD winp::control::split_button::get_persistent_styles_(bool is_extended) cons
 	return (push_button::get_persistent_styles_(is_extended) | (is_extended ? 0u : BS_SPLITBUTTON));
 }
 
-HMENU winp::control::split_button::get_context_menu_handle_(events::get_context_menu_handle &e) const{
-	if (e.get_message().message == WINP_WM_SPLIT_BUTTON_DROPDOWN)
-		return push_button::get_context_menu_handle_(e);
-
-	e.prevent_default();
-	return nullptr;
-}
-
 POINT winp::control::split_button::get_context_menu_position_() const{
 	auto dimension = get_absolute_dimension_();
 	return POINT{ dimension.left, dimension.bottom };

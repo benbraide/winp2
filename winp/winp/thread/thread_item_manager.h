@@ -283,7 +283,7 @@ namespace winp::thread{
 		RECT update_rect_{};
 
 		ui::object *focused_object_ = nullptr;
-		std::shared_ptr<ui::object_collection<menu::popup>> active_context_menu_;
-		menu::object *active_context_menu_object_ = nullptr;
+		std::shared_ptr<menu::popup> active_context_menu_;
+		ui::object *context_menu_target_ = nullptr;
 	};
 }

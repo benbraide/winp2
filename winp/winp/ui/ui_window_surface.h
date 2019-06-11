@@ -53,8 +53,6 @@ namespace winp::ui{
 
 		virtual system_menu_type &get_system_menu(const std::function<void(system_menu_type &)> &callback = nullptr) const;
 
-		virtual popup_menu_type &get_context_menu(const std::function<void(popup_menu_type &)> &callback = nullptr) const;
-
 		virtual bar_menu_type &get_menu_bar(const std::function<void(bar_menu_type &)> &callback = nullptr) const;
 
 		virtual const std::wstring &get_class_name(const std::function<void(const std::wstring &)> &callback = nullptr) const;
@@ -131,11 +129,7 @@ namespace winp::ui{
 
 		virtual system_menu_type &get_system_menu_() const;
 
-		virtual popup_menu_type &get_context_menu_() const;
-
 		virtual bar_menu_type &get_menu_bar_() const;
-
-		virtual HMENU get_context_menu_handle_(events::get_context_menu_handle &e) const;
 
 		virtual POINT get_context_menu_position_() const;
 
@@ -156,7 +150,6 @@ namespace winp::ui{
 		DWORD extended_styles_ = 0;
 
 		mutable system_menu_type system_menu_;
-		mutable popup_menu_type context_menu_;
 		mutable bar_menu_type menu_bar_;
 	};
 }

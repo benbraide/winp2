@@ -6,16 +6,10 @@ winp::ui::window_surface::window_surface()
 	: window_surface(app::object::get_thread()){}
 
 winp::ui::window_surface::window_surface(thread::object &thread)
-	: tree(thread), system_menu_(*this), context_menu_(thread), menu_bar_(*this){
+	: tree(thread), system_menu_(*this), menu_bar_(*this){
 	styles_ = (WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
 	current_background_color_ = background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
 	insert_hook<io_hook>();
-
-	add_event_handler_([this](events::get_context_menu_handle &e){
-		auto context_menu_handle = get_context_menu_handle_(e);
-		if (context_menu_handle != nullptr && (e.get_states() & events::object::state_default_prevented) == 0u)
-			e.set_result_if_not_set(context_menu_handle);
-	});
 
 	add_event_handler_([this](events::get_context_menu_position &e){
 		auto position = get_context_menu_position_();
@@ -117,12 +111,6 @@ winp::ui::window_surface::system_menu_type &winp::ui::window_surface::get_system
 	return *compute_or_post_task_inside_thread_context([=]{
 		return &pass_return_ref_value_to_callback(callback, &get_system_menu_());
 	}, (callback != nullptr), &system_menu_);
-}
-
-winp::ui::window_surface::popup_menu_type &winp::ui::window_surface::get_context_menu(const std::function<void(popup_menu_type &)> &callback) const{
-	return *compute_or_post_task_inside_thread_context([=]{
-		return &pass_return_ref_value_to_callback(callback, &get_context_menu_());
-	}, (callback != nullptr), &context_menu_);
 }
 
 winp::ui::window_surface::bar_menu_type &winp::ui::window_surface::get_menu_bar(const std::function<void(bar_menu_type &)> &callback) const{
@@ -451,19 +439,8 @@ winp::ui::window_surface::system_menu_type &winp::ui::window_surface::get_system
 	return system_menu_;
 }
 
-winp::ui::window_surface::popup_menu_type &winp::ui::window_surface::get_context_menu_() const{
-	return context_menu_;
-}
-
 winp::ui::window_surface::bar_menu_type &winp::ui::window_surface::get_menu_bar_() const{
 	return menu_bar_;
-}
-
-HMENU winp::ui::window_surface::get_context_menu_handle_(events::get_context_menu_handle &e) const{
-	auto &position = e.get_position();
-	if (auto context_menu_handle = context_menu_.get_handle(); (context_menu_handle != nullptr && (position.x == -1 && position.y == -1) || absolute_hit_test_(position.x, position.y) == HTCLIENT))
-		return context_menu_handle;
-	return nullptr;
 }
 
 POINT winp::ui::window_surface::get_context_menu_position_() const{

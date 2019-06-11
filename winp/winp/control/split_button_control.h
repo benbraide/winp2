@@ -18,8 +18,6 @@ namespace winp::control{
 	protected:
 		virtual DWORD get_persistent_styles_(bool is_extended) const override;
 
-		virtual HMENU get_context_menu_handle_(events::get_context_menu_handle &e) const override;
-
 		virtual POINT get_context_menu_position_() const override;
 
 		virtual LRESULT dispatch_notification_(MSG &msg) const override;

@@ -297,6 +297,34 @@ namespace winp::ui{
 		bool is_hidden_ = false;
 	};
 
+	class fullscreen_hook : public hook{
+	public:
+		struct saved_info{
+			RECT dimension;
+			DWORD styles;
+			DWORD extended_styles;
+			bool is_maximized;
+		};
+
+		explicit fullscreen_hook(object &target);
+
+		virtual ~fullscreen_hook();
+
+	protected:
+		virtual void enter_fullscreen_();
+
+		virtual void escape_fullscreen_();
+
+		virtual void toggle_fullscreen_();
+
+		unsigned __int64 dbl_click_event_id_ = 0u;
+		unsigned __int64 key_down_event_id_ = 0u;
+		unsigned __int64 key_up_event_id_ = 0u;
+
+		bool is_fullscreen_ = false;
+		saved_info saved_{};
+	};
+
 	class sibling_placement_hook : public sibling_size_and_position_hook, public generic_placement_hook{
 	public:
 		sibling_placement_hook(object &target, sibling_type type, relative_type relativity = relative_type::self);

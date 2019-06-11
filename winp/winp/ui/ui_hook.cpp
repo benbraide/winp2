@@ -734,6 +734,99 @@ winp::utility::error_code winp::ui::auto_hide_cursor_hook::set_delay_(const std:
 	return utility::error_code::nil;
 }
 
+winp::ui::fullscreen_hook::fullscreen_hook(object &target)
+	: hook(target){
+	target_.insert_hook<io_hook>();
+	if (dynamic_cast<window_surface *>(&target_) != nullptr){
+		dbl_click_event_id_ = target_.events().bind([this](events::mouse_dbl_clk &e){
+			toggle_fullscreen_();
+		});
+
+		key_down_event_id_ = target_.events().bind([this](events::key_down &e){
+			switch (e.get_virtual_code()){
+			case VK_ESCAPE:
+				escape_fullscreen_();
+				break;
+			case 'F':
+				toggle_fullscreen_();
+				break;
+			default:
+				break;
+			}
+		});
+
+		key_up_event_id_ = target_.events().bind([this](events::key_up &e){
+			switch (e.get_virtual_code()){
+			case VK_ESCAPE:
+				escape_fullscreen_();
+				break;
+			default:
+				break;
+			}
+		});
+	}
+}
+
+winp::ui::fullscreen_hook::~fullscreen_hook(){
+	target_.events().unbind(dbl_click_event_id_);
+	target_.events().unbind(key_down_event_id_);
+	target_.events().unbind(key_up_event_id_);
+
+	key_up_event_id_ = key_down_event_id_ = dbl_click_event_id_ = 0u;
+	escape_fullscreen_();
+}
+
+void winp::ui::fullscreen_hook::enter_fullscreen_(){
+	auto window_target = dynamic_cast<window_surface *>(&target_);
+	if (is_fullscreen_ || window_target == nullptr || !window_target->is_created())
+		return;
+
+	if ((saved_.is_maximized = window_target->is_maximized()))
+		window_target->toggle_maximized();
+
+	saved_.dimension = window_target->get_dimension();
+	saved_.styles = window_target->get_styles(false);
+	saved_.extended_styles = window_target->get_styles(true);
+
+	auto hmon = MonitorFromWindow(window_target->get_handle(), MONITOR_DEFAULTTONEAREST);
+	MONITORINFO info{ sizeof(MONITORINFO) };
+
+	if (GetMonitorInfoW(hmon, &info) == FALSE)
+		return;
+
+	window_target->set_styles((WS_POPUP | WS_VISIBLE), false);
+	window_target->set_styles(0, true);
+
+	window_target->set_absolute_position(info.rcMonitor.left, info.rcMonitor.top);
+	window_target->set_size((info.rcMonitor.right - info.rcMonitor.left), (info.rcMonitor.bottom - info.rcMonitor.top));
+
+	is_fullscreen_ = true;
+}
+
+void winp::ui::fullscreen_hook::escape_fullscreen_(){
+	auto window_target = dynamic_cast<window_surface *>(&target_);
+	if (!is_fullscreen_ || window_target == nullptr)
+		return;
+
+	window_target->set_styles((saved_.styles | WS_VISIBLE), false);
+	window_target->set_styles(saved_.extended_styles, true);
+
+	window_target->set_position(saved_.dimension.left, saved_.dimension.top);
+	window_target->set_size((saved_.dimension.right - saved_.dimension.left), (saved_.dimension.bottom - saved_.dimension.top));
+
+	if (saved_.is_maximized)
+		window_target->maximize();
+
+	is_fullscreen_ = false;
+}
+
+void winp::ui::fullscreen_hook::toggle_fullscreen_(){
+	if (is_fullscreen_)
+		escape_fullscreen_();
+	else
+		enter_fullscreen_();
+}
+
 winp::ui::sibling_placement_hook::sibling_placement_hook(object &target, sibling_type type, relative_type relativity)
 	: sibling_placement_hook(target, type, alignment_type::top_left, POINT{}, relativity){}
 

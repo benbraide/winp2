@@ -453,10 +453,6 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return context_menu_(target, msg);
 	case WINP_WM_GET_CONTEXT_MENU_POSITION:
 		return trigger_event_<events::get_context_menu_position>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
-	case WINP_WM_GET_CONTEXT_MENU_HANDLE:
-		return trigger_event_<events::get_context_menu_handle>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
-	case WINP_WM_BLOCK_CONTEXT_MENU:
-		return trigger_event_<events::block_context_menu>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_INITMENUPOPUP:
 		return menu_init_(target, msg);
 	case WM_COMMAND:
@@ -968,14 +964,57 @@ LRESULT winp::thread::item_manager::context_menu_(item &target, MSG &msg){
 	if (window_target == nullptr)
 		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
 
-	active_context_menu_object_ = nullptr;
-	active_context_menu_ = nullptr;
-
-	POINT position{ GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam) };
-	if ((position.x != -1 || position.y != -1) && window_target->absolute_hit_test(position) != HTCLIENT)//Non-client area
+	if (msg.wParam != 0 && find_window_(reinterpret_cast<HWND>(msg.wParam), false) != &target)
 		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
-	if (auto actual_target = find_window_(reinterpret_cast<HWND>(msg.wParam), false); actual_target != nullptr && actual_target != &target)
+	auto active_context_menu = std::make_shared<ui::object_collection<menu::popup>>(thread_);
+	if ((active_context_menu_ = active_context_menu) == nullptr || active_context_menu->create() != utility::error_code::nil)
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
+
+	LRESULT result = 0;
+	std::pair<unsigned int, LRESULT> result_info;
+
+	ui::object *mouse_target = nullptr;
+	if (mouse_.full_feature_enabled){
+		for (mouse_target = mouse_.target; mouse_target != nullptr; mouse_target = mouse_target->get_parent_()){
+			auto visible_ancestor = dynamic_cast<ui::visible_surface *>(mouse_target);
+			if (visible_ancestor == nullptr || !visible_ancestor->is_visible() || !mouse_target->has_hook_<ui::io_hook>())
+				continue;
+
+			context_menu_target_ = mouse_target;
+			if (mouse_target == &target)
+				result = (result_info = trigger_event_with_target_<events::context_menu>(*mouse_target, *mouse_.target, *active_context_menu, msg, thread_.get_class_entry_(window_target->get_class_name()))).second;
+			else//Ignore result
+				result_info = trigger_event_with_target_<events::context_menu>(*mouse_target, *mouse_.target, *active_context_menu, msg, nullptr);
+
+			if (context_menu_target_ == nullptr)
+				return result;//Handled
+
+			context_menu_target_ = nullptr;
+			if ((result_info.first & events::object::state_propagation_stopped) != 0u || GetMenuItemCount(active_context_menu_->get_handle()) != 0)
+				break;//Propagation stopped
+		}
+	}
+	else//Simple
+		result = trigger_event_<events::context_menu>(*(mouse_target = window_target), *dynamic_cast<ui::object_collection<menu::popup> *>(active_context_menu_.get()), msg, thread_.get_class_entry_(window_target->get_class_name())).second;
+
+	if (mouse_target == nullptr || GetMenuItemCount(active_context_menu_->get_handle()) == 0)
+		return 0;//Handled
+
+	POINT position{ GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam) };
+	if (position.x == -1 && position.y == -1){//Retrieve position
+		auto value = trigger_event_with_target_<events::get_context_menu_position>(*mouse_target, *mouse_.target, msg, nullptr).second;
+		position = POINT{ GET_X_LPARAM(value), GET_Y_LPARAM(value) };
+	}
+
+	context_menu_target_ = mouse_target;
+	TrackPopupMenu(active_context_menu_->get_handle(), (GetSystemMetrics(SM_MENUDROPALIGNMENT) | TPM_RIGHTBUTTON), position.x, position.y, 0, window_target->handle_, nullptr);
+	context_menu_target_ = nullptr;
+
+	return result;
+
+	/*POINT position{ GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam) };
+	if ((position.x != -1 || position.y != -1) && window_target->absolute_hit_test(position) != HTCLIENT)//Non-client area
 		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
 	for (auto mouse_target = mouse_.target; mouse_target != nullptr; mouse_target = mouse_target->get_parent_()){
@@ -1025,7 +1064,7 @@ LRESULT winp::thread::item_manager::context_menu_(item &target, MSG &msg){
 		return 0;
 	}
 
-	return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
+	return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;*/
 }
 
 LRESULT winp::thread::item_manager::menu_init_(item &target, MSG &msg){
@@ -1033,23 +1072,30 @@ LRESULT winp::thread::item_manager::menu_init_(item &target, MSG &msg){
 	if (window_target == nullptr)
 		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
 
-	if (active_context_menu_object_ == nullptr)
+	if (context_menu_target_ == nullptr)
 		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
-	auto menu = menus_.find(reinterpret_cast<HMENU>(msg.wParam));
-	if (menu == menus_.end() || menu->second != active_context_menu_object_)
+	if (active_context_menu_ == nullptr && (active_context_menu_ = std::make_shared<ui::object_collection<menu::popup_wrapper>>(thread_, reinterpret_cast<HMENU>(msg.wParam))) == nullptr)//Wrap menu
 		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
-	active_context_menu_object_->traverse_all_items([&](menu::item &item){
+	trigger_event_<events::append_context_menu>(*context_menu_target_, *dynamic_cast<ui::object_collection<menu::popup_wrapper> *>(active_context_menu_.get()));
+	context_menu_target_ = nullptr;
+
+	active_context_menu_->traverse_all_items([&](menu::item &item){
 		if (dynamic_cast<menu::separator *>(&item) == nullptr){
-			if (get_result_(trigger_event_with_target_and_value_<events::menu_init_item>(*active_context_menu_object_, item, TRUE, msg, nullptr), FALSE) == FALSE)
-				item.set_enabled_state(false);
-			else
+			switch (static_cast<events::menu_init_item::enable_type>(trigger_event_with_target_<events::menu_init_item>(*active_context_menu_, item, msg, nullptr).second)){
+			case events::menu_init_item::enable_type::enable:
 				item.set_enabled_state(true);
+				break;
+			case events::menu_init_item::enable_type::disable:
+				item.set_enabled_state(false);
+				break;
+			default:
+				break;
+			}
 		}
 	}, true);
 
-	active_context_menu_object_ = nullptr;
 	return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 }
 
