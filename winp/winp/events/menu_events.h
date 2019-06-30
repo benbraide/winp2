@@ -2,10 +2,6 @@
 
 #include "event_object.h"
 
-namespace winp::menu{
-	class popup_wrapper;
-}
-
 namespace winp::events{
 	class menu : public object_with_message{
 	public:
@@ -15,6 +11,20 @@ namespace winp::events{
 
 	protected:
 		virtual bool should_call_default_() const override;
+	};
+
+	class menu_init : public menu{
+	public:
+		template <typename... args_types>
+		explicit menu_init(args_types &&... args)
+			: menu(std::forward<args_types>(args)...){}
+	};
+
+	class menu_uninit : public menu{
+	public:
+		template <typename... args_types>
+		explicit menu_uninit(args_types &&... args)
+			: menu(std::forward<args_types>(args)...){}
 	};
 
 	class menu_item_highlight : public menu{
@@ -70,36 +80,26 @@ namespace winp::events{
 	class context_menu : public context_menu_base{
 	public:
 		template <typename... args_types>
-		explicit context_menu(ui::object_collection<winp::menu::popup> &popup, args_types &&... args)
+		explicit context_menu(winp::menu::popup &popup, args_types &&... args)
 			: context_menu_base(std::forward<args_types>(args)...), popup_(popup){}
 
-		virtual ui::object_collection<winp::menu::popup> &get_popup() const;
+		virtual winp::menu::popup &get_popup() const;
 
 	protected:
-		ui::object_collection<winp::menu::popup> &popup_;
+		winp::menu::popup &popup_;
 	};
 
-	class append_context_menu : public object{
+	class appended_context_menu : public context_menu{
 	public:
 		template <typename... args_types>
-		explicit append_context_menu(ui::object_collection<winp::menu::popup_wrapper> &popup, args_types &&... args)
-			: object(std::forward<args_types>(args)...), popup_(popup){}
-
-		virtual ui::object_collection<winp::menu::popup_wrapper> &get_popup() const;
-
-	protected:
-		ui::object_collection<winp::menu::popup_wrapper> &popup_;
+		explicit appended_context_menu(winp::menu::popup &popup, args_types &&... args)
+			: context_menu(popup, std::forward<args_types>(args)...){}
 	};
 
-	class split_button_menu : public context_menu_base{
+	class split_button_menu : public context_menu{
 	public:
 		template <typename... args_types>
-		explicit split_button_menu(ui::object_collection<winp::menu::popup> &popup, args_types &&... args)
-			: context_menu_base(std::forward<args_types>(args)...), popup_(popup){}
-
-		virtual ui::object_collection<winp::menu::popup> &get_popup() const;
-
-	protected:
-		ui::object_collection<winp::menu::popup> &popup_;
+		explicit split_button_menu(winp::menu::popup &popup, args_types &&... args)
+			: context_menu(popup, std::forward<args_types>(args)...){}
 	};
 }

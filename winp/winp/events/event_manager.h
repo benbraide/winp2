@@ -286,8 +286,8 @@ namespace winp::events{
 					break;//Propagation stopped
 			}
 
-			for (auto unbind_item : unbind_list)
-				it->second.first.erase(std::next(it->second.first.begin(), unbind_item));
+			for (auto unbind_item = unbind_list.rbegin(); unbind_item != unbind_list.rend(); ++unbind_item)
+				it->second.first.erase(std::next(it->second.first.begin(), *unbind_item));
 		}
 
 		template <typename object_type>

@@ -6,8 +6,9 @@
 #include "../window/window_object.h"
 #include "../non_window/rectangular_non_window.h"
 
-#include "../menu/menu_item_wrapper.h"
-#include "../menu/menu_link_item_with_popup.h"
+#include "../menu/menu_action_item.h"
+#include "../menu/menu_link_item.h"
+#include "../menu/menu_separator.h"
 
 namespace winp::test{
 	struct animation{

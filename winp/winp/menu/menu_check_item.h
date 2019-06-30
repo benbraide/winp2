@@ -9,9 +9,9 @@ namespace winp::menu{
 
 		explicit check_item(thread::object &thread);
 
-		explicit check_item(tree &parent);
+		explicit check_item(ui::tree &parent);
 
-		check_item(tree &parent, std::size_t index);
+		check_item(ui::tree &parent, std::size_t index);
 
 		virtual ~check_item();
 
@@ -40,14 +40,5 @@ namespace winp::menu{
 
 		HBITMAP checked_bitmap_ = nullptr;
 		HBITMAP unchecked_bitmap_ = nullptr;
-	};
-
-	class system_check_item : public check_item{
-	public:
-		template <typename... args_types>
-		explicit system_check_item(args_types &&... args)
-			: check_item(std::forward<args_types>(args)...){}
-
-		virtual ~system_check_item() = default;
 	};
 }

@@ -133,7 +133,7 @@ winp::utility::error_code winp::ui::tree::do_insert_child_(object &child, std::s
 void winp::ui::tree::child_inserted_(object &child){}
 
 winp::utility::error_code winp::ui::tree::erase_child_(std::size_t index){
-	if (index >= children_.size())
+	if (children_.empty() || index >= children_.size())
 		return utility::error_code::index_out_of_range;
 
 	auto it = std::next(children_.begin(), index);
@@ -156,6 +156,9 @@ winp::utility::error_code winp::ui::tree::erase_child_(std::size_t index){
 
 winp::utility::error_code winp::ui::tree::do_erase_child_(object &child, std::size_t index){
 	children_.erase(std::next(children_.begin(), index));
+	if (!objects_.empty())
+		objects_.erase(&child);
+
 	return utility::error_code::nil;
 }
 

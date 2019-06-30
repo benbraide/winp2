@@ -42,6 +42,7 @@ namespace winp::menu{
 	class item;
 	class object;
 	class popup;
+	class wrapped_popup;
 }
 
 namespace winp::thread{
@@ -92,38 +93,24 @@ namespace winp::thread{
 			);
 		}
 
-		HMENU create_menu(menu::object &owner, HWND target);
-
-		bool destroy_menu(HMENU handle, HWND target);
-
-		void add_menu(menu::object &owner);
-
-		void remove_menu(menu::object &owner);
-
-		UINT generate_menu_item_id(menu::item &target, UINT id = 0u, std::size_t max_tries = 0xFFFFu);
-
-		void add_generated_item_id(menu::item &target);
-
-		void remove_generated_item_id(menu::item &target);
-
 		static ui::object *find_deepest_mouse_target(ui::object &target, const POINT &mouse_position);
 
 	private:
 		friend class object;
+		friend class menu::object;
+		friend class menu::wrapped_popup;
 
 		explicit item_manager(object &thread, DWORD thread_id);
+
+		void add_menu_(menu::object &owner);
+
+		void remove_menu_(menu::object &owner);
 
 		void add_timer_(const std::chrono::milliseconds &duration, const std::function<void()> &callback, unsigned __int64 id);
 
 		void remove_timer_(unsigned __int64 id);
 
 		ui::window_surface *find_window_(HWND handle, bool cache) const;
-
-		menu::item *find_menu_item_(menu::object &menu, UINT id) const;
-
-		menu::item *find_menu_item_(HMENU handle, UINT id) const;
-
-		menu::item *find_sub_menu_item_(HMENU handle, UINT id) const;
 
 		bool is_dialog_message_(MSG &msg) const;
 
@@ -226,11 +213,11 @@ namespace winp::thread{
 
 		LRESULT menu_init_(item &target, MSG &msg);
 
+		LRESULT menu_uninit_(item &target, MSG &msg);
+
 		LRESULT command_(item &target, MSG &msg);
 
 		LRESULT notify_(item &target, MSG &msg);
-
-		static bool menu_item_id_is_reserved_(UINT id);
 
 		static HCURSOR get_default_cursor_(const MSG &msg);
 
@@ -269,9 +256,11 @@ namespace winp::thread{
 		object &thread_;
 		HHOOK hook_handle_ = nullptr;
 
+		std::shared_ptr<menu::popup> active_context_menu_;
 		std::unordered_map<HMENU, menu::object *> menus_;
-		std::unordered_map<HMENU, menu_items_map_type> menu_items_;
-		std::unordered_map<unsigned __int64, std::function<void()>> timers_;
+
+		std::unordered_map<HMENU, std::shared_ptr<menu::popup>> wrapped_menus_;
+		std::unordered_map<HMENU, std::shared_ptr<menu::popup>> appended_menus_;
 
 		std::unordered_map<HWND, ui::window_surface *> windows_;
 		std::unordered_map<HWND, ui::window_surface *> top_level_windows_;
@@ -283,7 +272,6 @@ namespace winp::thread{
 		RECT update_rect_{};
 
 		ui::object *focused_object_ = nullptr;
-		std::shared_ptr<menu::popup> active_context_menu_;
-		ui::object *context_menu_target_ = nullptr;
+		std::unordered_map<unsigned __int64, std::function<void()>> timers_;
 	};
 }

@@ -28,10 +28,10 @@ winp::menu::check_item::check_item(thread::object &thread)
 	});
 }
 
-winp::menu::check_item::check_item(tree &parent)
+winp::menu::check_item::check_item(ui::tree &parent)
 	: check_item(parent, static_cast<std::size_t>(-1)){}
 
-winp::menu::check_item::check_item(tree &parent, std::size_t index)
+winp::menu::check_item::check_item(ui::tree &parent, std::size_t index)
 	: check_item(parent.get_thread()){
 	set_parent(&parent, index);
 }
@@ -93,7 +93,7 @@ winp::utility::error_code winp::menu::check_item::set_checked_bitmap_(HBITMAP va
 	info.fMask = MIIM_CHECKMARKS;
 	info.hbmpChecked = checked_bitmap_;
 
-	return ((SetMenuItemInfoW(handle_, id_, FALSE, &info) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+	return ((SetMenuItemInfoW(handle_, get_insertion_index_(), TRUE, &info) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
 }
 
 winp::utility::error_code winp::menu::check_item::set_unchecked_bitmap_(HBITMAP value){
@@ -111,7 +111,7 @@ winp::utility::error_code winp::menu::check_item::set_unchecked_bitmap_(HBITMAP 
 	info.fMask = MIIM_CHECKMARKS;
 	info.hbmpUnchecked = unchecked_bitmap_;
 
-	return ((SetMenuItemInfoW(handle_, id_, FALSE, &info) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+	return ((SetMenuItemInfoW(handle_, get_insertion_index_(), TRUE, &info) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
 }
 
 winp::utility::error_code winp::menu::check_item::set_checked_state_(bool is_checked){

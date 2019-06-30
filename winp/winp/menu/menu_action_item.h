@@ -9,9 +9,9 @@ namespace winp::menu{
 
 		explicit action_item(thread::object &thread);
 
-		explicit action_item(tree &parent);
+		explicit action_item(ui::tree &parent);
 
-		action_item(tree &parent, std::size_t index);
+		action_item(ui::tree &parent, std::size_t index);
 
 		virtual ~action_item();
 
@@ -20,21 +20,28 @@ namespace winp::menu{
 		virtual const std::wstring &get_text(const std::function<void(const std::wstring &)> &callback = nullptr) const;
 
 	protected:
+		friend class popup;
+
 		virtual utility::error_code create_() override;
 
-		virtual HMENU create_handle_(menu::object &parent) override;
+		virtual utility::error_code fill_info_(MENUITEMINFOW &info) override;
 
 		virtual utility::error_code set_text_(const std::wstring &value);
 
 		std::wstring text_;
 	};
 
-	class system_action_item : public action_item{
+	class wrapped_action_item : public action_item{
 	public:
-		template <typename... args_types>
-		explicit system_action_item(args_types &&... args)
-			: action_item(std::forward<args_types>(args)...){}
+		virtual ~wrapped_action_item();
 
-		virtual ~system_action_item() = default;
+	protected:
+		friend class wrapped_popup;
+
+		wrapped_action_item(menu::object &parent, std::size_t index);
+
+		virtual utility::error_code create_() override;
+
+		virtual utility::error_code destroy_() override;
 	};
 }

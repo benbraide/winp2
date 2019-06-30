@@ -107,16 +107,17 @@ HWND winp::ui::window_surface::get_handle(const std::function<void(HWND)> &callb
 	}, (callback != nullptr), nullptr);
 }
 
-winp::ui::window_surface::system_menu_type &winp::ui::window_surface::get_system_menu(const std::function<void(system_menu_type &)> &callback) const{
-	return *compute_or_post_task_inside_thread_context([=]{
-		return &pass_return_ref_value_to_callback(callback, &get_system_menu_());
-	}, (callback != nullptr), &system_menu_);
+winp::ui::window_surface::popup_menu_type &winp::ui::window_surface::get_system_menu(const std::function<void(popup_menu_type &)> &callback) const{
+	system_menu_.create();
+	if (callback != nullptr)
+		callback(system_menu_);
+	return system_menu_;
 }
 
-winp::ui::window_surface::bar_menu_type &winp::ui::window_surface::get_menu_bar(const std::function<void(bar_menu_type &)> &callback) const{
-	return *compute_or_post_task_inside_thread_context([=]{
-		return &pass_return_ref_value_to_callback(callback, &get_menu_bar_());
-	}, (callback != nullptr), &menu_bar_);
+winp::menu::bar &winp::ui::window_surface::get_menu_bar(const std::function<void(menu::bar &)> &callback) const{
+	if (callback != nullptr)
+		callback(menu_bar_);
+	return menu_bar_;
 }
 
 const std::wstring &winp::ui::window_surface::get_class_name(const std::function<void(const std::wstring &)> &callback) const{
@@ -189,6 +190,7 @@ winp::utility::error_code winp::ui::window_surface::create_(){
 	if (handle_ == nullptr)
 		return utility::error_code::action_could_not_be_completed;
 
+	system_menu_.create();
 	return utility::error_code::nil;
 }
 
@@ -431,16 +433,6 @@ DWORD winp::ui::window_surface::get_filtered_styles_(bool is_extended) const{
 
 HWND winp::ui::window_surface::get_handle_() const{
 	return handle_;
-}
-
-winp::ui::window_surface::system_menu_type &winp::ui::window_surface::get_system_menu_() const{
-	if (handle_ != nullptr && !system_menu_.is_created())
-		system_menu_.set_handle(GetSystemMenu(handle_, FALSE));
-	return system_menu_;
-}
-
-winp::ui::window_surface::bar_menu_type &winp::ui::window_surface::get_menu_bar_() const{
-	return menu_bar_;
 }
 
 POINT winp::ui::window_surface::get_context_menu_position_() const{

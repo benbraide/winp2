@@ -14,19 +14,7 @@ bool winp::events::context_menu_base::should_call_default_() const{
 	return false;
 }
 
-winp::ui::object_collection<winp::menu::popup> &winp::events::context_menu::get_popup() const{
-	if (!target_.get_thread().is_thread_context())
-		throw utility::error_code::outside_thread_context;
-	return popup_;
-}
-
-winp::ui::object_collection<winp::menu::popup_wrapper> &winp::events::append_context_menu::get_popup() const{
-	if (!target_.get_thread().is_thread_context())
-		throw utility::error_code::outside_thread_context;
-	return popup_;
-}
-
-winp::ui::object_collection<winp::menu::popup> &winp::events::split_button_menu::get_popup() const{
+winp::menu::popup &winp::events::context_menu::get_popup() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
 	return popup_;

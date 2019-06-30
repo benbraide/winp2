@@ -8,10 +8,10 @@ winp::control::tool_tip_item::tool_tip_item()
 winp::control::tool_tip_item::tool_tip_item(thread::object &thread)
 	: object(thread){}
 
-winp::control::tool_tip_item::tool_tip_item(tool_tip &parent)
+winp::control::tool_tip_item::tool_tip_item(ui::tree &parent)
 	: tool_tip_item(parent, static_cast<std::size_t>(-1)){}
 
-winp::control::tool_tip_item::tool_tip_item(tool_tip &parent, std::size_t index)
+winp::control::tool_tip_item::tool_tip_item(ui::tree &parent, std::size_t index)
 	: tool_tip_item(parent.get_thread()){
 	set_parent(&parent, index);
 }

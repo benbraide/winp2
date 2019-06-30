@@ -1,7 +1,7 @@
 #include "non_window_test.h"
 
 void winp::test::non_window::run(int cmd_show){
-	ui::object_collection<winp::window::object> ws;
+	winp::window::object ws;
 	ws.set_caption(L"Test Window");
 	ws.set_position(30, 30);
 	ws.set_size(900, 500);

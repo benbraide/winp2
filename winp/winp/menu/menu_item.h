@@ -1,11 +1,14 @@
 #pragma once
 
-#include "../ui/ui_object.h"
+#include "../ui/ui_tree.h"
 #include "../ui/ui_surface.h"
 
 namespace winp::menu{
 	class tree;
 	class object;
+	class popup;
+	class wrapped_popup;
+	class system_popup;
 
 	class item : public ui::object, public ui::surface{
 	public:
@@ -18,8 +21,6 @@ namespace winp::menu{
 		item(tree &parent, std::size_t index);
 
 		virtual ~item();
-
-		virtual UINT get_id(const std::function<void(UINT)> &callback = nullptr) const;
 
 		virtual utility::error_code set_absolute_index(std::size_t value, const std::function<void(item &, utility::error_code)> &callback = nullptr);
 
@@ -55,6 +56,9 @@ namespace winp::menu{
 
 	protected:
 		friend class tree;
+		friend class popup;
+		friend class wrapped_popup;
+		friend class system_popup;
 
 		virtual utility::error_code create_() override;
 
@@ -66,19 +70,19 @@ namespace winp::menu{
 
 		virtual utility::error_code set_index_value_(std::size_t value, bool changing) override;
 
-		virtual utility::error_code generate_id_();
+		virtual HMENU create_handle_();
 
-		virtual HMENU create_handle_(menu::object &parent) = 0;
+		virtual utility::error_code destroy_handle_();
 
-		virtual UINT fill_basic_info_(menu::object &parent, MENUITEMINFOW &info);
-
-		virtual UINT get_id_() const;
+		virtual utility::error_code fill_info_(MENUITEMINFOW &info) = 0;
 
 		virtual utility::error_code set_absolute_index_(std::size_t value);
 
 		virtual std::size_t get_absolute_index_() const;
 
 		virtual std::size_t get_items_count_before_() const;
+
+		virtual UINT get_insertion_index_() const;
 
 		virtual utility::error_code set_bitmap_(HBITMAP value);
 
@@ -100,10 +104,12 @@ namespace winp::menu{
 
 		virtual bool is_owner_drawn_() const;
 
-		UINT id_ = 0u;
+		virtual bool is_own_info_(const MENUITEMINFOW &info) const;
+
 		HMENU handle_ = nullptr;
 		HBITMAP bitmap_ = nullptr;
 
+		UINT local_id_ = 0u;
 		UINT states_ = 0u;
 		UINT types_ = 0u;
 	};

@@ -1,49 +1,58 @@
 #pragma once
 
-#include "../ui/ui_object_collection.h"
-
 #include "menu_item.h"
 
 namespace winp::menu{
-	class popup;
-
 	class link_item : public item{
 	public:
-		explicit link_item(popup &target);
+		explicit link_item(thread::object &thread);
 
-		link_item(popup &target, tree &parent);
+		explicit link_item(ui::tree &parent);
 
-		link_item(popup &target, tree &parent, std::size_t index);
+		link_item(ui::tree &parent, std::size_t index);
 
 		virtual ~link_item();
 
-		virtual const popup &get_target(const std::function<void(const popup &)> &callback = nullptr) const;
+		template <typename callback_type, typename... args_types>
+		auto add_object(const callback_type &callback, args_types &&... args){
+			return target_->add_object(callback, std::forward<args_types>(args)...);
+		}
 
-		virtual popup &get_target(const std::function<void(const popup &)> &callback = nullptr);
+		template <typename object_type, typename... args_types>
+		auto add_object_direct(args_types &&... args){
+			return target_->add_object_direct<object_type>(std::forward<args_types>(args)...);
+		}
+
+		virtual popup *get_target(const std::function<void(popup *)> &callback = nullptr) const;
 
 		virtual utility::error_code set_text(const std::wstring &value, const std::function<void(link_item &, utility::error_code)> &callback = nullptr);
 
 		virtual const std::wstring &get_text(const std::function<void(const std::wstring &)> &callback = nullptr) const;
 
 	protected:
-		explicit link_item(thread::object &thread);
+		friend class tree;
+		friend class popup;
+		friend class menu::object;
 
-		virtual utility::error_code create_() override;
-
-		virtual HMENU create_handle_(menu::object &parent) override;
+		virtual utility::error_code fill_info_(MENUITEMINFOW &info) override;
 
 		virtual utility::error_code set_text_(const std::wstring &value);
 
-		popup *target_;
+		std::shared_ptr<tree> target_;
 		std::wstring text_;
 	};
 
-	class system_link_item : public link_item{
+	class wrapped_link_item : public link_item{
 	public:
-		template <typename... args_types>
-		explicit system_link_item(args_types &&... args)
-			: link_item(std::forward<args_types>(args)...){}
+		virtual ~wrapped_link_item();
 
-		virtual ~system_link_item() = default;
+	protected:
+		friend class wrapped_popup;
+
+		wrapped_link_item(menu::object &parent, std::size_t index);
+
+		virtual utility::error_code create_() override;
+
+		virtual utility::error_code destroy_() override;
 	};
 }

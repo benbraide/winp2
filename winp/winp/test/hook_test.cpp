@@ -1,16 +1,16 @@
 #include "hook_test.h"
 
 void winp::test::hook::run(int cmd_show){
-	ui::object_collection<winp::window::object> ws;
+	winp::window::object ws;
 	ws.set_caption(L"Test Window");
 	ws.set_position(30, 30);
 	ws.set_size(1500, 800);
 	ws.create();
 	ws.show(cmd_show);
 
-	ws.get_grid([](ui::object_collection<winp::grid::object> &grd){
-		grd.add_object([](ui::object_collection<winp::grid::row> &row){
-			row.add_object([](winp::ui::object_collection<winp::grid::column> &col){
+	ws.get_grid([](winp::grid::object &grd){
+		grd.add_object([](winp::grid::row &row){
+			row.add_object([](winp::grid::column &col){
 				col.add_object([&](control::push_button &btn){
 					btn.set_text(L"Top-Left Aligned");
 					btn.insert_hook<ui::placement_hook>(ui::placement_hook::alignment_type::top_left);
@@ -68,8 +68,8 @@ void winp::test::hook::run(int cmd_show){
 				});
 			});
 
-			row.add_object([](winp::ui::object_collection<winp::grid::column> &col){
-				col.add_object([](ui::object_collection<winp::window::object> &cw){
+			row.add_object([](winp::grid::column &col){
+				col.add_object([](winp::window::object &cw){
 					cw.set_caption(L"Children Contain Window");
 					cw.insert_hook<ui::children_contain_hook>(SIZE{ 30, 30 });
 					cw.set_position(30, 30);
@@ -77,7 +77,7 @@ void winp::test::hook::run(int cmd_show){
 					cw.create();
 					cw.show();
 
-					cw.add_object([](ui::object_collection<winp::window::object> &ccw){
+					cw.add_object([](winp::window::object &ccw){
 						ccw.set_caption(L"Contained Child Window");
 						ccw.set_position(30, 30);
 						ccw.set_size(450, 250);

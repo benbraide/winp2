@@ -9,25 +9,17 @@ winp::menu::separator::separator()
 winp::menu::separator::separator(thread::object &thread)
 	: item(thread){}
 
-winp::menu::separator::separator(tree &parent)
+winp::menu::separator::separator(ui::tree &parent)
 	: separator(parent, static_cast<std::size_t>(-1)){}
 
-winp::menu::separator::separator(tree &parent, std::size_t index)
+winp::menu::separator::separator(ui::tree &parent, std::size_t index)
 	: separator(parent.get_thread()){
 	set_parent(&parent, index);
 }
 
 winp::menu::separator::~separator() = default;
 
-HMENU winp::menu::separator::create_handle_(menu::object &parent){
-	MENUITEMINFOW info{};
-	auto index = fill_basic_info_(parent, info);
-
-	return ((InsertMenuItemW(parent.get_handle(), index, TRUE, &info) == FALSE) ? nullptr : parent.get_handle());
-}
-
-winp::utility::error_code winp::menu::separator::generate_id_(){
-	id_ = 0u;
+winp::utility::error_code winp::menu::separator::fill_info_(MENUITEMINFOW &info){
 	return utility::error_code::nil;
 }
 
@@ -37,4 +29,31 @@ UINT winp::menu::separator::get_filtered_states_() const{
 
 UINT winp::menu::separator::get_types_() const{
 	return (item::get_types_() | MFT_SEPARATOR);
+}
+
+winp::menu::wrapped_separator::wrapped_separator(menu::object &parent, std::size_t index)
+	: separator(parent, index){
+	MENUITEMINFOW info{
+		sizeof(MENUITEMINFOW),
+		(MIIM_FTYPE | MIIM_STATE | MIIM_BITMAP)
+	};
+
+	GetMenuItemInfoW((handle_ = parent.get_handle()), static_cast<UINT>(index), TRUE, &info);
+
+	bitmap_ = info.hbmpItem;
+	states_ = info.fState;
+	types_ = info.fType;
+}
+
+winp::menu::wrapped_separator::~wrapped_separator(){
+	destruct();
+}
+
+winp::utility::error_code winp::menu::wrapped_separator::create_(){
+	return utility::error_code::nil;
+}
+
+winp::utility::error_code winp::menu::wrapped_separator::destroy_(){
+	handle_ = nullptr;
+	return utility::error_code::nil;
 }

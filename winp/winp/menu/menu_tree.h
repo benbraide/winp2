@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../ui/ui_tree.h"
-
 #include "menu_item.h"
 
 namespace winp::menu{
 	class tree : public ui::tree{
 	public:
+		using ui_tree_type = ui::tree;
+
 		tree();
 
 		explicit tree(thread::object &thread);
@@ -30,17 +30,29 @@ namespace winp::menu{
 		virtual void traverse_all_items(const std::function<void(menu::item &)> &callback, bool block) const;
 
 	protected:
+		friend class popup;
+
+		virtual void child_inserted_(ui::object &child) override;
+
+		virtual tree *get_top_() const;
+
 		virtual std::size_t get_items_count_() const;
 
 		virtual std::size_t get_items_count_before_() const;
 
-		virtual menu::item *find_item_(UINT id) const;
+		virtual menu::item *find_item_(UINT id, menu::item *exclude, bool search_sub_menus) const;
 
 		virtual menu::item *get_item_at_(std::size_t index) const;
 
 		virtual UINT get_states_(std::size_t index) const;
 
 		virtual UINT get_types_(std::size_t index) const;
+
+		virtual UINT generate_id_(menu::item &target, std::size_t max_tries = 0xFFFFu) const;
+
+		virtual bool id_is_reserved_(UINT id) const;
+
+		virtual bool should_generate_id_(menu::item &target) const;
 
 		virtual void traverse_items_(const std::function<bool(menu::item &)> &callback) const;
 	};

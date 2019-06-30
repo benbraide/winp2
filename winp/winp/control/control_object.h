@@ -7,16 +7,16 @@ namespace winp::control{
 	public:
 		virtual ~object();
 
+		virtual popup_menu_type &get_system_menu(const std::function<void(popup_menu_type &)> &callback = nullptr) const override;
+
+		virtual menu::bar &get_menu_bar(const std::function<void(menu::bar &)> &callback = nullptr) const override;
+
 	protected:
 		friend class thread::item_manager;
 
 		object(thread::object &thread, const std::wstring &class_name, DWORD common_id);
 
 		virtual bool is_dialog_message_(MSG &msg) const override;
-
-		virtual system_menu_type &get_system_menu_() const override;
-
-		virtual bar_menu_type &get_menu_bar_() const override;
 
 		virtual const std::wstring &get_class_name_() const override;
 

@@ -11,9 +11,9 @@ namespace winp::control{
 
 		explicit tab_page(thread::object &thread);
 
-		explicit tab_page(tab &parent);
+		explicit tab_page(ui::tree &parent);
 
-		tab_page(tab &parent, std::size_t index);
+		tab_page(ui::tree &parent, std::size_t index);
 
 		virtual ~tab_page();
 

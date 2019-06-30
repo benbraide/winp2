@@ -2,7 +2,6 @@
 
 #include "../thread/thread_item.h"
 
-#include "ui_object_collection.h"
 #include "ui_tree.h"
 
 namespace winp::grid{
@@ -14,7 +13,7 @@ namespace winp::ui{
 
 	class surface : public thread::synchronized_item{
 	public:
-		using grid_type = object_collection<grid::object>;
+		using grid_type = grid::object;
 		using easing_type = std::function<float(float)>;
 
 		virtual ~surface();

@@ -14,9 +14,6 @@ namespace winp::thread{
 namespace winp::ui{
 	class object;
 	class tree;
-
-	template <class base_type>
-	class object_collection;
 }
 
 namespace winp::menu{

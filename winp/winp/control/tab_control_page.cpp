@@ -23,10 +23,10 @@ winp::control::tab_page::tab_page(thread::object &thread)
 	});
 }
 
-winp::control::tab_page::tab_page(tab &parent)
+winp::control::tab_page::tab_page(ui::tree &parent)
 	: tab_page(parent, static_cast<std::size_t>(-1)){}
 
-winp::control::tab_page::tab_page(tab &parent, std::size_t index)
+winp::control::tab_page::tab_page(ui::tree &parent, std::size_t index)
 	: tab_page(parent.get_thread()){
 	set_parent(&parent, index);
 }

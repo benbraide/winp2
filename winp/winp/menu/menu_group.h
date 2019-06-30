@@ -9,9 +9,9 @@ namespace winp::menu{
 
 		explicit radio_group(thread::object &thread);
 
-		explicit radio_group(tree &parent);
+		explicit radio_group(ui::tree &parent);
 
-		radio_group(tree &parent, std::size_t index);
+		radio_group(ui::tree &parent, std::size_t index);
 
 		virtual ~radio_group();
 	protected:

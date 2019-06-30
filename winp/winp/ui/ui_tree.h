@@ -13,6 +13,20 @@ namespace winp::ui{
 
 		virtual ~tree();
 
+		template <typename callback_type, typename... args_types>
+		auto add_object(const callback_type &callback, args_types &&... args){
+			return compute_task_inside_thread_context([&]{
+				return add_object_(utility::object_to_function_traits::get(callback), std::forward<args_types>(args)...);
+			});
+		}
+
+		template <typename object_type, typename... args_types>
+		auto add_object_direct(args_types &&... args){
+			return compute_task_inside_thread_context([&]{
+				return add_object_<object_type>(nullptr, std::forward<args_types>(args)...);
+			});
+		}
+
 		virtual utility::error_code add_child(object &child, const std::function<void(tree &, utility::error_code)> &callback = nullptr);
 
 		virtual utility::error_code insert_child(object &child, std::size_t index, const std::function<void(tree &, utility::error_code)> &callback = nullptr);
@@ -75,6 +89,24 @@ namespace winp::ui{
 
 		virtual utility::error_code destruct_() override;
 
+		template <typename object_type, typename... args_types>
+		object_type *add_object_(const std::function<void(object_type &)> &callback, args_types &&... args){
+			auto object = std::make_shared<object_type>(*this, static_cast<std::size_t>(-1), std::forward<args_types>(args)...);
+			if (object == nullptr)
+				return nullptr;
+
+			if (callback != nullptr){
+				callback(*object);
+				if (object->is_destructed())
+					return nullptr;
+			}
+
+			object->create();
+			objects_[object.get()] = object;
+
+			return object.get();
+		}
+
 		virtual utility::error_code insert_child_(object &child, std::size_t index);
 
 		virtual utility::error_code do_insert_child_(object &child, std::size_t index);
@@ -116,5 +148,6 @@ namespace winp::ui{
 		}
 
 		std::list<object *> children_;
+		std::unordered_map<object *, std::shared_ptr<ui::object>> objects_;
 	};
 }

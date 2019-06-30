@@ -20,12 +20,6 @@ winp::menu::item::~item(){
 	destruct();
 }
 
-UINT winp::menu::item::get_id(const std::function<void(UINT)> &callback) const{
-	return compute_or_post_task_inside_thread_context([=]{
-		return pass_return_value_to_callback(callback, get_id_());
-	}, (callback != nullptr), 0u);
-}
-
 winp::utility::error_code winp::menu::item::set_absolute_index(std::size_t value, const std::function<void(item &, utility::error_code)> &callback){
 	return compute_or_post_task_inside_thread_context([=]{
 		return pass_return_value_to_callback(callback, *this, set_absolute_index_(value));
@@ -137,10 +131,7 @@ winp::utility::error_code winp::menu::item::create_(){
 	if (object_parent == nullptr || !object_parent->is_created())
 		return utility::error_code::parent_not_created;
 
-	if (auto error_code = generate_id_(); error_code != utility::error_code::nil)
-		return error_code;
-
-	if ((handle_ = create_handle_(*object_parent)) == nullptr)
+	if ((handle_ = create_handle_()) == nullptr)
 		return utility::error_code::action_could_not_be_completed;
 
 	if (thread_.send_message(*this, WM_NCCREATE) == FALSE){
@@ -156,12 +147,11 @@ winp::utility::error_code winp::menu::item::destroy_(){
 	if (handle_ == nullptr)
 		return utility::error_code::nil;
 
-	if (RemoveMenu(handle_, id_, MF_BYCOMMAND) == FALSE)
-		return utility::error_code::action_could_not_be_completed;
+	if (auto error_code = destroy_handle_(); error_code != utility::error_code::nil)
+		return error_code;
 
 	handle_ = nullptr;
 	thread_.send_message(*this, WM_NCDESTROY);
-	thread_.get_item_manager().remove_generated_item_id(*this);
 
 	return utility::error_code::nil;
 }
@@ -178,7 +168,7 @@ winp::utility::error_code winp::menu::item::set_parent_value_(ui::tree *value, b
 	}
 	
 	if (handle_ != nullptr){//Remove item from menu
-		RemoveMenu(handle_, id_, MF_BYCOMMAND);
+		RemoveMenu(handle_, get_insertion_index_(), MF_BYPOSITION);
 		handle_ = nullptr;
 	}
 
@@ -190,46 +180,68 @@ winp::utility::error_code winp::menu::item::set_index_value_(std::size_t value, 
 		return ui::object::set_index_value_(value, true);
 
 	if (handle_ != nullptr){
-		RemoveMenu(handle_, id_, MF_BYCOMMAND);
+		RemoveMenu(handle_, get_insertion_index_(), MF_BYPOSITION);
 		if (auto object_parent = dynamic_cast<menu::object *>(parent_); object_parent == nullptr || !object_parent->is_created())
 			handle_ = nullptr;
 		else//Recreate
-			handle_ = create_handle_(*object_parent);
+			handle_ = create_handle_();
 	}
 
 	return ui::object::set_index_value_(value, false);
 }
 
-winp::utility::error_code winp::menu::item::generate_id_(){
-	if ((id_ = thread_.get_item_manager().generate_menu_item_id(*this, id_)) == 0u)
-		return utility::error_code::action_could_not_be_completed;
-	return utility::error_code::nil;
+HMENU winp::menu::item::create_handle_(){
+	MENUITEMINFOW info{
+		sizeof(MENUITEMINFOW),
+		(MIIM_ID | MIIM_FTYPE | MIIM_STATE | MIIM_ID | MIIM_DATA | MIIM_BITMAP),
+		get_types_(),
+		get_states_(),
+		local_id_,
+		nullptr,								//Sub-menu
+		nullptr,								//Checked bitmap
+		nullptr,								//Unchecked bitmap
+		reinterpret_cast<ULONG_PTR>(this),
+		nullptr,								//Type data
+		0u,										//Type data size
+		bitmap_
+	};
+
+	if (fill_info_(info) != utility::error_code::nil)
+		return nullptr;
+
+	auto menu_parent = dynamic_cast<menu::object *>(parent_);
+	auto insertion_offset = menu_parent->get_insertion_offset_(), item_index = 0u;
+
+	auto insertion_count = GetMenuItemCount(menu_parent->handle_), insertion_index = 0;
+	if (0 < insertion_count){
+		MENUITEMINFOW item_info{
+			sizeof(MENUITEMINFOW),
+			(MIIM_ID | MIIM_DATA)
+		};
+
+		GetMenuItemInfoW(menu_parent->handle_, insertion_index, TRUE, &item_info);
+		menu_parent->traverse_items([&](item &child){
+			if (&child == this)
+				return false;
+
+			++item_index;
+			if (child.is_own_info_(item_info) && ++insertion_index < insertion_count)
+				GetMenuItemInfoW(menu_parent->handle_, insertion_index, TRUE, &item_info);
+
+			return (insertion_index < insertion_count);
+		}, true);
+	}
+
+	if (item_index < insertion_offset)
+		insertion_index = item_index;
+	else
+		insertion_index += insertion_offset;
+
+	return ((InsertMenuItemW(menu_parent->handle_, insertion_index, TRUE, &info) == FALSE) ? nullptr : menu_parent->handle_);
 }
 
-UINT winp::menu::item::fill_basic_info_(menu::object &parent, MENUITEMINFOW &info){
-	info.cbSize = sizeof(MENUITEMINFOW);
-	info.fMask = (MIIM_FTYPE | MIIM_STATE | MIIM_ID | MIIM_BITMAP);
-	info.fType = get_types_();
-	info.fState = get_states_();
-	info.wID = id_;
-	info.hbmpItem = bitmap_;
-
-	UINT index = 0;
-	auto absolute_index = get_absolute_index_();
-
-	parent.traverse_items([&](item &child){
-		if (&child == this || absolute_index <= child.get_absolute_index())
-			return false;
-
-		++index;
-		return true;
-	}, true);
-
-	return index;
-}
-
-UINT winp::menu::item::get_id_() const{
-	return id_;
+winp::utility::error_code winp::menu::item::destroy_handle_(){
+	return ((handle_ != nullptr && RemoveMenu(handle_, get_insertion_index_(), MF_BYPOSITION) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
 }
 
 winp::utility::error_code winp::menu::item::set_absolute_index_(std::size_t value){
@@ -267,6 +279,25 @@ std::size_t winp::menu::item::get_items_count_before_() const{
 	return count;
 }
 
+UINT winp::menu::item::get_insertion_index_() const{
+	auto insertion_count = GetMenuItemCount(handle_), insertion_index = 0;
+	if (insertion_count <= 0)
+		return false;
+
+	MENUITEMINFOW info{
+		sizeof(MENUITEMINFOW),
+		(MIIM_ID | MIIM_DATA)
+	};
+
+	for (; insertion_index < insertion_count; ++insertion_index){
+		GetMenuItemInfoW(handle_, insertion_index, TRUE, &info);
+		if (is_own_info_(info))//Matched
+			break;
+	}
+
+	return insertion_index;
+}
+
 winp::utility::error_code winp::menu::item::set_bitmap_(HBITMAP value){
 	if (value == bitmap_)//No changes
 		return utility::error_code::nil;
@@ -282,7 +313,7 @@ winp::utility::error_code winp::menu::item::set_bitmap_(HBITMAP value){
 	info.fMask = MIIM_BITMAP;
 	info.hbmpItem = bitmap_;
 
-	return ((SetMenuItemInfoW(handle_, id_, FALSE, &info) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+	return ((SetMenuItemInfoW(handle_, get_insertion_index_(), TRUE, &info) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
 }
 
 winp::utility::error_code winp::menu::item::set_states_(UINT value){
@@ -316,7 +347,7 @@ winp::utility::error_code winp::menu::item::update_states_(){
 		get_states_()
 	};
 
-	return ((SetMenuItemInfoW(handle_, id_, FALSE, &info) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+	return ((SetMenuItemInfoW(handle_, get_insertion_index_(), TRUE, &info) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
 }
 
 UINT winp::menu::item::get_states_() const{
@@ -343,7 +374,7 @@ winp::utility::error_code winp::menu::item::update_types_(){
 		get_types_()
 	};
 
-	return ((SetMenuItemInfoW(handle_, id_, FALSE, &info) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+	return ((SetMenuItemInfoW(handle_, get_insertion_index_(), TRUE, &info) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
 }
 
 UINT winp::menu::item::get_types_() const{
@@ -361,4 +392,8 @@ winp::utility::error_code winp::menu::item::set_enabled_state_(bool is_enabled){
 
 bool winp::menu::item::is_owner_drawn_() const{
 	return false;
+}
+
+bool winp::menu::item::is_own_info_(const MENUITEMINFOW &info) const{
+	return ((local_id_ == 0u) ? (info.dwItemData == reinterpret_cast<ULONG_PTR>(this)) : (info.wID == local_id_));
 }

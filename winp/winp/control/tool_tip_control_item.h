@@ -15,9 +15,9 @@ namespace winp::control{
 
 		explicit tool_tip_item(thread::object &thread);
 
-		explicit tool_tip_item(tool_tip &parent);
+		explicit tool_tip_item(ui::tree &parent);
 
-		tool_tip_item(tool_tip &parent, std::size_t index);
+		tool_tip_item(ui::tree &parent, std::size_t index);
 
 		virtual ~tool_tip_item();
 

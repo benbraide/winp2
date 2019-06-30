@@ -9,10 +9,10 @@ winp::menu::action_item::action_item()
 winp::menu::action_item::action_item(thread::object &thread)
 	: item(thread){}
 
-winp::menu::action_item::action_item(tree &parent)
+winp::menu::action_item::action_item(ui::tree &parent)
 	: action_item(parent, static_cast<std::size_t>(-1)){}
 
-winp::menu::action_item::action_item(tree &parent, std::size_t index)
+winp::menu::action_item::action_item(ui::tree &parent, std::size_t index)
 	: action_item(parent.get_thread()){
 	set_parent(&parent, index);
 }
@@ -35,15 +35,12 @@ winp::utility::error_code winp::menu::action_item::create_(){
 	return (text_.empty() ? utility::error_code::menu_item_empty_text : item::create_());
 }
 
-HMENU winp::menu::action_item::create_handle_(menu::object &parent){
-	MENUITEMINFOW info{};
-	auto index = fill_basic_info_(parent, info);
-
+winp::utility::error_code winp::menu::action_item::fill_info_(MENUITEMINFOW &info){
 	info.fMask |= MIIM_STRING;
 	info.dwTypeData = text_.data();
 	info.cch = static_cast<UINT>(text_.size());
 
-	return ((InsertMenuItemW(parent.get_handle(), index, TRUE, &info) == FALSE) ? nullptr : parent.get_handle());
+	return utility::error_code::nil;
 }
 
 winp::utility::error_code winp::menu::action_item::set_text_(const std::wstring &value){
@@ -59,5 +56,45 @@ winp::utility::error_code winp::menu::action_item::set_text_(const std::wstring 
 	info.dwTypeData = text_.data();
 	info.cch = static_cast<UINT>(text_.size());
 
-	return ((SetMenuItemInfoW(handle_, id_, FALSE, &info) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+	return ((SetMenuItemInfoW(handle_, get_insertion_index_(), TRUE, &info) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+}
+
+winp::menu::wrapped_action_item::wrapped_action_item(menu::object &parent, std::size_t index)
+	: action_item(parent, index){
+	MENUITEMINFOW info{
+		sizeof(MENUITEMINFOW),
+		(MIIM_STRING | MIIM_FTYPE | MIIM_STATE | MIIM_BITMAP)
+	};
+
+	GetMenuItemInfoW((handle_ = parent.get_handle()), static_cast<UINT>(index), TRUE, &info);
+	if (0u < info.cch){//Retrieve text
+		text_.resize(info.cch);
+
+		MENUITEMINFOW text_info{
+			sizeof(MENUITEMINFOW),
+			MIIM_STRING
+		};
+
+		text_info.dwTypeData = text_.data();
+		text_info.cch = (info.cch + 1u);
+
+		GetMenuItemInfoW(handle_, static_cast<UINT>(index), TRUE, &text_info);
+	}
+
+	bitmap_ = info.hbmpItem;
+	states_ = info.fState;
+	types_ = info.fType;
+}
+
+winp::menu::wrapped_action_item::~wrapped_action_item(){
+	destruct();
+}
+
+winp::utility::error_code winp::menu::wrapped_action_item::create_(){
+	return utility::error_code::nil;
+}
+
+winp::utility::error_code winp::menu::wrapped_action_item::destroy_(){
+	handle_ = nullptr;
+	return utility::error_code::nil;
 }

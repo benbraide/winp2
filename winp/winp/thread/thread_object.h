@@ -119,12 +119,12 @@ namespace winp::thread{
 		}
 
 		template <typename target_type>
-		target_type generate_random_integer(target_type from_min_to){
+		target_type generate_random_integer(target_type from){
 			if (is_thread_context())
-				return random_generator_(from_min_to);
+				return random_generator_(from);
 
 			return queue_.compute_task([&]{
-				return random_generator_(from_min_to);
+				return random_generator_(from);
 			}, queue::default_task_priority, reinterpret_cast<unsigned __int64>(this));
 		}
 
