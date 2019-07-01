@@ -7,7 +7,7 @@ winp::grid::object::object()
 
 winp::grid::object::object(thread::object &thread)
 	: custom(thread){
-	current_background_color_.a = background_color_.a = 0.0f;
+	background_color_.a = 0.0f;
 	add_event_handler_([this](events::create_non_window_handle &e) -> HRGN{
 		if ((e.get_states() & events::object::state_result_set) == 0u)
 			return CreateRectRgn(0, 0, size_.cx, size_.cy);
@@ -53,8 +53,8 @@ void winp::grid::object::child_erased_(ui::object &child){
 	refresh_();
 }
 
-winp::utility::error_code winp::grid::object::set_dimension_(int x, int y, int width, int height){
-	auto error_code = custom::set_dimension_(x, y, width, height);
+winp::utility::error_code winp::grid::object::update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags){
+	auto error_code = custom::update_dimension_(previous_dimension, x, y, width, height, flags);
 	if (!is_updating_)
 		refresh_();
 
@@ -71,6 +71,8 @@ winp::utility::error_code winp::grid::object::refresh_(){
 
 	row *row_child = nullptr;
 	std::unordered_map<int, int> fixed_heights;
+
+	auto &current_size = get_current_size_();
 	int fixed_height = 0, shared_count = 0, child_index = 0;
 
 	is_updating_ = true;
@@ -79,7 +81,7 @@ winp::utility::error_code winp::grid::object::refresh_(){
 			continue;
 
 		if (row_child->is_fixed_())
-			fixed_height += (fixed_heights[child_index] = row_child->compute_fixed_height_(size_.cy));
+			fixed_height += (fixed_heights[child_index] = row_child->compute_fixed_height_(current_size.cy));
 		else//Shared
 			++shared_count;
 
@@ -87,7 +89,7 @@ winp::utility::error_code winp::grid::object::refresh_(){
 	}
 
 	child_index = 0;
-	int shared_height = ((size_.cy < fixed_height) ? 0 : (size_.cy - fixed_height)), height = 0, y = 0, used_shared_height = 0, updated_shared_count = 0;
+	int shared_height = ((current_size.cy < fixed_height) ? 0 : (current_size.cy - fixed_height)), height = 0, y = 0, used_shared_height = 0, updated_shared_count = 0;
 
 	for (auto child : children_){
 		if (auto ps_row_child = dynamic_cast<proportional_shared_row *>(child); ps_row_child != nullptr){
@@ -110,7 +112,7 @@ winp::utility::error_code winp::grid::object::refresh_(){
 		else if (0 < shared_count)//Shared
 			used_shared_height += (height = (shared_height / shared_count));
 
-		row_child->update_(0, y, size_.cx, height);
+		row_child->update_(0, y, current_size.cx, height);
 		y += height;
 		++child_index;
 	}

@@ -54,7 +54,8 @@ bool winp::grid::column::is_fixed_() const{
 
 void winp::grid::column::update_(int x, int y, int width, int height){
 	is_updating_ = true;
-	set_dimension_(x, y, width, height);
+	if (dynamic_cast<fixed_column *>(this) == nullptr)
+		set_dimension_(x, y, width, height, 0u, false);
 	is_updating_ = false;
 }
 
@@ -80,8 +81,8 @@ winp::grid::fixed_column::fixed_column(ui::tree &parent, std::size_t index)
 
 winp::grid::fixed_column::~fixed_column() = default;
 
-winp::utility::error_code winp::grid::fixed_column::set_dimension_(int x, int y, int width, int height){
-	auto error_code = non_window_surface::set_dimension_(x, y, width, height);
+winp::utility::error_code winp::grid::fixed_column::update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags){
+	auto error_code = non_window_surface::update_dimension_(previous_dimension, x, y, width, height, flags);
 	if (!is_updating_)
 		refresh_();
 
@@ -89,7 +90,7 @@ winp::utility::error_code winp::grid::fixed_column::set_dimension_(int x, int y,
 }
 
 int winp::grid::fixed_column::compute_fixed_width_(int row_width) const{
-	return size_.cx;
+	return get_current_size_().cx;
 }
 
 bool winp::grid::fixed_column::is_fixed_() const{
@@ -114,7 +115,7 @@ winp::grid::proportional_column::~proportional_column() = default;
 
 winp::utility::error_code winp::grid::proportional_column::set_proportion(float value, const std::function<void(proportional_column &, utility::error_code)> &callback){
 	return compute_or_post_task_inside_thread_context([=]{
-		return pass_return_value_to_callback(callback, *this, set_proportion_(value));
+		return pass_return_value_to_callback(callback, *this, set_proportion_(value, true));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
@@ -128,11 +129,13 @@ int winp::grid::proportional_column::compute_fixed_width_(int row_width) const{
 	return static_cast<int>(row_width * value_);
 }
 
-winp::utility::error_code winp::grid::proportional_column::set_proportion_(float value){
-	if (value != value_){
-		value_ = value;
-		refresh_();
-	}
+winp::utility::error_code winp::grid::proportional_column::set_proportion_(float value, bool allow_animation){
+	if (value == value_)
+		return utility::error_code::nil;
+
+	value_ = value;
+	if (auto surface_parent = dynamic_cast<surface *>(parent_); surface_parent != nullptr)
+		set_size_(compute_fixed_width_(surface_parent->get_current_size().cx), size_.cy, allow_animation);
 
 	return utility::error_code::nil;
 }

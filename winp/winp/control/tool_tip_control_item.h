@@ -52,7 +52,7 @@ namespace winp::control{
 
 		virtual utility::error_code set_parent_value_(ui::tree *value, bool changing) override;
 
-		virtual utility::error_code set_dimension_(int x, int y, int width, int height) override;
+		virtual utility::error_code set_dimension_(int x, int y, int width, int height, UINT flags, bool allow_animation) override;
 
 		virtual utility::error_code set_target_(ui::window_surface &value);
 

@@ -26,7 +26,7 @@ namespace winp::grid{
 
 		virtual void child_erased_(ui::object &child) override;
 
-		virtual utility::error_code set_dimension_(int x, int y, int width, int height) override;
+		virtual utility::error_code update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags) override;
 
 		virtual grid_type *get_grid_() const override;
 

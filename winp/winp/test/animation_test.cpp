@@ -44,7 +44,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::linear::ease);
+						hk->set_easing<POINT>(utility::animation_timing::linear::ease);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -58,7 +58,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::back::ease_in);
+						hk->set_easing<POINT>(utility::animation_timing::back::ease_in);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -69,7 +69,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::back::ease_out);
+						hk->set_easing<POINT>(utility::animation_timing::back::ease_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -80,7 +80,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::back::ease_in_out);
+						hk->set_easing<POINT>(utility::animation_timing::back::ease_in_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -94,7 +94,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::bounce::ease_in);
+						hk->set_easing<POINT>(utility::animation_timing::bounce::ease_in);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -105,7 +105,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::bounce::ease_out);
+						hk->set_easing<POINT>(utility::animation_timing::bounce::ease_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -116,7 +116,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::bounce::ease_in_out);
+						hk->set_easing<POINT>(utility::animation_timing::bounce::ease_in_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -130,7 +130,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::circle::ease_in);
+						hk->set_easing<POINT>(utility::animation_timing::circle::ease_in);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -141,7 +141,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::circle::ease_out);
+						hk->set_easing<POINT>(utility::animation_timing::circle::ease_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -152,7 +152,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::circle::ease_in_out);
+						hk->set_easing<POINT>(utility::animation_timing::circle::ease_in_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -166,7 +166,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::cubic::ease_in);
+						hk->set_easing<POINT>(utility::animation_timing::cubic::ease_in);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -177,7 +177,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::cubic::ease_out);
+						hk->set_easing<POINT>(utility::animation_timing::cubic::ease_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -188,7 +188,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::cubic::ease_in_out);
+						hk->set_easing<POINT>(utility::animation_timing::cubic::ease_in_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -202,7 +202,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::elastic::ease_in);
+						hk->set_easing<POINT>(utility::animation_timing::elastic::ease_in);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -213,7 +213,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::elastic::ease_out);
+						hk->set_easing<POINT>(utility::animation_timing::elastic::ease_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -224,7 +224,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::elastic::ease_in_out);
+						hk->set_easing<POINT>(utility::animation_timing::elastic::ease_in_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -238,7 +238,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::exponential::ease_in);
+						hk->set_easing<POINT>(utility::animation_timing::exponential::ease_in);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -249,7 +249,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::exponential::ease_out);
+						hk->set_easing<POINT>(utility::animation_timing::exponential::ease_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -260,7 +260,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::exponential::ease_in_out);
+						hk->set_easing<POINT>(utility::animation_timing::exponential::ease_in_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -274,7 +274,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::quadratic::ease_in);
+						hk->set_easing<POINT>(utility::animation_timing::quadratic::ease_in);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -285,7 +285,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::quadratic::ease_out);
+						hk->set_easing<POINT>(utility::animation_timing::quadratic::ease_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -296,7 +296,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::quadratic::ease_in_out);
+						hk->set_easing<POINT>(utility::animation_timing::quadratic::ease_in_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -310,7 +310,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::quart::ease_in);
+						hk->set_easing<POINT>(utility::animation_timing::quart::ease_in);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -321,7 +321,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::quart::ease_out);
+						hk->set_easing<POINT>(utility::animation_timing::quart::ease_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -332,7 +332,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::quart::ease_in_out);
+						hk->set_easing<POINT>(utility::animation_timing::quart::ease_in_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -346,7 +346,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::quint::ease_in);
+						hk->set_easing<POINT>(utility::animation_timing::quint::ease_in);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -357,7 +357,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::quint::ease_out);
+						hk->set_easing<POINT>(utility::animation_timing::quint::ease_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -368,7 +368,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::quint::ease_in_out);
+						hk->set_easing<POINT>(utility::animation_timing::quint::ease_in_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -382,7 +382,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::sine::ease_in);
+						hk->set_easing<POINT>(utility::animation_timing::sine::ease_in);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -393,7 +393,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::sine::ease_out);
+						hk->set_easing<POINT>(utility::animation_timing::sine::ease_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else
@@ -404,7 +404,7 @@ void winp::test::animation::run(int cmd_show){
 				link.add_object([&](menu::action_item &item){
 					item.set_text(L"Ease In-Out");
 					item.events().bind([&](events::menu_item_select &e){
-						hk->set_easing(utility::animation_timing::sine::ease_in_out);
+						hk->set_easing<POINT>(utility::animation_timing::sine::ease_in_out);
 						if (nws->get_x_position() == 30)
 							nws->set_x_position(320);
 						else

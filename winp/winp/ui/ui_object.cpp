@@ -295,3 +295,11 @@ void winp::ui::object::traverse_hooks_(const std::function<bool(hook &)> &callba
 bool winp::ui::object::is_dialog_message_(MSG &msg) const{
 	return false;
 }
+
+winp::ui::animation_hook::key_info &winp::ui::object::get_animation_info_(animation_hook &hk, animation_hook::key_type key) const{
+	return hk.get_(key);
+}
+
+winp::ui::animation_hook::key_info *winp::ui::object::get_existing_animation_info_(animation_hook &hk, animation_hook::key_type key) const{
+	return hk.get_existing_(key);
+}

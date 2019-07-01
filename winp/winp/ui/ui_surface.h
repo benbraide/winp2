@@ -36,6 +36,8 @@ namespace winp::ui{
 
 		virtual const SIZE &get_size(const std::function<void(const SIZE &)> &callback = nullptr) const;
 
+		virtual const SIZE &get_current_size(const std::function<void(const SIZE &)> &callback = nullptr) const;
+
 		virtual int get_width(const std::function<void(int)> &callback = nullptr) const;
 
 		virtual int get_height(const std::function<void(int)> &callback = nullptr) const;
@@ -71,6 +73,8 @@ namespace winp::ui{
 		virtual utility::error_code offset_y_position(int value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
 		virtual const POINT &get_position(const std::function<void(const POINT &)> &callback = nullptr) const;
+
+		virtual const POINT &get_current_position(const std::function<void(const POINT &)> &callback = nullptr) const;
 
 		virtual int get_x_position(const std::function<void(int)> &callback = nullptr) const;
 
@@ -141,15 +145,24 @@ namespace winp::ui{
 		virtual bool has_grid(const std::function<void(bool)> &callback = nullptr) const;
 
 	protected:
+		friend class ui::placement_hook;
+		friend class ui::parent_fill_hook;
+		friend class ui::sibling_placement_hook;
+
+		friend class ui::children_contain_hook;
+		friend class ui::drag_hook;
+
 		friend class thread::item_manager;
 
 		friend class events::draw;
 		friend class events::erase_background;
 		friend class events::paint;
 
-		virtual utility::error_code set_size_(int width, int height);
+		virtual utility::error_code set_size_(int width, int height, bool allow_animation);
 
 		virtual const SIZE &get_size_() const;
+
+		virtual const SIZE &get_current_size_() const;
 
 		virtual SIZE get_client_size_() const;
 
@@ -157,19 +170,25 @@ namespace winp::ui{
 
 		virtual POINT get_client_start_offset_() const;
 
-		virtual utility::error_code set_position_(int x, int y);
+		virtual utility::error_code set_position_(int x, int y, bool allow_animation);
 
 		virtual const POINT &get_position_() const;
 
-		virtual utility::error_code set_absolute_position_(int x, int y);
+		virtual const POINT &get_current_position_() const;
+
+		virtual utility::error_code set_absolute_position_(int x, int y, bool allow_animation);
 
 		virtual POINT get_absolute_position_() const;
 
-		virtual utility::error_code set_dimension_(int x, int y, int width, int height);
+		virtual utility::error_code set_dimension_(int x, int y, int width, int height, UINT flags, bool allow_animation);
 
-		virtual utility::error_code dimension_change_(int x, int y, int width, int height, UINT flags);
+		virtual utility::error_code animate_dimension_(object &object_self, animation_hook &hk, const RECT &previous_dimension, int x, int y, int width, int height, UINT flags);
+
+		virtual utility::error_code update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags);
 
 		virtual RECT get_dimension_() const;
+
+		virtual RECT get_current_dimension_() const;
 
 		virtual RECT get_absolute_dimension_() const;
 
@@ -181,7 +200,9 @@ namespace winp::ui{
 
 			auto ancestor = object_self->get_first_ancestor_of_<ancestor_type>([&](tree &ancestor){
 				if (auto surface_ancestor = dynamic_cast<surface *>(&ancestor); surface_ancestor != nullptr){
-					auto ancestor_position = POINT{ surface_ancestor->current_dimension_.left, surface_ancestor->current_dimension_.top };
+					auto &current_position = surface_ancestor->get_current_position_();
+					auto ancestor_position = POINT{ current_position.x, current_position.y };
+
 					auto ancestor_client_offset = surface_ancestor->get_client_offset();
 					auto ancestor_client_start_offset = surface_ancestor->get_client_start_offset();
 
@@ -218,10 +239,6 @@ namespace winp::ui{
 		SIZE size_{};
 		POINT position_{};
 
-		RECT current_dimension_{};
 		mutable std::shared_ptr<grid_type> grid_;
-
-		unsigned __int64 size_animation_state_ = 0;
-		unsigned __int64 position_animation_state_ = 0;
 	};
 }

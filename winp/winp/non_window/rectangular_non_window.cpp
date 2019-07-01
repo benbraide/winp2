@@ -9,11 +9,13 @@ winp::non_window::rectangle::rectangle(thread::object &thread)
 	: non_window_surface(thread){
 	set_event_state_<events::create_non_window_handle, events::update_non_window_handle, events::destroy_non_window_handle>((event_manager_type::state_disable_bounding | event_manager_type::state_disable_triggering));
 	add_event_handler_([this](events::create_non_window_handle &e) -> HRGN{
-		return CreateRectRgn(0, 0, size_.cx, size_.cy);
+		auto &current_size = get_current_size_();
+		return CreateRectRgn(0, 0, current_size.cx, current_size.cy);
 	});
 
 	add_event_handler_([this](events::update_non_window_handle &e) -> HRGN{
-		return ((SetRectRgn(e.get_handle(), 0, 0, size_.cx, size_.cy) == FALSE) ? nullptr : e.get_handle());
+		auto &current_size = get_current_size_();
+		return ((SetRectRgn(e.get_handle(), 0, 0, current_size.cx, current_size.cy) == FALSE) ? nullptr : e.get_handle());
 	});
 }
 

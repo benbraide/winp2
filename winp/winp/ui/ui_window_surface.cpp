@@ -8,7 +8,7 @@ winp::ui::window_surface::window_surface()
 winp::ui::window_surface::window_surface(thread::object &thread)
 	: tree(thread), system_menu_(*this), menu_bar_(*this){
 	styles_ = (WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-	current_background_color_ = background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
+	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
 	insert_hook<io_hook>();
 
 	add_event_handler_([this](events::get_context_menu_position &e){
@@ -266,7 +266,7 @@ POINT winp::ui::window_surface::get_absolute_position_() const{
 	return POINT{ dimension.left, dimension.top };
 }
 
-winp::utility::error_code winp::ui::window_surface::dimension_change_(int x, int y, int width, int height, UINT flags){
+winp::utility::error_code winp::ui::window_surface::update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags){
 	if (handle_ == nullptr)
 		return utility::error_code::nil;
 
@@ -274,17 +274,6 @@ winp::utility::error_code winp::ui::window_surface::dimension_change_(int x, int
 		auto relative_position = convert_position_relative_to_ancestor_<window_surface>(x, y);
 		x = relative_position.x;
 		y = relative_position.y;
-
-		current_dimension_.right += (x - current_dimension_.left);
-		current_dimension_.bottom += (y - current_dimension_.top);
-
-		current_dimension_.left = x;
-		current_dimension_.top = y;
-	}
-
-	if ((flags & SWP_NOSIZE) == 0u){
-		current_dimension_.right = (current_dimension_.left + width);
-		current_dimension_.bottom = (current_dimension_.top + height);
 	}
 
 	return ((SetWindowPos(handle_, nullptr, x, y, width, height, (flags | SWP_NOZORDER | SWP_NOACTIVATE)) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
@@ -329,10 +318,13 @@ bool winp::ui::window_surface::is_dialog_message_(MSG &msg) const{
 }
 
 void winp::ui::window_surface::update_position_() const{
-	if (handle_ != nullptr){
-		auto relative_position = convert_position_relative_to_ancestor_<window_surface>(position_.x, position_.y);
-		SetWindowPos(handle_, nullptr, relative_position.x, relative_position.y, 0, 0, (SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE));
-	}
+	if (handle_ == nullptr)
+		return;
+
+	auto &current_position = get_current_position_();
+	auto relative_position = convert_position_relative_to_ancestor_<window_surface>(current_position.x, current_position.y);
+
+	SetWindowPos(handle_, nullptr, relative_position.x, relative_position.y, 0, 0, (SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE));
 }
 
 winp::utility::error_code winp::ui::window_surface::show_(int how){

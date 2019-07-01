@@ -33,6 +33,6 @@ namespace winp::non_window{
 		virtual int get_radius(const std::function<void(int)> &callback = nullptr) const;
 
 	protected:
-		virtual utility::error_code set_dimension_(int x, int y, int width, int height) override;
+		virtual utility::error_code set_dimension_(int x, int y, int width, int height, UINT flags, bool allow_animation) override;
 	};
 }

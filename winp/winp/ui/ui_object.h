@@ -5,6 +5,7 @@
 namespace winp::ui{
 	class tree;
 	class surface;
+	class visible_surface;
 
 	class object : public thread::item{
 	public:
@@ -124,8 +125,7 @@ namespace winp::ui{
 		template <typename hook_type>
 		void remove_hook(){
 			execute_task_inside_thread_context([&]{
-				if (!hooks_.empty())
-					hooks_.erase(event_manager_type::template get_key<hook_type>());
+				remove_hook_<hook_type>();
 			});
 		}
 
@@ -159,6 +159,7 @@ namespace winp::ui{
 	protected:
 		friend class tree;
 		friend class surface;
+		friend class visible_surface;
 		friend class thread::item_manager;
 
 		virtual utility::error_code destruct_() override;
@@ -225,6 +226,12 @@ namespace winp::ui{
 		}
 
 		template <typename hook_type>
+		void remove_hook_(){
+			if (!hooks_.empty())
+				hooks_.erase(event_manager_type::template get_key<hook_type>());
+		}
+
+		template <typename hook_type>
 		hook_type *find_hook_() const{
 			if (hooks_.empty())
 				return nullptr;
@@ -256,6 +263,20 @@ namespace winp::ui{
 		virtual void traverse_hooks_(const std::function<bool(hook &)> &callback) const;
 
 		virtual bool is_dialog_message_(MSG &msg) const;
+
+		template <typename target_type>
+		animation_hook::key_info &get_animation_info_(animation_hook &hk) const{
+			return hk.get_<target_type>();
+		}
+
+		virtual animation_hook::key_info &get_animation_info_(animation_hook &hk, animation_hook::key_type key) const;
+
+		template <typename target_type>
+		animation_hook::key_info *get_existing_animation_info_(animation_hook &hk) const{
+			return hk.get_existing_<target_type>();
+		}
+
+		virtual animation_hook::key_info *get_existing_animation_info_(animation_hook &hk, animation_hook::key_type key) const;
 
 		tree *parent_ = nullptr;
 		std::size_t index_ = static_cast<std::size_t>(-1);

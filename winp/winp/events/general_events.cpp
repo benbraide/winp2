@@ -179,7 +179,7 @@ bool winp::events::background_color::should_call_default_() const{
 
 LRESULT winp::events::background_color::get_called_default_value_(){
 	if (auto visible_context = dynamic_cast<ui::visible_surface *>(&context_); visible_context != nullptr)
-		return static_cast<LRESULT>(ui::visible_surface::convert_colorf_to_colorref(visible_context->current_background_color_));
+		return static_cast<LRESULT>(ui::visible_surface::convert_colorf_to_colorref(visible_context->get_current_background_color_()));
 	return 0;
 }
 
@@ -209,7 +209,7 @@ winp::utility::error_code winp::events::draw::begin(){
 	if (auto non_window_context = dynamic_cast<ui::non_window_surface *>(&context_); non_window_context != nullptr){
 		SelectClipRgn(info_.hdc, non_window_context->get_handle());
 
-		auto context_dimension = non_window_context->current_dimension_;
+		auto context_dimension = non_window_context->get_current_dimension_();
 		auto offset = non_window_context->convert_position_relative_to_ancestor_<ui::window_surface>(0, 0);
 
 		OffsetRect(&context_dimension, offset.x, offset.y);//Move relative to offset
@@ -515,13 +515,16 @@ winp::utility::error_code winp::events::erase_background::begin_(){
 	POINT offset{};
 	auto surface_context = dynamic_cast<ui::surface *>(&context_);
 
-	if (dynamic_cast<ui::window_surface *>(&context_) == nullptr)
-		offset = surface_context->convert_position_relative_to_ancestor_<ui::window_surface>(surface_context->current_dimension_.left, surface_context->current_dimension_.top);
+	if (dynamic_cast<ui::window_surface *>(&context_) == nullptr){
+		auto &current_position = surface_context->get_current_position_();
+		offset = surface_context->convert_position_relative_to_ancestor_<ui::window_surface>(current_position.x, current_position.y);
+	}
 
 	if (ui::tree *tree_context = dynamic_cast<ui::tree *>(&context_); tree_context != nullptr){
 		tree_context->traverse_all_children_of<ui::visible_surface>([&](ui::visible_surface &child){
-			if (child.is_visible() && IsRectEmpty(&child.current_dimension_) == FALSE)
-				ExcludeClipRect(info_.hdc, (child.current_dimension_.left - offset.x), (child.current_dimension_.top - offset.y), (child.current_dimension_.right - offset.x), (child.current_dimension_.bottom - offset.y));
+			auto current_dimension = child.get_current_dimension_();
+			if (child.is_visible() && IsRectEmpty(&current_dimension) == FALSE)
+				ExcludeClipRect(info_.hdc, (current_dimension.left - offset.x), (current_dimension.top - offset.y), (current_dimension.right - offset.x), (current_dimension.bottom - offset.y));
 		}, true);
 	}
 
@@ -561,13 +564,16 @@ winp::utility::error_code winp::events::paint::begin_(){
 	POINT offset{};
 	auto surface_context = dynamic_cast<ui::surface *>(&context_);
 
-	if (dynamic_cast<ui::window_surface *>(&context_) == nullptr)
-		offset = surface_context->convert_position_relative_to_ancestor_<ui::window_surface>(surface_context->current_dimension_.left, surface_context->current_dimension_.top);
+	if (dynamic_cast<ui::window_surface *>(&context_) == nullptr){
+		auto &current_position = surface_context->get_current_position_();
+		offset = surface_context->convert_position_relative_to_ancestor_<ui::window_surface>(current_position.x, current_position.y);
+	}
 
 	if (ui::tree *tree_context = dynamic_cast<ui::tree *>(&context_); tree_context != nullptr){
 		tree_context->traverse_all_children_of<ui::visible_surface>([&](ui::visible_surface &child){
-			if (child.is_visible() && IsRectEmpty(&child.current_dimension_) == FALSE)
-				ExcludeClipRect(info_.hdc, (child.current_dimension_.left - offset.x), (child.current_dimension_.top - offset.y), (child.current_dimension_.right - offset.x), (child.current_dimension_.bottom - offset.y));
+			auto current_dimension = child.get_current_dimension_();
+			if (child.is_visible() && IsRectEmpty(&current_dimension) == FALSE)
+				ExcludeClipRect(info_.hdc, (current_dimension.left - offset.x), (current_dimension.top - offset.y), (current_dimension.right - offset.x), (current_dimension.bottom - offset.y));
 		}, true);
 	}
 

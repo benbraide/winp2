@@ -27,5 +27,6 @@ namespace winp::utility{
 		animation_started,
 		animation_canceled,
 		animation_ended,
+		animation_suppressed,
 	};
 }

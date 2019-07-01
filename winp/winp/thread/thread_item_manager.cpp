@@ -158,9 +158,9 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return paint_(target, target, msg, true);
 	case WM_STYLECHANGING:
 		return style_changing_(target, msg);
-	case WM_WINDOWPOSCHANGING:
+	case WINP_WM_WINDOWPOSCHANGING:
 		return position_change_(target, msg, true);
-	case WM_WINDOWPOSCHANGED:
+	case WINP_WM_WINDOWPOSCHANGED:
 		return position_change_(target, msg, false);
 	case WM_NCHITTEST:
 		return trigger_event_<events::hit_test>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
@@ -381,7 +381,7 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 
 		if (check_interception){
 			auto update_rect = update_rect_;
-			auto context_dimension = visible_context->current_dimension_;
+			auto context_dimension = visible_context->get_current_dimension_();
 			auto offset = visible_context->convert_position_relative_to_ancestor_<ui::window_surface>(0, 0);
 
 			OffsetRect(&context_dimension, offset.x, offset.y);//Move relative to offset
@@ -429,9 +429,17 @@ LRESULT winp::thread::item_manager::position_change_(item &target, MSG &msg, boo
 		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
 
 	LRESULT result = 0;
-	auto info = reinterpret_cast<WINDOWPOS *>(msg.lParam);
+	if (changing){
+		auto result_info = trigger_event_<events::position_change>(target, true, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name())));
+		if ((result_info.first & events::object::state_default_prevented) != 0u)
+			reinterpret_cast<WINDOWPOS *>(msg.lParam)->flags |= (SWP_NOMOVE | SWP_NOSIZE);
 
-	if (!changing){
+		result = result_info.second;
+	}
+	else//Changed
+		result = trigger_event_<events::position_change>(target, false, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
+
+	/*if (!changing){
 		if ((info->flags & SWP_NOMOVE) == 0u){
 			auto relative_position = window_target->convert_position_relative_to_ancestor_<ui::window_surface>(0, 0);
 			window_target->position_ = POINT{ (info->x - relative_position.x), (info->y - relative_position.y) };
@@ -448,7 +456,7 @@ LRESULT winp::thread::item_manager::position_change_(item &target, MSG &msg, boo
 			info->flags |= (SWP_NOMOVE | SWP_NOSIZE);
 
 		result = result_info.second;
-	}
+	}*/
 
 	return result;
 }

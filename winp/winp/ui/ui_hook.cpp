@@ -366,9 +366,10 @@ void winp::ui::placement_hook::update_(){
 	if (surface_target == nullptr)
 		return;
 
-	SIZE target_size = surface_target->get_size(), parent_size{};
-	auto parent = target_.get_parent();
+	SIZE parent_size{};
+	auto &target_size = surface_target->get_size();
 
+	auto parent = target_.get_parent();
 	if (auto surface_parent = dynamic_cast<surface *>(parent); surface_parent == nullptr){
 		RECT dimension{};
 		GetClientRect(GetDesktopWindow(), &dimension);
@@ -411,7 +412,7 @@ void winp::ui::placement_hook::update_(){
 		break;
 	}
 
-	surface_target->set_position(computed_offset);
+	surface_target->set_position_(computed_offset.x, computed_offset.y, false);
 }
 
 bool winp::ui::placement_hook::should_react_to_relativity_() const{
@@ -512,7 +513,7 @@ void winp::ui::parent_fill_hook::update_(){
 	else//Fixed size
 		offset = std::get<SIZE>(offset_);
 
-	surface_target->set_size((parent_size.cx - offset.cx), (parent_size.cy - offset.cy));
+	surface_target->set_size_((parent_size.cx - offset.cx), (parent_size.cy - offset.cy), false);
 }
 
 winp::ui::children_contain_hook::children_contain_hook(object &target)
@@ -564,7 +565,7 @@ void winp::ui::children_contain_hook::update_(){
 	auto &target_size = surface_target->get_size();
 	auto target_client_size = surface_target->get_client_size();
 
-	surface_target->set_size((union_rect.right + (target_size.cx - target_client_size.cx) + padding_.cx), (union_rect.bottom + (target_size.cy - target_client_size.cy) + padding_.cy));
+	surface_target->set_size_((union_rect.right + (target_size.cx - target_client_size.cx) + padding_.cx), (union_rect.bottom + (target_size.cy - target_client_size.cy) + padding_.cy), false);
 }
 
 winp::ui::io_hook::io_hook(object &target)
@@ -581,15 +582,8 @@ winp::ui::drag_hook::drag_hook(object &target)
 
 	drag_event_id_ = target_.events().bind([this](events::mouse_drag &e){
 		if (auto surface_target = dynamic_cast<surface *>(&target_); surface_target != nullptr){
-			if (auto shk = target_.insert_hook<animation_suppression_hook>(); shk != nullptr || !target_.has_hook<animation_hook>()){
-				if (!shk->type_is_suppressed<POINT>()){
-					shk->suppress_type<POINT>();
-					surface_target->offset_position(e.get_offset());
-					shk->unsuppress_type<POINT>();
-				}
-				else
-					surface_target->offset_position(e.get_offset());
-			}
+			auto offset = e.get_offset();
+			surface_target->set_position_((surface_target->position_.x + offset.x), (surface_target->position_.y + offset.y), false);
 		}
 	});
 }
@@ -857,62 +851,72 @@ void winp::ui::sibling_placement_hook::update_(){
 	if (surface_sibling == nullptr)
 		return;
 
-	auto sibling_position = surface_sibling->get_position();
-	auto target_size = surface_target->get_size(), sibling_size = surface_sibling->get_client_size();
+	auto &sibling_position = surface_sibling->get_position_();
+	auto &target_size = surface_target->get_size_();
+	auto sibling_size = surface_sibling->get_client_size();
 
 	switch (alignment_){
 	case alignment_type::top_left:
-		surface_target->set_position(
+		surface_target->set_position_(
 			((relativity_ == relative_type::target) ? (sibling_position.x + offset_.x) : ((sibling_position.x - target_size.cx) + offset_.x)),
-			((relativity_ == relative_type::target) ? (sibling_position.y + offset_.y) : ((sibling_position.y - target_size.cy) + offset_.y))
+			((relativity_ == relative_type::target) ? (sibling_position.y + offset_.y) : ((sibling_position.y - target_size.cy) + offset_.y)),
+			false
 		);
 		break;
 	case alignment_type::top_center:
-		surface_target->set_position(
+		surface_target->set_position_(
 			(sibling_position.x + ((sibling_size.cx - target_size.cx) / 2) + offset_.x),
-			((relativity_ == relative_type::target) ? (sibling_position.y + offset_.y) : ((sibling_position.y - target_size.cy) + offset_.y))
+			((relativity_ == relative_type::target) ? (sibling_position.y + offset_.y) : ((sibling_position.y - target_size.cy) + offset_.y)),
+			false
 		);
 		break;
 	case alignment_type::top_right:
-		surface_target->set_position(
+		surface_target->set_position_(
 			((relativity_ == relative_type::target) ? ((sibling_position.x + (sibling_size.cx - target_size.cx)) + offset_.x) : ((sibling_position.x + sibling_size.cx) + offset_.x)),
-			((relativity_ == relative_type::target) ? (sibling_position.y + offset_.y) : ((sibling_position.y - target_size.cy) + offset_.y))
+			((relativity_ == relative_type::target) ? (sibling_position.y + offset_.y) : ((sibling_position.y - target_size.cy) + offset_.y)),
+			false
 		);
 		break;
 	case alignment_type::center_left:
-		surface_target->set_position(
+		surface_target->set_position_(
 			((relativity_ == relative_type::target) ? (sibling_position.x + offset_.x) : ((sibling_position.x - target_size.cx) + offset_.x)),
-			(sibling_position.y + ((sibling_size.cy - target_size.cy) / 2) + offset_.y)
+			(sibling_position.y + ((sibling_size.cy - target_size.cy) / 2) + offset_.y),
+			false
 		);
 		break;
 	case alignment_type::center:
-		surface_target->set_position(
+		surface_target->set_position_(
 			(sibling_position.x + ((sibling_size.cx - target_size.cx) / 2) + offset_.x),
-			(sibling_position.y + ((sibling_size.cy - target_size.cy) / 2) + offset_.y)
+			(sibling_position.y + ((sibling_size.cy - target_size.cy) / 2) + offset_.y),
+			false
 		);
 		break;
 	case alignment_type::center_right:
-		surface_target->set_position(
+		surface_target->set_position_(
 			((relativity_ == relative_type::target) ? ((sibling_position.x + (sibling_size.cx - target_size.cx)) + offset_.x) : ((sibling_position.x + sibling_size.cx) + offset_.x)),
-			(sibling_position.y + ((sibling_size.cy - target_size.cy) / 2) + offset_.y)
+			(sibling_position.y + ((sibling_size.cy - target_size.cy) / 2) + offset_.y),
+			false
 		);
 		break;
 	case alignment_type::bottom_left:
-		surface_target->set_position(
+		surface_target->set_position_(
 			((relativity_ == relative_type::target) ? (sibling_position.x + offset_.x) : ((sibling_position.x - target_size.cx) + offset_.x)),
-			((relativity_ == relative_type::target) ? ((sibling_position.y + (sibling_size.cy - target_size.cy)) + offset_.y) : ((sibling_position.y + sibling_size.cy) + offset_.y))
+			((relativity_ == relative_type::target) ? ((sibling_position.y + (sibling_size.cy - target_size.cy)) + offset_.y) : ((sibling_position.y + sibling_size.cy) + offset_.y)),
+			false
 		);
 		break;
 	case alignment_type::bottom_center:
-		surface_target->set_position(
+		surface_target->set_position_(
 			(sibling_position.x + ((sibling_size.cx - target_size.cx) / 2) + offset_.x),
-			((relativity_ == relative_type::target) ? ((sibling_position.y + (sibling_size.cy - target_size.cy)) + offset_.y) : ((sibling_position.y + sibling_size.cy) + offset_.y))
+			((relativity_ == relative_type::target) ? ((sibling_position.y + (sibling_size.cy - target_size.cy)) + offset_.y) : ((sibling_position.y + sibling_size.cy) + offset_.y)),
+			false
 		);
 		break;
 	case alignment_type::bottom_right:
-		surface_target->set_position(
+		surface_target->set_position_(
 			((relativity_ == relative_type::target) ? ((sibling_position.x + (sibling_size.cx - target_size.cx)) + offset_.x) : ((sibling_position.x + sibling_size.cx) + offset_.x)),
-			((relativity_ == relative_type::target) ? ((sibling_position.y + (sibling_size.cy - target_size.cy)) + offset_.y) : ((sibling_position.y + sibling_size.cy) + offset_.y))
+			((relativity_ == relative_type::target) ? ((sibling_position.y + (sibling_size.cy - target_size.cy)) + offset_.y) : ((sibling_position.y + sibling_size.cy) + offset_.y)),
+			false
 		);
 		break;
 	default:
@@ -945,9 +949,21 @@ winp::utility::error_code winp::ui::animation_hook::set_easing(const easing_type
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
+winp::utility::error_code winp::ui::animation_hook::set_easing(key_type key, const easing_type &value, const std::function<void(animation_hook &, utility::error_code)> &callback){
+	return target_.compute_or_post_task_inside_thread_context([=]{
+		return target_.pass_return_value_to_callback(callback, *this, set_easing_(key, value));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
 const winp::ui::animation_hook::easing_type &winp::ui::animation_hook::get_easing(const std::function<void(const easing_type &)> &callback) const{
 	return *target_.compute_or_post_task_inside_thread_context([=]{
 		return &target_.pass_return_ref_value_to_callback(callback, &easing_);
+	}, (callback != nullptr), &easing_);
+}
+
+const winp::ui::animation_hook::easing_type &winp::ui::animation_hook::get_easing(key_type key, const std::function<void(const easing_type &)> &callback) const{
+	return *target_.compute_or_post_task_inside_thread_context([=]{
+		return &target_.pass_return_ref_value_to_callback(callback, &get_easing(key));
 	}, (callback != nullptr), &easing_);
 }
 
@@ -957,32 +973,80 @@ winp::utility::error_code winp::ui::animation_hook::set_duration(const std::chro
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
+winp::utility::error_code winp::ui::animation_hook::set_duration(key_type key, const std::chrono::microseconds &value, const std::function<void(animation_hook &, utility::error_code)> &callback){
+	return target_.compute_or_post_task_inside_thread_context([=]{
+		return target_.pass_return_value_to_callback(callback, *this, set_duration_(key, value));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
 const std::chrono::microseconds &winp::ui::animation_hook::get_duration(const std::function<void(const std::chrono::microseconds &)> &callback) const{
 	return *target_.compute_or_post_task_inside_thread_context([=]{
 		return &target_.pass_return_ref_value_to_callback(callback, &duration_);
 	}, (callback != nullptr), &duration_);
 }
 
-void winp::ui::animation_hook::allow_type(key_type key){
+const std::chrono::microseconds &winp::ui::animation_hook::get_duration(key_type key, const std::function<void(const std::chrono::microseconds &)> &callback) const{
+	return *target_.compute_or_post_task_inside_thread_context([=]{
+		return &target_.pass_return_ref_value_to_callback(callback, &get_duration_(key));
+	}, (callback != nullptr), &duration_);
+}
+
+void winp::ui::animation_hook::set_allowed_state(bool is_allowed){
 	target_.execute_task_inside_thread_context([=]{
-		allowed_list_[key] = true;
+		is_allowed_ = is_allowed;
 	});
 }
 
-void winp::ui::animation_hook::disallow_type(key_type key){
+void winp::ui::animation_hook::set_allowed_state(key_type key, bool is_allowed){
 	target_.execute_task_inside_thread_context([=]{
-		if (!allowed_list_.empty())
-			allowed_list_.erase(key);
+		if (!info_list_.empty()){
+			if (auto it = info_list_.find(key); it != info_list_.end())
+				it->second.is_allowed = is_allowed;
+		}
 	});
 }
 
-bool winp::ui::animation_hook::type_is_allowed(key_type key) const{
+bool winp::ui::animation_hook::is_allowed() const{
 	return target_.compute_task_inside_thread_context([=]{
-		if (allowed_list_.empty())
-			return true;
+		return is_allowed_;
+	});
+}
 
-		auto it = allowed_list_.find(key);
-		return (it != allowed_list_.end() && it->second);
+bool winp::ui::animation_hook::is_allowed(key_type key) const{
+	return target_.compute_task_inside_thread_context([=]{
+		if (info_list_.empty())
+			return is_allowed_;
+
+		if (auto it = info_list_.find(key); it != info_list_.end())
+			return it->second.is_allowed;
+
+		return is_allowed_;
+	});
+}
+
+bool winp::ui::animation_hook::is_active(key_type key) const{
+	return target_.compute_task_inside_thread_context([=]{
+		if (info_list_.empty())
+			return false;
+
+		if (auto it = info_list_.find(key); it != info_list_.end())
+			return it->second.is_active;
+
+		return false;
+	});
+}
+
+bool winp::ui::animation_hook::is_active() const{
+	return target_.compute_task_inside_thread_context([=]{
+		if (info_list_.empty())
+			return false;
+
+		for (auto &info : info_list_){
+			if (info.second.is_active)
+				return true;
+		}
+
+		return false;
 	});
 }
 
@@ -991,9 +1055,64 @@ winp::utility::error_code winp::ui::animation_hook::set_easing_(const easing_typ
 	return utility::error_code::nil;
 }
 
+winp::utility::error_code winp::ui::animation_hook::set_easing_(key_type key, const easing_type &value){
+	if (auto it = info_list_.find(key); it != info_list_.end())
+		it->second.easing = value;
+	else
+		info_list_[key] = key_info{ true, false, value, duration_, std::any(), 0u };
+
+	return utility::error_code::nil;
+}
+
+const winp::ui::animation_hook::easing_type &winp::ui::animation_hook::get_easing_(key_type key) const{
+	if (info_list_.empty())
+		return easing_;
+
+	if (auto it = info_list_.find(key); it != info_list_.end())
+		return it->second.easing;
+
+	return easing_;
+}
+
 winp::utility::error_code winp::ui::animation_hook::set_duration_(const std::chrono::microseconds &value){
 	duration_ = value;
 	return utility::error_code::nil;
+}
+
+winp::utility::error_code winp::ui::animation_hook::set_duration_(key_type key, const std::chrono::microseconds &value){
+	if (auto it = info_list_.find(key); it != info_list_.end())
+		it->second.duration = value;
+	else
+		info_list_[key] = key_info{ true, false, easing_, value, std::any(), 0u };
+
+	return utility::error_code::nil;
+}
+
+const std::chrono::microseconds &winp::ui::animation_hook::get_duration_(key_type key) const{
+	if (info_list_.empty())
+		return duration_;
+
+	if (auto it = info_list_.find(key); it != info_list_.end())
+		return it->second.duration;
+
+	return duration_;
+}
+
+winp::ui::animation_hook::key_info &winp::ui::animation_hook::get_(key_type key) const{
+	if (auto it = info_list_.find(key); it != info_list_.end())
+		return it->second;
+
+	return (info_list_[key] = key_info{ is_allowed_, false, easing_, duration_, std::any(), 0u });
+}
+
+winp::ui::animation_hook::key_info *winp::ui::animation_hook::get_existing_(key_type key) const{
+	if (info_list_.empty())
+		return nullptr;
+
+	if (auto it = info_list_.find(key); it != info_list_.end())
+		return &it->second;
+
+	return nullptr;
 }
 
 winp::ui::animation_suppression_hook::animation_suppression_hook(object &target, bool once)

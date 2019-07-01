@@ -99,7 +99,7 @@ winp::utility::error_code winp::control::button::set_scale_(const scale_type &va
 
 winp::utility::error_code winp::control::button::update_size_(){
 	auto size = compute_size_(), additional_size = compute_additional_size_();
-	return set_size_((size.cx + additional_size.cx + padding_.cx), (size.cy + additional_size.cy + padding_.cy));
+	return set_size_((size.cx + additional_size.cx + padding_.cx), (size.cy + additional_size.cy + padding_.cy), false);
 }
 
 SIZE winp::control::button::compute_size_() const{

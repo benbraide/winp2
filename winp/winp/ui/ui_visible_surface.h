@@ -60,16 +60,17 @@ namespace winp::ui{
 
 		virtual utility::error_code set_background_brush_(ID2D1Brush *value);
 
-		virtual utility::error_code set_background_color_(const D2D1_COLOR_F &value);
+		virtual utility::error_code set_background_color_(const D2D1_COLOR_F &value, bool allow_animation);
 
-		virtual utility::error_code background_color_change_(const D2D1_COLOR_F &value);
+		virtual utility::error_code animate_background_color_(object &object_self, animation_hook &hk, const D2D1_COLOR_F &value);
+
+		virtual utility::error_code update_background_color_(const D2D1_COLOR_F &value);
 
 		virtual const D2D1_COLOR_F &get_background_color_() const;
 
-		D2D1_COLOR_F background_color_{};
-		D2D1_COLOR_F current_background_color_{};
+		virtual const D2D1_COLOR_F &get_current_background_color_() const;
 
+		D2D1_COLOR_F background_color_{};
 		ID2D1Brush *background_brush_ = nullptr;
-		unsigned __int64 background_color_animation_state_ = 0;
 	};
 }

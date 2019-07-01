@@ -57,7 +57,7 @@ namespace winp::grid{
 		virtual ~fixed_row();
 
 	protected:
-		virtual utility::error_code set_dimension_(int x, int y, int width, int height) override;
+		virtual utility::error_code update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags) override;
 
 		virtual int compute_fixed_height_(int grid_height) const override;
 
@@ -83,7 +83,7 @@ namespace winp::grid{
 	protected:
 		virtual int compute_fixed_height_(int grid_height) const override;
 
-		virtual utility::error_code set_proportion_(float value);
+		virtual utility::error_code set_proportion_(float value, bool allow_animation);
 
 		float value_ = 0.0f;
 	};

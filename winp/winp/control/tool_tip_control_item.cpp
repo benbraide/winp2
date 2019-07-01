@@ -158,8 +158,8 @@ winp::utility::error_code winp::control::tool_tip_item::set_parent_value_(ui::tr
 	return object::set_parent_value_(value, changing);
 }
 
-winp::utility::error_code winp::control::tool_tip_item::set_dimension_(int x, int y, int width, int height){
-	if (auto error_code = ui::surface::set_dimension_(x, y, width, height); error_code != utility::error_code::nil)
+winp::utility::error_code winp::control::tool_tip_item::set_dimension_(int x, int y, int width, int height, UINT flags, bool allow_animation){
+	if (auto error_code = ui::surface::set_dimension_(x, y, width, height, flags, false); error_code != utility::error_code::nil)
 		return error_code;
 
 	if (handle_ == nullptr)

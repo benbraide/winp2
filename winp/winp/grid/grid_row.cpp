@@ -7,7 +7,7 @@ winp::grid::row::row()
 
 winp::grid::row::row(thread::object &thread)
 	: custom(thread){
-	current_background_color_.a = background_color_.a = 0.0f;
+	background_color_.a = 0.0f;
 	add_event_handler_([this](events::create_non_window_handle &e) -> HRGN{
 		if ((e.get_states() & events::object::state_result_set) == 0u)
 			return CreateRectRgn(0, 0, size_.cx, size_.cy);
@@ -73,7 +73,8 @@ bool winp::grid::row::is_fixed_() const{
 
 void winp::grid::row::update_(int x, int y, int width, int height){
 	is_updating_ = true;
-	set_dimension_(x, y, width, height);
+	if (dynamic_cast<fixed_row *>(this) == nullptr)
+		set_dimension_(x, y, width, height, 0u, false);
 
 	if (children_.empty()){
 		is_updating_ = false;
@@ -83,13 +84,15 @@ void winp::grid::row::update_(int x, int y, int width, int height){
 	column *column_child = nullptr;
 	std::unordered_map<int, int> fixed_widths;
 
+	auto &current_size = get_current_size_();
 	int fixed_width = 0, shared_count = 0, child_index = 0;
+
 	for (auto child : children_){//Compute fixed width
 		if ((column_child = dynamic_cast<column *>(child)) == nullptr)
 			continue;
 
 		if (column_child->is_fixed_())
-			fixed_width += (fixed_widths[child_index] = column_child->compute_fixed_width_(size_.cx));
+			fixed_width += (fixed_widths[child_index] = column_child->compute_fixed_width_(current_size.cx));
 		else//Shared
 			++shared_count;
 
@@ -97,7 +100,7 @@ void winp::grid::row::update_(int x, int y, int width, int height){
 	}
 
 	child_index = 0;
-	int shared_width = ((size_.cx < fixed_width) ? 0 : (size_.cx - fixed_width)), used_shared_width = 0, updated_shared_count = 0;
+	int shared_width = ((current_size.cx < fixed_width) ? 0 : (current_size.cx - fixed_width)), used_shared_width = 0, updated_shared_count = 0;
 
 	for (auto child : children_){
 		if (auto ps_column_child = dynamic_cast<proportional_shared_column *>(child); ps_column_child != nullptr){
@@ -122,7 +125,7 @@ void winp::grid::row::update_(int x, int y, int width, int height){
 		else if (0 < shared_count)//Shared
 			used_shared_width += (width = (shared_width / shared_count));
 
-		column_child->update_(x, 0, width, size_.cy);
+		column_child->update_(x, 0, width, current_size.cy);
 		x += width;
 		++child_index;
 	}
@@ -152,8 +155,8 @@ winp::grid::fixed_row::fixed_row(ui::tree &parent, std::size_t index)
 
 winp::grid::fixed_row::~fixed_row() = default;
 
-winp::utility::error_code winp::grid::fixed_row::set_dimension_(int x, int y, int width, int height){
-	auto error_code = non_window_surface::set_dimension_(x, y, width, height);
+winp::utility::error_code winp::grid::fixed_row::update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags){
+	auto error_code = non_window_surface::update_dimension_(previous_dimension, x, y, width, height, flags);
 	if (!is_updating_)
 		refresh_();
 
@@ -161,7 +164,7 @@ winp::utility::error_code winp::grid::fixed_row::set_dimension_(int x, int y, in
 }
 
 int winp::grid::fixed_row::compute_fixed_height_(int grid_height) const{
-	return size_.cy;
+	return get_current_size_().cy;
 }
 
 bool winp::grid::fixed_row::is_fixed_() const{
@@ -186,7 +189,7 @@ winp::grid::proportional_row::~proportional_row() = default;
 
 winp::utility::error_code winp::grid::proportional_row::set_proportion(float value, const std::function<void(proportional_row &, utility::error_code)> &callback){
 	return compute_or_post_task_inside_thread_context([=]{
-		return pass_return_value_to_callback(callback, *this, set_proportion_(value));
+		return pass_return_value_to_callback(callback, *this, set_proportion_(value, true));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
@@ -200,11 +203,13 @@ int winp::grid::proportional_row::compute_fixed_height_(int grid_height) const{
 	return static_cast<int>(grid_height * value_);
 }
 
-winp::utility::error_code winp::grid::proportional_row::set_proportion_(float value){
-	if (value == value_){
-		value_ = value;
-		refresh_();
-	}
+winp::utility::error_code winp::grid::proportional_row::set_proportion_(float value, bool allow_animation){
+	if (value == value_)
+		return utility::error_code::nil;
+
+	value_ = value;
+	if (auto surface_parent = dynamic_cast<surface *>(parent_); surface_parent != nullptr)
+		set_size_(size_.cx, compute_fixed_height_(surface_parent->get_current_size().cy), allow_animation);
 
 	return utility::error_code::nil;
 }

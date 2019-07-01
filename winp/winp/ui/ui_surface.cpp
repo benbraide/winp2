@@ -12,19 +12,19 @@ winp::utility::error_code winp::ui::surface::set_size(const SIZE &value, const s
 
 winp::utility::error_code winp::ui::surface::set_size(int width, int height, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, set_size_(width, height));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_size_(width, height, true));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::surface::set_width(int value, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, set_size_(value, size_.cy));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_size_(value, size_.cy, true));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::surface::set_height(int value, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, set_size_(size_.cx, value));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_size_(size_.cx, value, true));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
@@ -34,25 +34,31 @@ winp::utility::error_code winp::ui::surface::offset_size(const SIZE &value, cons
 
 winp::utility::error_code winp::ui::surface::offset_size(int width, int height, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, set_size_((size_.cx + width), (size_.cy + height)));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_size_((size_.cx + width), (size_.cy + height), true));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::surface::offset_width(int value, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, set_size_((size_.cx + value), size_.cy));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_size_((size_.cx + value), size_.cy, true));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::surface::offset_height(int value, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, set_size_(size_.cx, (size_.cy + value)));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_size_(size_.cx, (size_.cy + value), true));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
 const SIZE &winp::ui::surface::get_size(const std::function<void(const SIZE &)> &callback) const{
 	return *synchronized_item_compute_or_post_task_inside_thread_context([=]{
 		return &synchronized_item_pass_return_ref_value_to_callback(callback, &get_size_());
+	}, (callback != nullptr), &size_);
+}
+
+const SIZE &winp::ui::surface::get_current_size(const std::function<void(const SIZE &)> &callback) const{
+	return *synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return &synchronized_item_pass_return_ref_value_to_callback(callback, &get_current_size_());
 	}, (callback != nullptr), &size_);
 }
 
@@ -116,19 +122,19 @@ winp::utility::error_code winp::ui::surface::set_position(const POINT &value, co
 
 winp::utility::error_code winp::ui::surface::set_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, set_position_(x, y));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_position_(x, y, true));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::surface::set_x_position(int value, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, set_position_(value, position_.y));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_position_(value, position_.y, true));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::surface::set_y_position(int value, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, set_position_(position_.x, value));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_position_(position_.x, value, true));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
@@ -138,25 +144,31 @@ winp::utility::error_code winp::ui::surface::offset_position(const POINT &value,
 
 winp::utility::error_code winp::ui::surface::offset_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, set_position_((position_.x + x), (position_.y + y)));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_position_((position_.x + x), (position_.y + y), true));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::surface::offset_x_position(int value, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, set_position_((position_.x + value), position_.y));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_position_((position_.x + value), position_.y, true));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::surface::offset_y_position(int value, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, set_position_(position_.x, position_.x + value));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_position_(position_.x, (position_.y + value), true));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
 const POINT &winp::ui::surface::get_position(const std::function<void(const POINT &)> &callback) const{
 	return *synchronized_item_compute_or_post_task_inside_thread_context([=]{
 		return &synchronized_item_pass_return_ref_value_to_callback(callback, &get_position_());
+	}, (callback != nullptr), &position_);
+}
+
+const POINT &winp::ui::surface::get_current_position(const std::function<void(const POINT &)> &callback) const{
+	return *synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return &synchronized_item_pass_return_ref_value_to_callback(callback, &get_current_position_());
 	}, (callback != nullptr), &position_);
 }
 
@@ -178,7 +190,7 @@ winp::utility::error_code winp::ui::surface::set_absolute_position(const POINT &
 
 winp::utility::error_code winp::ui::surface::set_absolute_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, set_absolute_position_(x, y));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_absolute_position_(x, y, true));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
@@ -216,7 +228,7 @@ winp::utility::error_code winp::ui::surface::set_dimension(const POINT &position
 
 winp::utility::error_code winp::ui::surface::set_dimension(int x, int y, int width, int height, const std::function<void(surface &, utility::error_code)> &callback){
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, set_dimension_(x, y, width, height));
+		return thread::item::pass_return_value_to_callback(callback, *this, set_dimension_(x, y, width, height, 0u, true));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
@@ -335,11 +347,26 @@ bool winp::ui::surface::has_grid(const std::function<void(bool)> &callback) cons
 	}, (callback != nullptr), false);
 }
 
-winp::utility::error_code winp::ui::surface::set_size_(int width, int height){
-	return set_dimension_(position_.x, position_.y, width, height);
+winp::utility::error_code winp::ui::surface::set_size_(int width, int height, bool allow_animation){
+	return set_dimension_(0, 0, width, height, SWP_NOMOVE, allow_animation);
 }
 
 const SIZE &winp::ui::surface::get_size_() const{
+	return size_;
+}
+
+const SIZE &winp::ui::surface::get_current_size_() const{
+	auto object_self = dynamic_cast<const object *>(this);
+	if (object_self == nullptr)
+		return size_;
+
+	auto animation_hk = object_self->find_hook<animation_hook>();
+	if (animation_hk == nullptr)
+		return size_;
+
+	if (auto size_info = object_self->get_existing_animation_info_<SIZE>(*animation_hk); size_info != nullptr && size_info->is_active)
+		return *std::any_cast<SIZE>(&size_info->value);
+
 	return size_;
 }
 
@@ -355,25 +382,40 @@ POINT winp::ui::surface::get_client_start_offset_() const{
 	return POINT{};
 }
 
-winp::utility::error_code winp::ui::surface::set_position_(int x, int y){
-	return set_dimension_(x, y, size_.cx, size_.cy);
+winp::utility::error_code winp::ui::surface::set_position_(int x, int y, bool allow_animation){
+	return set_dimension_(x, y, 0, 0, SWP_NOSIZE, allow_animation);
 }
 
 const POINT &winp::ui::surface::get_position_() const{
 	return position_;
 }
 
-winp::utility::error_code winp::ui::surface::set_absolute_position_(int x, int y){
+const POINT &winp::ui::surface::get_current_position_() const{
+	auto object_self = dynamic_cast<const object *>(this);
+	if (object_self == nullptr)
+		return position_;
+
+	auto animation_hk = object_self->find_hook<animation_hook>();
+	if (animation_hk == nullptr)
+		return position_;
+
+	if (auto position_info = object_self->get_existing_animation_info_<POINT>(*animation_hk); position_info != nullptr && position_info->is_active)
+		return *std::any_cast<POINT>(&position_info->value);
+
+	return position_;
+}
+
+winp::utility::error_code winp::ui::surface::set_absolute_position_(int x, int y, bool allow_animation){
 	auto object_self = dynamic_cast<const object *>(this);
 	if (object_self == nullptr)//Position is absolute
-		return set_position_(x, y);
+		return set_position_(x, y, allow_animation);
 
 	auto surface_parent = dynamic_cast<surface *>(object_self->get_parent());
 	if (surface_parent == nullptr)//Position is absolute
-		return set_position_(x, y);
+		return set_position_(x, y, allow_animation);
 
 	auto parent_absolute_position = surface_parent->get_absolute_position_();
-	return set_position_((position_.x - parent_absolute_position.x), (position_.y - parent_absolute_position.y));
+	return set_position_((position_.x - parent_absolute_position.x), (position_.y - parent_absolute_position.y), allow_animation);
 }
 
 POINT winp::ui::surface::get_absolute_position_() const{
@@ -389,19 +431,19 @@ POINT winp::ui::surface::get_absolute_position_() const{
 	return POINT{ (parent_absolute_position.x + position_.x), (parent_absolute_position.y + position_.y) };
 }
 
-winp::utility::error_code winp::ui::surface::set_dimension_(int x, int y, int width, int height){
-	UINT flags = (SWP_NOMOVE | SWP_NOSIZE);
-	if (x != position_.x || y != position_.y)
-		flags &= ~SWP_NOMOVE;
+winp::utility::error_code winp::ui::surface::set_dimension_(int x, int y, int width, int height, UINT flags, bool allow_animation){
+	flags &= (SWP_NOMOVE | SWP_NOSIZE);
+	if (x == position_.x && y == position_.y)
+		flags |= SWP_NOMOVE;
 
-	if (width != size_.cx || height != size_.cy)
-		flags &= ~SWP_NOSIZE;
+	if (width == size_.cx && height == size_.cy)
+		flags |= SWP_NOSIZE;
 
-	if (flags == (SWP_NOMOVE | SWP_NOSIZE))
+	if ((flags & (SWP_NOMOVE | SWP_NOSIZE)) == (SWP_NOMOVE | SWP_NOSIZE))
 		return utility::error_code::nil;//No changes
 
 	WINDOWPOS info{ nullptr, nullptr, x, y, width, height, flags };
-	MSG msg{ nullptr, WM_WINDOWPOSCHANGING, 0, reinterpret_cast<LPARAM>(&info) };
+	MSG msg{ nullptr, WINP_WM_WINDOWPOSCHANGING, 0, reinterpret_cast<LPARAM>(&info) };
 
 	if ((synchronized_item_trigger_event_<events::position_change>(true, msg, nullptr).first & events::object::state_default_prevented) != 0u)
 		return utility::error_code::action_prevented;
@@ -417,6 +459,7 @@ winp::utility::error_code winp::ui::surface::set_dimension_(int x, int y, int wi
 
 	auto start_position = position_;
 	auto start_size = size_;
+	RECT previous_dimension{ start_position.x, start_position.y, (start_position.x + start_size.cx), (start_position.y + start_size.cy) };
 
 	if ((info.flags & SWP_NOMOVE) == 0u){
 		position_.x = info.x;
@@ -428,107 +471,207 @@ winp::utility::error_code winp::ui::surface::set_dimension_(int x, int y, int wi
 		size_.cy = info.cy;
 	}
 
-	msg.message = WM_WINDOWPOSCHANGED;
+	msg.message = WINP_WM_WINDOWPOSCHANGED;
 	synchronized_item_trigger_event_<events::position_change>(false, msg, nullptr);
 
 	auto object_self = dynamic_cast<object *>(this);
 	if (object_self == nullptr)
-		return dimension_change_(position_.x, position_.y, size_.cx, size_.cy, info.flags);
+		return update_dimension_(previous_dimension, position_.x, position_.y, size_.cx, size_.cy, info.flags);
 
-	auto animation_suppression_hk = object_self->find_hook<animation_suppression_hook>();
-	if (animation_suppression_hk != nullptr){
-		auto move_suppressed = true, size_suppressed = true;
-		if ((info.flags & SWP_NOMOVE) == 0u){
-			if (animation_suppression_hk->type_is_suppressed<POINT>() || animation_suppression_hk->type_is_suppressed<RECT>())
-				++position_animation_state_;//Cancel animation, if any
-			else
-				move_suppressed = false;
-		}
+	auto animation_hk = object_self->find_hook<animation_hook>();
+	if (animation_hk == nullptr)//Animation not set
+		return update_dimension_(previous_dimension, position_.x, position_.y, size_.cx, size_.cy, info.flags);
 
-		if ((info.flags & SWP_NOSIZE) == 0u){
-			if (animation_suppression_hk->type_is_suppressed<SIZE>() || animation_suppression_hk->type_is_suppressed<RECT>())
-				++size_animation_state_;//Cancel animation, if any
-			else
-				size_suppressed = false;
-		}
-
-		if ((move_suppressed || size_suppressed) && animation_suppression_hk->is_once())
-			object_self->remove_hook<animation_suppression_hook>();//Remove hook
-
-		if (move_suppressed && size_suppressed)
-			return dimension_change_(position_.x, position_.y, size_.cx, size_.cy, info.flags);
-
-		if (move_suppressed && (info.flags & SWP_NOMOVE) == 0u){//Move animation suppressed
-			dimension_change_(position_.x, position_.y, 0, 0, (info.flags & ~SWP_NOSIZE));
-			info.flags &= ~SWP_NOMOVE;
-		}
-		else if (size_suppressed && (info.flags & SWP_NOSIZE) == 0u){//Size animation suppressed
-			dimension_change_(0, 0, size_.cx, size_.cy, (info.flags & ~SWP_NOMOVE));
-			info.flags &= ~SWP_NOSIZE;
+	if ((info.flags & SWP_NOMOVE) == 0u){//Cancel animation, if any
+		if (auto move_info = object_self->get_existing_animation_info_<POINT>(*animation_hk); move_info != nullptr){
+			move_info->is_active = false;
+			move_info->value = position_;
+			++move_info->count;
 		}
 	}
 
-	if (auto animation_hk = object_self->find_hook<animation_hook>(); animation_hk != nullptr){//Animate values
-		auto easing = animation_hk->get_easing();
-		if (easing == nullptr)//Easing required
-			return dimension_change_(position_.x, position_.y, size_.cx, size_.cy, info.flags);
-
-		auto duration = animation_hk->get_duration();
-		if ((info.flags & SWP_NOMOVE) == 0u){//Animate position
-			auto state = ++position_animation_state_;
-			POINT position_delta{ (x - start_position.x), (y - start_position.y) }, last_position = start_position;
-
-			synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<POINT>(), events::animation::progress_type::begin);
-			object_self->get_thread().animate(easing, [=](float progress, bool has_more) mutable{
-				if (position_animation_state_ == state){
-					POINT position{ (start_position.x + static_cast<int>(position_delta.x * progress)), (start_position.y + static_cast<int>(position_delta.y * progress)) };
-					if (position.x != last_position.x || position.y != last_position.y)
-						dimension_change_(position.x, position.y, 0, 0, SWP_NOSIZE);
-
-					last_position = position;
-					synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<POINT>(), events::animation::progress_type::step);
-
-					if (!has_more)//Ended
-						synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<POINT>(), events::animation::progress_type::end);
-				}
-				else//Canceled
-					synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<POINT>(), events::animation::progress_type::cancel);
-
-				return (position_animation_state_ == state);
-			}, duration);
+	if ((info.flags & SWP_NOSIZE) == 0u){//Cancel animation, if any
+		if (auto size_info = object_self->get_existing_animation_info_<SIZE>(*animation_hk); size_info != nullptr){
+			size_info->is_active = false;
+			size_info->value = size_;
+			++size_info->count;
 		}
-
-		if ((info.flags & SWP_NOSIZE) == 0u){//Animate position
-			auto state = ++size_animation_state_;
-			SIZE size_delta{ (width - start_size.cx), (height - start_size.cy) }, last_size = start_size;
-
-			synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<SIZE>(), events::animation::progress_type::begin);
-			object_self->get_thread().animate(easing, [=](float progress, bool has_more) mutable{
-				if (size_animation_state_ == state){
-					SIZE size{ (start_size.cx + static_cast<int>(size_delta.cx * progress)), (start_size.cy + static_cast<int>(size_delta.cy * progress)) };
-					if (size.cx != last_size.cx || size.cy != last_size.cy)
-						dimension_change_(0, 0, size.cx, size.cy, SWP_NOSIZE);
-
-					last_size = size;
-					synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<SIZE>(), events::animation::progress_type::step);
-
-					if (!has_more)//Ended
-						synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<SIZE>(), events::animation::progress_type::end);
-				}
-				else//Canceled
-					synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<SIZE>(), events::animation::progress_type::cancel);
-
-				return (size_animation_state_ == state);
-			}, duration);
-		}
-
-		return utility::error_code::animation_started;
 	}
 
-	return dimension_change_(position_.x, position_.y, size_.cx, size_.cy, info.flags);
+	if (!allow_animation)
+		return update_dimension_(previous_dimension, position_.x, position_.y, size_.cx, size_.cy, info.flags);
+
+	if (auto error_code = animate_dimension_(*object_self, *animation_hk, previous_dimension, start_position.x, start_position.y, start_size.cx, start_size.cy, flags); error_code != utility::error_code::nil)
+		return error_code;
+
+	return update_dimension_(previous_dimension, position_.x, position_.y, size_.cx, size_.cy, info.flags);
 }
 
-winp::utility::error_code winp::ui::surface::dimension_change_(int x, int y, int width, int height, UINT flags){
+winp::utility::error_code winp::ui::surface::animate_dimension_(object &object_self, animation_hook &hk, const RECT &previous_dimension, int x, int y, int width, int height, UINT flags){
+	auto dimension_info = object_self.get_existing_animation_info_<RECT>(hk);
+
+	auto move_info = object_self.get_existing_animation_info_<POINT>(hk);
+	if (move_info == nullptr){//Create new
+		move_info = &object_self.get_animation_info_<POINT>(hk);
+		if (dimension_info != nullptr){//Inherit values
+			move_info->is_allowed = dimension_info->is_allowed;
+			move_info->easing = dimension_info->easing;
+			move_info->duration = dimension_info->duration;
+		}
+	}
+
+	auto size_info = object_self.get_existing_animation_info_<SIZE>(hk);
+	if (size_info == nullptr){//Create new
+		size_info = &object_self.get_animation_info_<SIZE>(hk);
+		if (dimension_info != nullptr){//Inherit values
+			size_info->is_allowed = dimension_info->is_allowed;
+			size_info->easing = dimension_info->easing;
+			size_info->duration = dimension_info->duration;
+		}
+	}
+
+	auto move_is_allowed = ((flags & SWP_NOMOVE) == 0u && move_info->is_allowed && move_info->easing != nullptr && move_info->duration != std::chrono::microseconds(0));
+	auto size_is_allowed = ((flags & SWP_NOSIZE) == 0u && size_info->is_allowed && size_info->easing != nullptr && size_info->duration != std::chrono::microseconds(0));
+
+	auto error_code = utility::error_code::nil;
+	auto suppression_hk = object_self.find_hook_<animation_suppression_hook>();
+
+	if (suppression_hk != nullptr){
+		auto move_suppressed = ((flags & SWP_NOMOVE) == 0u && (suppression_hk->type_is_suppressed<POINT>() || suppression_hk->type_is_suppressed<RECT>()));
+		auto size_suppressed = ((flags & SWP_NOSIZE) == 0u && (suppression_hk->type_is_suppressed<SIZE>() || suppression_hk->type_is_suppressed<RECT>()));
+
+		if ((move_suppressed || !move_is_allowed) && (size_suppressed || !size_is_allowed)){//Position and size animations suppressed
+			error_code = update_dimension_(previous_dimension, position_.x, position_.y, size_.cx, size_.cy, flags);
+			flags |= (SWP_NOMOVE | SWP_NOSIZE);
+		}
+		else if ((move_suppressed || !move_is_allowed)){//Position animation suppressed
+			error_code = update_dimension_(previous_dimension, position_.x, position_.y, size_.cx, size_.cy, (flags & ~SWP_NOSIZE));
+			flags |= SWP_NOMOVE;
+		}
+		else if ((size_suppressed || !size_is_allowed)){//Size animation suppressed
+			error_code = update_dimension_(previous_dimension, position_.x, position_.y, size_.cx, size_.cy, (flags & ~SWP_NOMOVE));
+			flags |= SWP_NOSIZE;
+		}
+
+		if ((move_suppressed || size_suppressed) && suppression_hk->is_once())
+			object_self.remove_hook_<animation_suppression_hook>();//Remove hook
+	}
+
+	if ((flags & SWP_NOMOVE) != 0u)
+		move_info->is_active = false;//Position animation suppressed
+
+	if ((flags & SWP_NOSIZE) != 0u)
+		size_info->is_active = false;//Size animation suppressed
+
+	if ((flags & (SWP_NOMOVE | SWP_NOSIZE)) == (SWP_NOMOVE | SWP_NOSIZE))//Position and size animations suppressed
+		return ((error_code == utility::error_code::nil) ? utility::error_code::animation_suppressed : error_code);
+
+	if ((flags & SWP_NOMOVE) == 0u){//Animate position
+		synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<POINT>(), events::animation::progress_type::begin);
+
+		move_info->is_active = true;
+		move_info->value = POINT{ x, y };
+
+		POINT position_delta{ (position_.x - x), (position_.y - y) }, last_position = POINT{ x, y };
+		object_self.thread_.animate(move_info->easing, [count = ++move_info->count, object_self_ref = &object_self, this, x, y, position_delta, last_position](float progress, bool has_more) mutable{
+			auto &current_size = get_current_size_();
+			RECT previous_dimension{ last_position.x, last_position.y, (last_position.x + current_size.cx), (last_position.y + current_size.cy) };
+
+			auto animation_hk = object_self_ref->find_hook<animation_hook>();
+			if (animation_hk == nullptr){
+				update_dimension_(previous_dimension, position_.x, position_.y, 0, 0, SWP_NOSIZE);
+				return false;
+			}
+
+			auto move_info = object_self_ref->get_existing_animation_info_<POINT>(*animation_hk);
+			if (move_info == nullptr){
+				update_dimension_(previous_dimension, position_.x, position_.y, 0, 0, SWP_NOSIZE);
+				return false;
+			}
+
+			if (move_info->is_active && move_info->count == count){//Step
+				POINT position{ (x + static_cast<int>(position_delta.x * progress)), (y + static_cast<int>(position_delta.y * progress)) };
+
+				if (position.x != last_position.x || position.y != last_position.y){
+					move_info->value = position;
+					update_dimension_(previous_dimension, position.x, position.y, 0, 0, SWP_NOSIZE);
+				}
+
+				last_position = position;
+				synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<POINT>(), events::animation::progress_type::step);
+
+				if (!has_more){//Ended
+					move_info->is_active = false;
+					synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<POINT>(), events::animation::progress_type::end);
+				}
+			}
+			else if (move_info->count == count){//Not active
+				move_info->value = POINT{ x, y };
+				update_dimension_(previous_dimension, x, y, 0, 0, SWP_NOSIZE);
+				synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<POINT>(), events::animation::progress_type::cancel);
+			}
+			else//Canceled
+				synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<POINT>(), events::animation::progress_type::cancel);
+
+			return (move_info->is_active && move_info->count == count);
+		}, move_info->duration);
+	}
+
+	if ((flags & SWP_NOSIZE) == 0u){//Animate size
+		synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<SIZE>(), events::animation::progress_type::begin);
+
+		size_info->is_active = true;
+		size_info->value = SIZE{ width, height };
+
+		SIZE size_delta{ (size_.cx - width), (size_.cy - height) }, last_size = SIZE{ width, height };
+		object_self.thread_.animate(size_info->easing, [count = ++size_info->count, object_self_ref = &object_self, this, width, height, size_delta, last_size](float progress, bool has_more) mutable{
+			auto &current_position = get_current_position_();
+			RECT previous_dimension{ current_position.x, current_position.y, (current_position.x + last_size.cx), (current_position.y + last_size.cy) };
+
+			auto animation_hk = object_self_ref->find_hook<animation_hook>();
+			if (animation_hk == nullptr){
+				update_dimension_(previous_dimension, 0, 0, size_.cx, size_.cy, SWP_NOMOVE);
+				return false;
+			}
+
+			auto size_info = object_self_ref->get_existing_animation_info_<SIZE>(*animation_hk);
+			if (size_info == nullptr){
+				update_dimension_(previous_dimension, 0, 0, size_.cx, size_.cy, SWP_NOMOVE);
+				return false;
+			}
+
+			if (size_info->is_active && size_info->count == count){//Step
+				SIZE size{ (width + static_cast<int>(size_delta.cx * progress)), (height + static_cast<int>(size_delta.cy * progress)) };
+
+				if (size.cx != last_size.cx || size.cy != last_size.cy){
+					size_info->value = size;
+					update_dimension_(previous_dimension, 0, 0, size.cx, size.cy, SWP_NOMOVE);
+				}
+
+				last_size = size;
+				synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<SIZE>(), events::animation::progress_type::step);
+
+				if (!has_more){//Ended
+					size_info->is_active = false;
+					synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<SIZE>(), events::animation::progress_type::end);
+				}
+			}
+			else if (size_info->count == count){//Not active
+				size_info->value = SIZE{ width, height };
+				update_dimension_(previous_dimension, 0, 0, width, height, SWP_NOMOVE);
+				synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<SIZE>(), events::animation::progress_type::cancel);
+			}
+			else//Canceled
+				synchronized_item_trigger_event_<events::animation>(thread::item::event_manager_type::get_key<SIZE>(), events::animation::progress_type::cancel);
+
+			return (size_info->is_active && size_info->count == count);
+		}, size_info->duration);
+	}
+
+	return utility::error_code::animation_started;
+}
+
+winp::utility::error_code winp::ui::surface::update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags){
 	if (auto tree_self = dynamic_cast<tree *>(this); tree_self != nullptr && (flags & SWP_NOMOVE) == 0u){
 		tree_self->traverse_all_children_of<window_surface>([](window_surface &child){
 			child.update_position_();
@@ -540,6 +683,13 @@ winp::utility::error_code winp::ui::surface::dimension_change_(int x, int y, int
 
 RECT winp::ui::surface::get_dimension_() const{
 	return RECT{ position_.x, position_.y, (position_.x + size_.cx), (position_.y + size_.cy) };
+}
+
+RECT winp::ui::surface::get_current_dimension_() const{
+	auto &current_position = get_current_position_();
+	auto &current_size = get_current_size_();
+
+	return RECT{ current_position.x, current_position.y, (current_position.x + current_size.cx), (current_position.y + current_size.cy) };
 }
 
 RECT winp::ui::surface::get_absolute_dimension_() const{

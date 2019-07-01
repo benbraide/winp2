@@ -9,11 +9,13 @@ winp::non_window::round_rectangle::round_rectangle(thread::object &thread)
 	: non_window_surface(thread){
 	set_event_state_<events::create_non_window_handle, events::update_non_window_handle, events::destroy_non_window_handle>((event_manager_type::state_disable_bounding | event_manager_type::state_disable_triggering));
 	add_event_handler_([this](events::create_non_window_handle &e) -> HRGN{
-		return CreateRoundRectRgn(0, 0, size_.cx, size_.cy, border_curve_size_.cx, border_curve_size_.cy);
+		auto &current_size = get_current_size_();
+		return CreateRoundRectRgn(0, 0, current_size.cx, current_size.cy, border_curve_size_.cx, border_curve_size_.cy);
 	});
 
 	add_event_handler_([this](events::update_non_window_handle &e) -> HRGN{
-		return CreateRoundRectRgn(0, 0, size_.cx, size_.cy, border_curve_size_.cx, border_curve_size_.cy);
+		auto &current_size = get_current_size_();
+		return CreateRoundRectRgn(0, 0, current_size.cx, current_size.cy, border_curve_size_.cx, border_curve_size_.cy);
 	});
 }
 
