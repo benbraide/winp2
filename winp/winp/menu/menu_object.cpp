@@ -345,6 +345,10 @@ winp::utility::error_code winp::menu::appended_popup::destroy_(){
 	return utility::error_code::nil;
 }
 
+winp::menu::tree *winp::menu::appended_popup::get_top_() const{
+	return popup_target_.get_top_();
+}
+
 winp::ui::object *winp::menu::appended_popup::get_target_() const{
 	return popup_target_.get_target_();
 }

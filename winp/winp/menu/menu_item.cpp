@@ -210,9 +210,16 @@ HMENU winp::menu::item::create_handle_(){
 		return nullptr;
 
 	auto menu_parent = dynamic_cast<menu::object *>(parent_);
-	auto insertion_offset = menu_parent->get_insertion_offset_(), item_index = 0u;
+	if (menu_parent == nullptr)
+		menu_parent = parent_->get_first_ancestor_of<menu::object>();
 
-	auto insertion_count = GetMenuItemCount(menu_parent->handle_), insertion_index = 0;
+	auto insertion_count = GetMenuItemCount(menu_parent->handle_), insertion_index = 0, insertion_offset = 0, item_index = 0;
+	if (auto appended_popup_parent = dynamic_cast<appended_popup *>(menu_parent); appended_popup_parent != nullptr)
+		insertion_offset = static_cast<int>(appended_popup_parent->get_popup_target().get_items_count_());
+
+	insertion_count -= insertion_offset;
+	insertion_index += insertion_offset;
+
 	if (0 < insertion_count){
 		MENUITEMINFOW item_info{
 			sizeof(MENUITEMINFOW),
@@ -224,18 +231,12 @@ HMENU winp::menu::item::create_handle_(){
 			if (&child == this)
 				return false;
 
-			++item_index;
 			if (child.is_own_info_(item_info) && ++insertion_index < insertion_count)
 				GetMenuItemInfoW(menu_parent->handle_, insertion_index, TRUE, &item_info);
 
 			return (insertion_index < insertion_count);
 		}, true);
 	}
-
-	if (item_index < insertion_offset)
-		insertion_index = item_index;
-	else
-		insertion_index += insertion_offset;
 
 	return ((InsertMenuItemW(menu_parent->handle_, insertion_index, TRUE, &info) == FALSE) ? nullptr : menu_parent->handle_);
 }

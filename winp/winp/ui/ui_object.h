@@ -49,7 +49,7 @@ namespace winp::ui{
 		}
 
 		template <typename target_type>
-		target_type *get_first_ancestor_of(const std::function<bool(tree &)> &not_type_callback, const std::function<bool(target_type *)> &callback = nullptr) const{
+		target_type *get_first_ancestor_of(const std::function<bool(tree &)> &not_type_callback, const std::function<void(target_type *)> &callback = nullptr) const{
 			return compute_or_post_task_inside_thread_context([=]{
 				return pass_return_value_to_callback(callback, get_first_ancestor_of_<target_type>(not_type_callback));
 			}, (callback != nullptr), nullptr);

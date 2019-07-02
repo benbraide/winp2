@@ -102,6 +102,20 @@ namespace winp::thread{
 		friend class menu::object;
 		friend class menu::wrapped_popup;
 
+		class clear_black_listed_menus_on_exit{
+		public:
+			explicit clear_black_listed_menus_on_exit(item_manager &manager)
+				: manager_(manager){}
+
+			~clear_black_listed_menus_on_exit(){
+				if (!manager_.black_listed_menus_.empty())
+					manager_.black_listed_menus_.clear();
+			}
+
+		private:
+			item_manager &manager_;
+		};
+
 		explicit item_manager(object &thread, DWORD thread_id);
 
 		void add_menu_(menu::object &owner);
@@ -263,6 +277,7 @@ namespace winp::thread{
 
 		std::unordered_map<HMENU, std::shared_ptr<menu::popup>> wrapped_menus_;
 		std::unordered_map<HMENU, std::shared_ptr<menu::popup>> appended_menus_;
+		std::list<std::shared_ptr<menu::popup>> black_listed_menus_;
 
 		std::unordered_map<HWND, ui::window_surface *> windows_;
 		std::unordered_map<HWND, ui::window_surface *> top_level_windows_;

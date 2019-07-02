@@ -1,6 +1,9 @@
 #include "../app/app_object.h"
 #include "../utility/animation_timing.h"
 
+#include "../menu/menu_action_item.h"
+#include "../menu/menu_separator.h"
+
 #include "ui_window_surface.h"
 
 winp::ui::hook::hook(object &target)
@@ -732,6 +735,32 @@ winp::ui::fullscreen_hook::fullscreen_hook(object &target)
 	: hook(target){
 	target_.insert_hook<io_hook>();
 	if (dynamic_cast<window_surface *>(&target_) != nullptr){
+		append_menu_event_id_ = target_.events().bind([this](events::appended_context_menu &e){
+			if (!dynamic_cast<menu::appended_popup &>(e.get_popup()).get_popup_target().is_system())
+				return;
+
+			if (is_fullscreen_){
+				e.get_popup().add_object([this](menu::separator &item){});
+
+				e.get_popup().add_object([this](menu::action_item &item){
+					item.set_text(L"Exit Full Screen");
+					item.events().bind([this](events::menu_item_select &e){
+						escape_fullscreen_();
+					});
+				});
+			}
+			else{//Normal window
+				e.get_popup().add_object([this](menu::separator &item){});
+
+				e.get_popup().add_object([this](menu::action_item &item){
+					item.set_text(L"Enter Full Screen");
+					item.events().bind([this](events::menu_item_select &e){
+						enter_fullscreen_();
+					});
+				});
+			}
+		});
+
 		dbl_click_event_id_ = target_.events().bind([this](events::mouse_dbl_clk &e){
 			toggle_fullscreen_();
 		});
@@ -762,11 +791,12 @@ winp::ui::fullscreen_hook::fullscreen_hook(object &target)
 }
 
 winp::ui::fullscreen_hook::~fullscreen_hook(){
+	target_.events().unbind(append_menu_event_id_);
 	target_.events().unbind(dbl_click_event_id_);
 	target_.events().unbind(key_down_event_id_);
 	target_.events().unbind(key_up_event_id_);
 
-	key_up_event_id_ = key_down_event_id_ = dbl_click_event_id_ = 0u;
+	key_up_event_id_ = key_down_event_id_ = dbl_click_event_id_ = append_menu_event_id_ = 0u;
 	escape_fullscreen_();
 }
 

@@ -141,6 +141,8 @@ namespace winp::menu{
 
 		virtual utility::error_code destroy_() override;
 
+		virtual tree *get_top_() const override;
+
 		virtual ui::object *get_target_() const override;
 
 		popup &popup_target_;

@@ -318,7 +318,9 @@ namespace winp::ui{
 
 		virtual void toggle_fullscreen_();
 
+		unsigned __int64 append_menu_event_id_ = 0u;
 		unsigned __int64 dbl_click_event_id_ = 0u;
+
 		unsigned __int64 key_down_event_id_ = 0u;
 		unsigned __int64 key_up_event_id_ = 0u;
 
