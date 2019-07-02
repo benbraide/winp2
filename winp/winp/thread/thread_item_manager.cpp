@@ -774,17 +774,10 @@ LRESULT winp::thread::item_manager::menu_command_(item &target, MSG &msg){
 	if (menu_item_target == nullptr)
 		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
-	if (auto appended_menu = appended_menus_.find(menu_handle); appended_menu != appended_menus_.end()){
-		if (auto menu_item = appended_menu->second->get_item_at(static_cast<UINT>(msg.wParam + menu->second->get_items_count_())); menu_item != nullptr)
-			return trigger_event_<events::menu_item_select>(*menu_item, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
-	}
-
 	return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 }
 
 LRESULT winp::thread::item_manager::system_command_(item &target, MSG &msg){
-	clear_black_listed_menus_on_exit clear(*this);
-
 	auto window_target = dynamic_cast<ui::window_surface *>(&target);
 	if (window_target == nullptr)
 		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
@@ -798,18 +791,16 @@ LRESULT winp::thread::item_manager::system_command_(item &target, MSG &msg){
 	if (menu == menus_.end())//System menu not initialized
 		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
-	if (auto menu_item = menu->second->find_item_((static_cast<UINT>(msg.wParam) & 0xFFF0u), nullptr, true); menu_item != nullptr)
+	if (auto menu_item = menu->second->find_item_((static_cast<UINT>(msg.wParam) & 0xFFF0u), nullptr, true); menu_item != nullptr){
+		clear_black_listed_menus_on_exit clear(*this);
 		return trigger_event_<events::menu_item_select>(*menu_item, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
-
-	if (auto appended_menu = appended_menus_.find(menu_handle); appended_menu != appended_menus_.end()){
-		if (auto menu_item = appended_menu->second->find_item_((static_cast<UINT>(msg.wParam) & 0xFFF0u), nullptr, true); menu_item != nullptr)
-			return trigger_event_<events::menu_item_select>(*menu_item, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 	}
 
 	return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 }
 
 LRESULT winp::thread::item_manager::context_menu_(item &target, MSG &msg){
+	clear_black_listed_modified_menus_();
 	if (!black_listed_menus_.empty())
 		black_listed_menus_.clear();
 
@@ -870,6 +861,7 @@ LRESULT winp::thread::item_manager::context_menu_(item &target, MSG &msg){
 }
 
 LRESULT winp::thread::item_manager::menu_init_(item &target, MSG &msg){
+	clear_black_listed_modified_menus_();
 	if (!black_listed_menus_.empty())
 		black_listed_menus_.clear();
 
@@ -896,10 +888,9 @@ LRESULT winp::thread::item_manager::menu_init_(item &target, MSG &msg){
 	if (popup_target == nullptr)
 		popup_target = window_target;
 
-	if (auto appended_popup_menu = std::make_shared<menu::appended_popup>(*menu); appended_popup_menu != nullptr){
-		appended_menus_[menu_handle] = appended_popup_menu;
-		trigger_event_<events::appended_context_menu>(*popup_target, *appended_popup_menu, msg, nullptr);
-	}
+	menu->is_modifying_ = true;
+	trigger_event_<events::modify_context_menu>(*popup_target, *menu, msg, nullptr);
+	menu->is_modifying_ = false;
 
 	return trigger_event_<events::menu_init>(*menu, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 }
@@ -917,8 +908,8 @@ LRESULT winp::thread::item_manager::menu_uninit_(item &target, MSG &msg){
 	if (auto it = wrapped_menus_.find(menu_handle); it != wrapped_menus_.end())
 		black_listed_menus_.push_back(it->second);
 
-	if (auto it = appended_menus_.find(menu_handle); it != appended_menus_.end())
-		black_listed_menus_.push_back(it->second);
+	if (auto popup_menu = dynamic_cast<menu::popup *>(menu->second); popup_menu != nullptr)
+		black_listed_modified_menus_.push_back(popup_menu);
 
 	return trigger_event_<events::menu_uninit>(*menu->second, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 }
@@ -947,6 +938,14 @@ LRESULT winp::thread::item_manager::notify_(item &target, MSG &msg){
 
 	auto control_target = dynamic_cast<control::object *>(find_window_(reinterpret_cast<NMHDR *>(msg.lParam)->hwndFrom, false));
 	return ((control_target == nullptr) ? trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second : control_target->dispatch_notification_(msg));
+}
+
+void winp::thread::item_manager::clear_black_listed_modified_menus_(){
+	if (!black_listed_modified_menus_.empty()){
+		for (auto item : black_listed_modified_menus_)
+			item->clear_modified_list_();
+		black_listed_modified_menus_.clear();
+	}
 }
 
 HCURSOR winp::thread::item_manager::get_default_cursor_(const MSG &msg){

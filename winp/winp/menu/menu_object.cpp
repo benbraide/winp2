@@ -113,10 +113,6 @@ std::size_t winp::menu::object::get_items_count_before_() const{
 	return 0u;
 }
 
-UINT winp::menu::object::get_insertion_offset_() const{
-	return 0u;
-}
-
 winp::menu::popup::popup()
 	: popup(app::object::get_thread()){}
 
@@ -144,6 +140,18 @@ bool winp::menu::popup::is_sub(const std::function<void(bool)> &callback) const{
 	}, (callback != nullptr), false);
 }
 
+void winp::menu::popup::child_inserted_(ui::object &child){
+	object::child_inserted_(child);
+	if (is_modifying_ && dynamic_cast<menu::item *>(&child) != nullptr)
+		modified_list_[&child] = true;
+}
+
+void winp::menu::popup::child_erased_(ui::object &child){
+	if (!modified_list_.empty())
+		modified_list_.erase(&child);
+	object::child_erased_(child);
+}
+
 winp::menu::tree *winp::menu::popup::get_top_() const{
 	if (auto link_owner = dynamic_cast<link_item *>(owner_); link_owner != nullptr){
 		if (auto tree_parent = dynamic_cast<tree *>(link_owner->parent_); tree_parent != nullptr)
@@ -168,15 +176,29 @@ HMENU winp::menu::popup::create_handle_(){
 }
 
 winp::utility::error_code winp::menu::popup::destroy_handle_(){
-	return ((DestroyMenu(handle_) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+	if (DestroyMenu(handle_) == FALSE)
+		return utility::error_code::action_could_not_be_completed;
+
+	clear_modified_list_();
+	return utility::error_code::nil;
 }
 
 bool winp::menu::popup::is_system_() const{
+	if (auto top_popup = dynamic_cast<popup *>(get_top_()); top_popup != nullptr)
+		return top_popup->is_system_();
 	return false;
 }
 
 bool winp::menu::popup::is_sub_() const{
 	return (owner_ != nullptr && dynamic_cast<link_item *>(owner_) != nullptr);
+}
+
+void winp::menu::popup::clear_modified_list_(){
+	if (!modified_list_.empty()){
+		auto list = std::move(modified_list_);
+		for (auto &item : list)//Remove all modified items
+			item.first->set_parent(nullptr);
+	}
 }
 
 winp::menu::wrapped_popup::wrapped_popup(thread::object &thread)
@@ -221,15 +243,12 @@ winp::utility::error_code winp::menu::wrapped_popup::destroy_handle_(){
 	return utility::error_code::nil;
 }
 
-UINT winp::menu::wrapped_popup::get_insertion_offset_() const{
-	return insertion_offset_;
-}
-
 void winp::menu::wrapped_popup::wrap_(){
 	if (handle_ == nullptr)
 		return;
 
-	if ((insertion_offset_ = GetMenuItemCount(handle_)) == 0u)//Empty list
+	auto count = GetMenuItemCount(handle_);
+	if (count == 0u)//Empty list
 		return;
 
 	MENUITEMINFOW info{
@@ -238,17 +257,16 @@ void winp::menu::wrapped_popup::wrap_(){
 	};
 
 	MENUITEMINFOW update_info{
-		sizeof(MENUITEMINFOW),
-		MIIM_DATA
+		sizeof(MENUITEMINFOW)
 	};
 
 	menu::item *item;
-	auto is_system = is_system_();
 
 	is_wrapping_ = true;
-	wrapped_objects_.reserve(insertion_offset_);
+	wrapped_objects_.reserve(count);
 
-	for (auto index = 0u; index < insertion_offset_; ++index){
+	auto is_system = is_system_();
+	for (auto index = 0; index < count; ++index){
 		if (GetMenuItemInfoW(handle_, index, TRUE, &info) == FALSE)
 			continue;
 
@@ -265,8 +283,26 @@ void winp::menu::wrapped_popup::wrap_(){
 		objects_[item].reset(item);
 		wrapped_objects_.push_back(item);
 
-		if ((item->local_id_ = info.wID) == 0u && is_system){//Update data
+		if (is_system){
+			if ((item->local_id_ = info.wID) == 0u && (item->local_id_ = generate_id_(*item, info.wID)) == 0u){//Update data
+				update_info.fMask = MIIM_DATA;
+				update_info.dwItemData = reinterpret_cast<ULONG_PTR>(item);
+				SetMenuItemInfoW(handle_, index, TRUE, &update_info);
+			}
+			else if (item->local_id_ != info.wID){//Update Id
+				update_info.fMask = MIIM_ID;
+				update_info.wID = item->local_id_;
+				SetMenuItemInfoW(handle_, index, TRUE, &update_info);
+			}
+		}
+		else if ((item->local_id_ = generate_id_(*item, info.wID)) == 0u){//Update data
+			update_info.fMask = MIIM_DATA;
 			update_info.dwItemData = reinterpret_cast<ULONG_PTR>(item);
+			SetMenuItemInfoW(handle_, index, TRUE, &update_info);
+		}
+		else if (item->local_id_ != info.wID){//Update Id
+			update_info.fMask = MIIM_ID;
+			update_info.wID = item->local_id_;
 			SetMenuItemInfoW(handle_, index, TRUE, &update_info);
 		}
 	}
@@ -301,56 +337,6 @@ bool winp::menu::system_popup::is_system_() const{
 
 bool winp::menu::system_popup::is_sub_() const{
 	return false;
-}
-
-winp::menu::appended_popup::appended_popup(popup &popup_target)
-	: popup(popup_target.get_thread()), popup_target_(popup_target){
-	handle_ = popup_target_.handle_;
-	popup_target_.events().bind([this](events::destroy &e){
-		handle_ = nullptr;
-		e.unbind_on_exit();
-	});
-}
-
-winp::menu::appended_popup::~appended_popup(){
-	destruct();
-}
-
-const winp::menu::popup &winp::menu::appended_popup::get_popup_target(const std::function<void(const popup &)> &callback) const{
-	return *compute_or_post_task_inside_thread_context([=]{
-		return &pass_return_ref_value_to_callback(callback, &popup_target_);
-	}, (callback != nullptr), &popup_target_);
-}
-
-winp::menu::popup &winp::menu::appended_popup::get_popup_target(const std::function<void(popup &)> &callback){
-	return *compute_or_post_task_inside_thread_context([=]{
-		return &pass_return_ref_value_to_callback(callback, &popup_target_);
-	}, (callback != nullptr), &popup_target_);
-}
-
-winp::utility::error_code winp::menu::appended_popup::create_(){
-	return utility::error_code::nil;
-}
-
-winp::utility::error_code winp::menu::appended_popup::destroy_(){
-	if (handle_ == nullptr)
-		return utility::error_code::nil;
-
-	if (!children_.empty()){
-		for (auto child : children_)
-			child->destroy();
-	}
-
-	handle_ = nullptr;
-	return utility::error_code::nil;
-}
-
-winp::menu::tree *winp::menu::appended_popup::get_top_() const{
-	return popup_target_.get_top_();
-}
-
-winp::ui::object *winp::menu::appended_popup::get_target_() const{
-	return popup_target_.get_target_();
 }
 
 winp::menu::bar::bar(ui::window_surface &owner)

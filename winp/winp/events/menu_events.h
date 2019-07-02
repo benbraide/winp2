@@ -89,10 +89,10 @@ namespace winp::events{
 		winp::menu::popup &popup_;
 	};
 
-	class appended_context_menu : public context_menu{
+	class modify_context_menu : public context_menu{
 	public:
 		template <typename... args_types>
-		explicit appended_context_menu(winp::menu::popup &popup, args_types &&... args)
+		explicit modify_context_menu(winp::menu::popup &popup, args_types &&... args)
 			: context_menu(popup, std::forward<args_types>(args)...){}
 	};
 

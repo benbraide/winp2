@@ -193,7 +193,7 @@ winp::utility::error_code winp::menu::item::set_index_value_(std::size_t value, 
 HMENU winp::menu::item::create_handle_(){
 	MENUITEMINFOW info{
 		sizeof(MENUITEMINFOW),
-		(MIIM_ID | MIIM_FTYPE | MIIM_STATE | MIIM_ID | MIIM_DATA | MIIM_BITMAP),
+		(MIIM_ID | MIIM_FTYPE | MIIM_STATE | MIIM_DATA | MIIM_BITMAP),
 		get_types_(),
 		get_states_(),
 		local_id_,
@@ -213,13 +213,7 @@ HMENU winp::menu::item::create_handle_(){
 	if (menu_parent == nullptr)
 		menu_parent = parent_->get_first_ancestor_of<menu::object>();
 
-	auto insertion_count = GetMenuItemCount(menu_parent->handle_), insertion_index = 0, insertion_offset = 0, item_index = 0;
-	if (auto appended_popup_parent = dynamic_cast<appended_popup *>(menu_parent); appended_popup_parent != nullptr)
-		insertion_offset = static_cast<int>(appended_popup_parent->get_popup_target().get_items_count_());
-
-	insertion_count -= insertion_offset;
-	insertion_index += insertion_offset;
-
+	auto insertion_count = GetMenuItemCount(menu_parent->handle_), insertion_index = 0, insertion_offset = 0;
 	if (0 < insertion_count){
 		MENUITEMINFOW item_info{
 			sizeof(MENUITEMINFOW),

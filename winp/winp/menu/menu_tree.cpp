@@ -159,6 +159,9 @@ UINT winp::menu::tree::generate_id_(menu::item &target, std::size_t max_tries) c
 	auto top = get_top_();
 	auto is_system = (dynamic_cast<system_popup *>(get_top_()) != nullptr);
 
+	if (!is_system && (top = dynamic_cast<menu::object *>(const_cast<tree *>(this))) == nullptr)
+		top = get_first_ancestor_of_<menu::object>(nullptr);
+
 	auto id = target.local_id_;
 	if (id != 0u && (!is_system || !id_is_reserved_(id)) && top->find_item_(id, &target, is_system) == nullptr)
 		return id;

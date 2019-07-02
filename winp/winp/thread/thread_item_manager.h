@@ -108,6 +108,7 @@ namespace winp::thread{
 				: manager_(manager){}
 
 			~clear_black_listed_menus_on_exit(){
+				manager_.clear_black_listed_modified_menus_();
 				if (!manager_.black_listed_menus_.empty())
 					manager_.black_listed_menus_.clear();
 			}
@@ -235,6 +236,8 @@ namespace winp::thread{
 
 		LRESULT notify_(item &target, MSG &msg);
 
+		void clear_black_listed_modified_menus_();
+
 		static HCURSOR get_default_cursor_(const MSG &msg);
 
 		static void track_mouse_leave_(HWND target, UINT flags);
@@ -274,10 +277,10 @@ namespace winp::thread{
 
 		std::shared_ptr<menu::popup> active_context_menu_;
 		std::unordered_map<HMENU, menu::object *> menus_;
-
 		std::unordered_map<HMENU, std::shared_ptr<menu::popup>> wrapped_menus_;
-		std::unordered_map<HMENU, std::shared_ptr<menu::popup>> appended_menus_;
+
 		std::list<std::shared_ptr<menu::popup>> black_listed_menus_;
+		std::list<menu::popup *> black_listed_modified_menus_;
 
 		std::unordered_map<HWND, ui::window_surface *> windows_;
 		std::unordered_map<HWND, ui::window_surface *> top_level_windows_;

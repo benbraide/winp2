@@ -735,8 +735,8 @@ winp::ui::fullscreen_hook::fullscreen_hook(object &target)
 	: hook(target){
 	target_.insert_hook<io_hook>();
 	if (dynamic_cast<window_surface *>(&target_) != nullptr){
-		append_menu_event_id_ = target_.events().bind([this](events::appended_context_menu &e){
-			if (!dynamic_cast<menu::appended_popup &>(e.get_popup()).get_popup_target().is_system())
+		append_menu_event_id_ = target_.events().bind([this](events::modify_context_menu &e){
+			if (!e.get_popup().is_system())
 				return;
 
 			if (is_fullscreen_){

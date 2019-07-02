@@ -39,8 +39,6 @@ namespace winp::menu{
 
 		virtual std::size_t get_items_count_before_() const override;
 
-		virtual UINT get_insertion_offset_() const;
-
 		virtual ui::object *get_target_() const = 0;
 
 		virtual HMENU create_handle_() = 0;
@@ -68,6 +66,11 @@ namespace winp::menu{
 		friend class thread::item_manager;
 		friend class appended_popup;
 		friend class object;
+		friend class tree;
+
+		virtual void child_inserted_(ui::object &child) override;
+
+		virtual void child_erased_(ui::object &child) override;
 
 		virtual tree *get_top_() const override;
 
@@ -81,8 +84,13 @@ namespace winp::menu{
 
 		virtual bool is_sub_() const;
 
+		virtual void clear_modified_list_();
+
 		ui::object *owner_ = nullptr;
 		ui::object *target_ = nullptr;
+
+		bool is_modifying_ = false;
+		std::unordered_map<ui::object *, bool> modified_list_;
 	};
 
 	class wrapped_popup : public popup{
@@ -100,13 +108,9 @@ namespace winp::menu{
 
 		virtual utility::error_code destroy_handle_() override;
 
-		virtual UINT get_insertion_offset_() const override;
-
 		void wrap_();
 
-		UINT insertion_offset_ = 0u;
 		bool is_wrapping_ = false;
-
 		std::vector<ui::object *> wrapped_objects_;
 	};
 
@@ -124,28 +128,6 @@ namespace winp::menu{
 		virtual bool is_system_() const override;
 
 		virtual bool is_sub_() const override;
-	};
-
-	class appended_popup : public popup{
-	public:
-		explicit appended_popup(popup &popup_target);
-
-		virtual ~appended_popup();
-
-		virtual const popup &get_popup_target(const std::function<void(const popup &)> &callback = nullptr) const;
-
-		virtual popup &get_popup_target(const std::function<void(popup &)> &callback = nullptr);
-
-	protected:
-		virtual utility::error_code create_() override;
-
-		virtual utility::error_code destroy_() override;
-
-		virtual tree *get_top_() const override;
-
-		virtual ui::object *get_target_() const override;
-
-		popup &popup_target_;
 	};
 
 	class bar : public object{
