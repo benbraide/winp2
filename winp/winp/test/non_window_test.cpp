@@ -15,6 +15,7 @@ void winp::test::non_window::run(int cmd_show){
 			e.draw_lines(POINT{ 0, 10 }, POINT{ size.cx, 10 }, POINT{ 0, 10 }, (size.cy / 10), D2D1::ColorF::White);
 		});
 
+		nwo.insert_hook<ui::drag_hook>();
 		nwo.set_position(30, 30);
 		nwo.set_size(200, 100);
 		nwo.set_background_color(D2D1::ColorF::Red);
@@ -27,6 +28,7 @@ void winp::test::non_window::run(int cmd_show){
 			e.draw_lines(POINT{ 0, 10 }, POINT{ size.cx, 10 }, POINT{ 0, 10 }, (size.cy / 10), D2D1::ColorF::White);
 		});
 
+		nwo.insert_hook<ui::drag_hook>();
 		nwo.set_position(260, 30);
 		nwo.set_size(200, 100);
 		nwo.set_background_color(D2D1::ColorF::Green);
@@ -40,6 +42,7 @@ void winp::test::non_window::run(int cmd_show){
 			e.draw_lines(POINT{ 0, 10 }, POINT{ size.cx, 10 }, POINT{ 0, 10 }, (size.cy / 10), D2D1::ColorF::White);
 		});
 
+		nwo.insert_hook<ui::drag_hook>();
 		nwo.set_position(490, 30);
 		nwo.set_size(200, 100);
 		nwo.set_background_color(D2D1::ColorF::Blue);
@@ -52,6 +55,7 @@ void winp::test::non_window::run(int cmd_show){
 			e.draw_lines(POINT{ 0, 10 }, POINT{ size.cx, 10 }, POINT{ 0, 10 }, (size.cy / 10), D2D1::ColorF::White);
 		});
 
+		nwo.insert_hook<ui::drag_hook>();
 		nwo.set_position(720, 30);
 		nwo.set_radius(60);
 		nwo.set_background_color(D2D1::ColorF::Gray);
@@ -69,6 +73,7 @@ void winp::test::non_window::run(int cmd_show){
 			return CreatePolygonRgn(vertices, 3, WINDING);
 		});
 
+		nwo.insert_hook<ui::drag_hook>();
 		nwo.set_position(30, 150);
 		nwo.set_background_color(D2D1::ColorF::Purple);
 	});

@@ -9,14 +9,20 @@ winp::grid::object::object(thread::object &thread)
 	: custom(thread){
 	background_color_.a = 0.0f;
 	add_event_handler_([this](events::create_non_window_handle &e) -> HRGN{
-		if ((e.get_states() & events::object::state_result_set) == 0u)
-			return CreateRectRgn(0, 0, size_.cx, size_.cy);
+		if ((e.get_states() & events::object::state_result_set) == 0u){
+			auto &current_size = get_current_size_();
+			return CreateRectRgn(0, 0, current_size.cx, current_size.cy);
+		}
+
 		return nullptr;
 	});
 
 	add_event_handler_([this](events::update_non_window_handle &e) -> HRGN{
-		if ((e.get_states() & events::object::state_result_set) == 0u && SetRectRgn(e.get_handle(), 0, 0, size_.cx, size_.cy) != FALSE)
-			return e.get_handle();
+		if ((e.get_states() & events::object::state_result_set) == 0u){
+			auto &current_size = get_current_size_();
+			return ((SetRectRgn(e.get_handle(), 0, 0, current_size.cx, current_size.cy) == FALSE) ? nullptr : e.get_handle());
+		}
+
 		return nullptr;
 	});
 }

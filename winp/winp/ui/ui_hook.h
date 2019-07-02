@@ -466,6 +466,13 @@ namespace winp::ui{
 		virtual const std::chrono::microseconds &get_duration_(key_type key) const;
 
 		template <typename target_type>
+		void cancel_(){
+			return cancel_(thread::item::event_manager_type::get_key<target_type>());
+		}
+
+		void cancel_(key_type key);
+
+		template <typename target_type>
 		key_info &get_() const{
 			return get_(thread::item::event_manager_type::get_key<target_type>());
 		}

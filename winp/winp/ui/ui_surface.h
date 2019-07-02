@@ -44,6 +44,8 @@ namespace winp::ui{
 
 		virtual SIZE get_client_size(const std::function<void(const SIZE &)> &callback = nullptr) const;
 
+		virtual SIZE get_current_client_size(const std::function<void(const SIZE &)> &callback = nullptr) const;
+
 		virtual int get_client_width(const std::function<void(int)> &callback = nullptr) const;
 
 		virtual int get_client_height(const std::function<void(int)> &callback = nullptr) const;
@@ -97,6 +99,8 @@ namespace winp::ui{
 		virtual utility::error_code set_dimension(int x, int y, int width, int height, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
 		virtual RECT get_dimension(const std::function<void(const RECT &)> &callback = nullptr) const;
+
+		virtual RECT get_current_dimension(const std::function<void(const RECT &)> &callback = nullptr) const;
 
 		virtual RECT get_absolute_dimension(const std::function<void(const RECT &)> &callback = nullptr) const;
 
@@ -165,6 +169,8 @@ namespace winp::ui{
 		virtual const SIZE &get_current_size_() const;
 
 		virtual SIZE get_client_size_() const;
+
+		virtual SIZE get_current_client_size_() const;
 
 		virtual POINT get_client_offset_() const;
 

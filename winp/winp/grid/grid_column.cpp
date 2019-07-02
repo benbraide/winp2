@@ -8,14 +8,20 @@ winp::grid::column::column()
 winp::grid::column::column(thread::object &thread)
 	: custom(thread){
 	add_event_handler_([this](events::create_non_window_handle &e) -> HRGN{
-		if ((e.get_states() & events::object::state_result_set) == 0u)
-			return CreateRectRgn(0, 0, size_.cx, size_.cy);
+		if ((e.get_states() & events::object::state_result_set) == 0u){
+			auto &current_size = get_current_size_();
+			return CreateRectRgn(0, 0, current_size.cx, current_size.cy);
+		}
+
 		return nullptr;
 	});
 
 	add_event_handler_([this](events::update_non_window_handle &e) -> HRGN{
-		if ((e.get_states() & events::object::state_result_set) == 0u && SetRectRgn(e.get_handle(), 0, 0, size_.cx, size_.cy) != FALSE)
-			return e.get_handle();
+		if ((e.get_states() & events::object::state_result_set) == 0u){
+			auto &current_size = get_current_size_();
+			return ((SetRectRgn(e.get_handle(), 0, 0, current_size.cx, current_size.cy) == FALSE) ? nullptr : e.get_handle());
+		}
+
 		return nullptr;
 	});
 }
@@ -54,8 +60,7 @@ bool winp::grid::column::is_fixed_() const{
 
 void winp::grid::column::update_(int x, int y, int width, int height){
 	is_updating_ = true;
-	if (dynamic_cast<fixed_column *>(this) == nullptr)
-		set_dimension_(x, y, width, height, 0u, false);
+	set_dimension_(x, y, width, height, 0u, false);
 	is_updating_ = false;
 }
 
@@ -82,7 +87,7 @@ winp::grid::fixed_column::fixed_column(ui::tree &parent, std::size_t index)
 winp::grid::fixed_column::~fixed_column() = default;
 
 winp::utility::error_code winp::grid::fixed_column::update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags){
-	auto error_code = non_window_surface::update_dimension_(previous_dimension, x, y, width, height, flags);
+	auto error_code = custom::update_dimension_(previous_dimension, x, y, width, height, flags);
 	if (!is_updating_)
 		refresh_();
 

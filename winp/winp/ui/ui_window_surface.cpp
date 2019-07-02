@@ -190,6 +190,15 @@ winp::utility::error_code winp::ui::window_surface::create_(){
 	if (handle_ == nullptr)
 		return utility::error_code::action_could_not_be_completed;
 
+	RECT window_rect{};
+	if (GetWindowRect(handle_, &window_rect) != FALSE){
+		if (size_.cx < (window_rect.right - window_rect.left))
+			size_.cx = (window_rect.right - window_rect.left);
+
+		if (size_.cy < (window_rect.bottom - window_rect.top))
+			size_.cy = (window_rect.bottom - window_rect.top);
+	}
+
 	system_menu_.create();
 	return utility::error_code::nil;
 }
@@ -243,6 +252,10 @@ SIZE winp::ui::window_surface::get_client_size_() const{
 	return SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
 }
 
+SIZE winp::ui::window_surface::get_current_client_size_() const{
+	return get_client_size_();
+}
+
 POINT winp::ui::window_surface::get_client_offset_() const{
 	if (handle_ == nullptr)
 		return visible_surface::get_client_offset_();
@@ -276,7 +289,13 @@ winp::utility::error_code winp::ui::window_surface::update_dimension_(const RECT
 		y = relative_position.y;
 	}
 
-	return ((SetWindowPos(handle_, nullptr, x, y, width, height, (flags | SWP_NOZORDER | SWP_NOACTIVATE)) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+	updating_dimension_ = true;
+	auto error_code = ((SetWindowPos(handle_, nullptr, x, y, width, height, (flags | SWP_NOZORDER | SWP_NOACTIVATE)) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+
+	updating_dimension_ = false;
+	synchronized_item_trigger_event_<events::position_updated>(flags);
+
+	return error_code;
 }
 
 RECT winp::ui::window_surface::get_absolute_dimension_() const{

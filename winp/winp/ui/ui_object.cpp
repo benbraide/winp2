@@ -296,6 +296,15 @@ bool winp::ui::object::is_dialog_message_(MSG &msg) const{
 	return false;
 }
 
+void winp::ui::object::cancel_animation_(animation_hook::key_type key){
+	if (auto animation_hk = find_hook_<animation_hook>(); animation_hk != nullptr)
+		cancel_animation_(*animation_hk, key);
+}
+
+void winp::ui::object::cancel_animation_(animation_hook &hk, animation_hook::key_type key){
+	hk.cancel_(key);
+}
+
 winp::ui::animation_hook::key_info &winp::ui::object::get_animation_info_(animation_hook &hk, animation_hook::key_type key) const{
 	return hk.get_(key);
 }

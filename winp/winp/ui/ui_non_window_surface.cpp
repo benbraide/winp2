@@ -91,9 +91,29 @@ winp::utility::error_code winp::ui::non_window_surface::update_dimension_(const 
 	if (!is_visible_() || visible_parent == nullptr || !visible_parent->is_visible())
 		return utility::error_code::nil;
 
+	RECT current_dimension{};
+	if ((flags & SWP_NOMOVE) != 0u){
+		auto &current_position = get_current_position_();
+		current_dimension.left = current_position.x;
+		current_dimension.top = current_position.y;
+	}
+	else{//Position changed
+		current_dimension.left = x;
+		current_dimension.top = y;
+	}
+
+	if ((flags & SWP_NOSIZE) != 0u){
+		auto &current_size = get_current_size_();
+		current_dimension.right = (current_dimension.left + current_size.cx);
+		current_dimension.bottom = (current_dimension.top + current_size.cy);
+	}
+	else{//Size changed
+		current_dimension.right = (current_dimension.left + width);
+		current_dimension.bottom = (current_dimension.top + height);
+	}
+
 	visible_parent->redraw(previous_dimension);
-	if ((flags & (SWP_NOMOVE | SWP_NOSIZE)) != (SWP_NOMOVE | SWP_NOSIZE))//Update view
-		visible_parent->redraw(RECT{ x, y, (x + width),  (y + height) });
+	visible_parent->redraw(current_dimension);
 
 	return visible_surface::update_dimension_(previous_dimension, x, y, width, height, flags);
 }
@@ -104,7 +124,7 @@ winp::utility::error_code winp::ui::non_window_surface::redraw_() const{
 }
 
 winp::utility::error_code winp::ui::non_window_surface::redraw_(const RECT &region) const{
-	if (IsRectEmpty(&region) != FALSE)
+	if (IsRectEmpty(&region) != FALSE || !is_visible_())
 		return utility::error_code::nil;
 
 	if (handle_ == nullptr)
@@ -114,14 +134,11 @@ winp::utility::error_code winp::ui::non_window_surface::redraw_(const RECT &regi
 	if (visible_parent == nullptr || !dynamic_cast<tree *>(visible_parent)->is_created())
 		return utility::error_code::parent_not_created;
 
-	if (!is_visible_() || !visible_parent->is_visible())
-		return utility::error_code::nil;
-
 	auto current_dimension = get_current_dimension_();
-	RECT update_region{ (region.left + position_.x), (region.top + position_.y), (region.right + position_.x), (region.bottom + position_.y) };
-	IntersectRect(&update_region, &update_region, &current_dimension);
+	RECT update_region{ (region.left + current_dimension.left), (region.top + current_dimension.top), (region.right + current_dimension.left), (region.bottom + current_dimension.top) };
 
-	return ((IsRectEmpty(&update_region) == FALSE) ? visible_parent->redraw() : utility::error_code::nil);
+	IntersectRect(&update_region, &update_region, &current_dimension);
+	return ((IsRectEmpty(&update_region) == FALSE) ? visible_parent->redraw(update_region) : utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::non_window_surface::set_visibility_(bool is_visible, bool redraw){

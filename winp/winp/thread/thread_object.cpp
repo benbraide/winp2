@@ -4,10 +4,23 @@ winp::thread::object::object()
 	: queue_(*this), item_manager_(*this, GetCurrentThreadId()), id_(std::this_thread::get_id()), local_id_(GetCurrentThreadId()){
 	app::object::current_thread_ = this;
 	message_hwnd_ = CreateWindowExW(0, app::object::get_class_name().data(), L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, GetModuleHandleW(nullptr), nullptr);
+
+	dummy_source_rgn_ = CreateRectRgn(0, 0, 1, 1);
+	dummy_destination_rgn_ = CreateRectRgn(0, 0, 1, 1);
 }
 
 winp::thread::object::~object(){
 	queue_.add_id_to_black_list(reinterpret_cast<unsigned __int64>(this));
+
+	if (dummy_source_rgn_ != nullptr){
+		DeleteObject(dummy_source_rgn_);
+		dummy_source_rgn_ = nullptr;
+	}
+
+	if (dummy_destination_rgn_ != nullptr){
+		DeleteObject(dummy_destination_rgn_);
+		dummy_destination_rgn_ = nullptr;
+	}
 }
 
 int winp::thread::object::run(){

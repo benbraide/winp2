@@ -168,6 +168,18 @@ namespace winp::events{
 		bool is_changing_;
 	};
 
+	class position_updated : public object{
+	public:
+		template <typename... args_types>
+		explicit position_updated(UINT flags, args_types &&... args)
+			: object(std::forward<args_types>(args)...), flags_(flags){}
+
+		virtual UINT get_flags() const;
+
+	protected:
+		UINT flags_;
+	};
+
 	class background_brush_change : public object{
 	public:
 		template <typename... args_types>

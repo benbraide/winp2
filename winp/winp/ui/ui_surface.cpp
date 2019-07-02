@@ -80,6 +80,12 @@ SIZE winp::ui::surface::get_client_size(const std::function<void(const SIZE &)> 
 	}, (callback != nullptr), SIZE{});
 }
 
+SIZE winp::ui::surface::get_current_client_size(const std::function<void(const SIZE &)> &callback) const{
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return synchronized_item_pass_return_value_to_callback(callback, get_current_client_size_());
+	}, (callback != nullptr), SIZE{});
+}
+
 int winp::ui::surface::get_client_width(const std::function<void(int)> &callback) const{
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
 		return synchronized_item_pass_return_value_to_callback(callback, get_client_size_().cx);
@@ -238,6 +244,12 @@ RECT winp::ui::surface::get_dimension(const std::function<void(const RECT &)> &c
 	}, (callback != nullptr), RECT{});
 }
 
+RECT winp::ui::surface::get_current_dimension(const std::function<void(const RECT &)> &callback) const{
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return synchronized_item_pass_return_value_to_callback(callback, get_current_dimension_());
+	}, (callback != nullptr), RECT{});
+}
+
 RECT winp::ui::surface::get_absolute_dimension(const std::function<void(const RECT &)> &callback) const{
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
 		return synchronized_item_pass_return_value_to_callback(callback, get_absolute_dimension_());
@@ -374,6 +386,10 @@ SIZE winp::ui::surface::get_client_size_() const{
 	return get_size_();
 }
 
+SIZE winp::ui::surface::get_current_client_size_() const{
+	return get_current_size_();
+}
+
 POINT winp::ui::surface::get_client_offset_() const{
 	return POINT{};
 }
@@ -406,7 +422,9 @@ const POINT &winp::ui::surface::get_current_position_() const{
 }
 
 winp::utility::error_code winp::ui::surface::set_absolute_position_(int x, int y, bool allow_animation){
+	auto &current_position = get_current_position_();
 	auto object_self = dynamic_cast<const object *>(this);
+
 	if (object_self == nullptr)//Position is absolute
 		return set_position_(x, y, allow_animation);
 
@@ -415,20 +433,24 @@ winp::utility::error_code winp::ui::surface::set_absolute_position_(int x, int y
 		return set_position_(x, y, allow_animation);
 
 	auto parent_absolute_position = surface_parent->get_absolute_position_();
-	return set_position_((position_.x - parent_absolute_position.x), (position_.y - parent_absolute_position.y), allow_animation);
+	return set_position_((current_position.x - parent_absolute_position.x), (current_position.y - parent_absolute_position.y), allow_animation);
 }
 
 POINT winp::ui::surface::get_absolute_position_() const{
+	auto &current_position = get_current_position_();
 	auto object_self = dynamic_cast<const object *>(this);
+
 	if (object_self == nullptr)//Position is absolute
-		return position_;
+		return current_position;
 
 	auto surface_parent = dynamic_cast<surface *>(object_self->get_parent());
 	if (surface_parent == nullptr)//Position is absolute
-		return position_;
+		return current_position;
 
 	auto parent_absolute_position = surface_parent->get_absolute_position_();
-	return POINT{ (parent_absolute_position.x + position_.x), (parent_absolute_position.y + position_.y) };
+	auto parent_client_offset = surface_parent->get_client_offset_();
+
+	return POINT{ (parent_absolute_position.x + parent_client_offset.x + current_position.x), (parent_absolute_position.y + parent_client_offset.y + current_position.y) };
 }
 
 winp::utility::error_code winp::ui::surface::set_dimension_(int x, int y, int width, int height, UINT flags, bool allow_animation){
@@ -443,7 +465,7 @@ winp::utility::error_code winp::ui::surface::set_dimension_(int x, int y, int wi
 		return utility::error_code::nil;//No changes
 
 	WINDOWPOS info{ nullptr, nullptr, x, y, width, height, flags };
-	MSG msg{ nullptr, WINP_WM_WINDOWPOSCHANGING, 0, reinterpret_cast<LPARAM>(&info) };
+	MSG msg{ nullptr, WM_WINDOWPOSCHANGING, 0, reinterpret_cast<LPARAM>(&info) };
 
 	if ((synchronized_item_trigger_event_<events::position_change>(true, msg, nullptr).first & events::object::state_default_prevented) != 0u)
 		return utility::error_code::action_prevented;
@@ -471,14 +493,14 @@ winp::utility::error_code winp::ui::surface::set_dimension_(int x, int y, int wi
 		size_.cy = info.cy;
 	}
 
-	msg.message = WINP_WM_WINDOWPOSCHANGED;
+	msg.message = WM_WINDOWPOSCHANGED;
 	synchronized_item_trigger_event_<events::position_change>(false, msg, nullptr);
 
 	auto object_self = dynamic_cast<object *>(this);
 	if (object_self == nullptr)
 		return update_dimension_(previous_dimension, position_.x, position_.y, size_.cx, size_.cy, info.flags);
 
-	auto animation_hk = object_self->find_hook<animation_hook>();
+	auto animation_hk = object_self->find_hook_<animation_hook>();
 	if (animation_hk == nullptr)//Animation not set
 		return update_dimension_(previous_dimension, position_.x, position_.y, size_.cx, size_.cy, info.flags);
 
@@ -672,6 +694,7 @@ winp::utility::error_code winp::ui::surface::animate_dimension_(object &object_s
 }
 
 winp::utility::error_code winp::ui::surface::update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags){
+	synchronized_item_trigger_event_<events::position_updated>(flags);
 	if (auto tree_self = dynamic_cast<tree *>(this); tree_self != nullptr && (flags & SWP_NOMOVE) == 0u){
 		tree_self->traverse_all_children_of<window_surface>([](window_surface &child){
 			child.update_position_();
@@ -698,13 +721,15 @@ RECT winp::ui::surface::get_absolute_dimension_() const{
 }
 
 POINT winp::ui::surface::convert_position_from_absolute_value_(int x, int y) const{
+	auto &current_position = get_current_position_();
 	auto object_self = dynamic_cast<const object *>(this);
+
 	if (object_self == nullptr)//Position is absolute
-		return POINT{ (x - position_.x), (y - position_.y) };
+		return POINT{ (x - current_position.x), (y - current_position.y) };
 
 	auto surface_parent = dynamic_cast<surface *>(object_self->get_parent());
 	if (surface_parent == nullptr)//Position is absolute
-		return POINT{ (x - position_.x), (y - position_.y) };
+		return POINT{ (x - current_position.x), (y - current_position.y) };
 
 	auto absolute_position = get_absolute_position_();
 	auto client_offset = surface_parent->get_client_offset_();
@@ -713,13 +738,15 @@ POINT winp::ui::surface::convert_position_from_absolute_value_(int x, int y) con
 }
 
 POINT winp::ui::surface::convert_position_to_absolute_value_(int x, int y) const{
+	auto &current_position = get_current_position_();
 	auto object_self = dynamic_cast<const object *>(this);
+
 	if (object_self == nullptr)//Position is absolute
-		return POINT{ (x + position_.x), (y + position_.y) };
+		return POINT{ (x + current_position.x), (y + current_position.y) };
 
 	auto surface_parent = dynamic_cast<surface *>(object_self->get_parent());
 	if (surface_parent == nullptr)//Position is absolute
-		return POINT{ (x + position_.x), (y + position_.y) };
+		return POINT{ (x + current_position.x), (y + current_position.y) };
 
 	auto absolute_position = get_absolute_position_();
 	auto client_offset = surface_parent->get_client_offset_();

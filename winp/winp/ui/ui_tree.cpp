@@ -151,14 +151,14 @@ winp::utility::error_code winp::ui::tree::erase_child_(std::size_t index){
 	trigger_event_<events::children_change>(events::children_change::action_type::remove, child, index, false);
 	child_erased_(child);
 
+	if (!objects_.empty())
+		objects_.erase(&child);
+
 	return utility::error_code::nil;
 }
 
 winp::utility::error_code winp::ui::tree::do_erase_child_(object &child, std::size_t index){
 	children_.erase(std::next(children_.begin(), index));
-	if (!objects_.empty())
-		objects_.erase(&child);
-
 	return utility::error_code::nil;
 }
 

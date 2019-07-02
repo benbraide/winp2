@@ -81,6 +81,8 @@ namespace winp::ui{
 
 		virtual SIZE get_client_size_() const override;
 
+		virtual SIZE get_current_client_size_() const override;
+
 		virtual POINT get_client_offset_() const override;
 
 		virtual POINT get_absolute_position_() const override;
@@ -145,5 +147,7 @@ namespace winp::ui{
 
 		mutable menu::system_popup system_menu_;
 		mutable menu::bar menu_bar_;
+
+		bool updating_dimension_ = false;
 	};
 }

@@ -110,6 +110,12 @@ bool winp::events::position_change::is_changing() const{
 	return is_changing_;
 }
 
+UINT winp::events::position_updated::get_flags() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return flags_;
+}
+
 ID2D1Brush *winp::events::background_brush_change::get_value() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
@@ -188,7 +194,8 @@ winp::events::draw::~draw(){
 }
 
 winp::utility::error_code winp::events::draw::begin(){
-	if (!target_.get_thread().is_thread_context())
+	auto &thread = target_.get_thread();
+	if (!thread.is_thread_context())
 		throw utility::error_code::outside_thread_context;
 
 	if (render_target_ != nullptr)
@@ -197,13 +204,13 @@ winp::utility::error_code winp::events::draw::begin(){
 	if (auto error_code = begin_(); error_code != utility::error_code::nil)
 		return error_code;
 
-	if ((render_target_ = target_.get_thread().get_device_render_target()) == nullptr){
+	if ((render_target_ = thread.get_device_render_target()) == nullptr){
 		end_();
 		info_ = PAINTSTRUCT{};
 		return utility::error_code::action_could_not_be_completed;
 	}
 
-	color_brush_ = target_.get_thread().get_color_brush();
+	color_brush_ = thread.get_color_brush();
 	SaveDC(info_.hdc);
 
 	if (auto non_window_context = dynamic_cast<ui::non_window_surface *>(&context_); non_window_context != nullptr){
@@ -222,12 +229,39 @@ winp::utility::error_code winp::events::draw::begin(){
 		OffsetRect(&info_.rcPaint, -context_dimension.left, -context_dimension.top);
 	}
 
+	if (ui::tree *tree_context = dynamic_cast<ui::tree *>(&context_); tree_context != nullptr){
+		auto is_window_context = (dynamic_cast<ui::window_surface *>(&context_) != nullptr);
+
+		tree_context->traverse_all_children_of<ui::visible_surface>([&](ui::visible_surface &child){
+			if ((is_window_context && (dynamic_cast<ui::window_surface *>(&child) != nullptr)) || !child.is_visible())
+				return;
+
+			if (auto non_window_child = dynamic_cast<ui::non_window_surface *>(&child); non_window_child != nullptr){
+				auto child_handle = non_window_child->get_handle();
+
+				RECT child_handle_dimension{};
+				auto &child_position = non_window_child->get_current_position_();
+
+				GetRgnBox(child_handle, &child_handle_dimension);
+				OffsetRgn(child_handle, (child_position.x - child_handle_dimension.left), (child_position.y - child_handle_dimension.top));//Move to 'child position'
+
+				ExtSelectClipRgn(info_.hdc, child_handle, RGN_DIFF);//Exclude child region and select
+				OffsetRgn(child_handle, -child_position.x, -child_position.y);//Move to (0, 0)
+			}
+			else{//Use dimension
+				auto current_dimension = child.get_current_dimension_();
+				if (IsRectEmpty(&current_dimension) == FALSE)
+					ExcludeClipRect(info_.hdc, current_dimension.left, current_dimension.top, current_dimension.right, current_dimension.bottom);
+			}
+		}, true);
+	}
+
 	RECT window_client_rect{};
 	GetClientRect(message_info_.hwnd, &window_client_rect);
 
 	render_target_->BindDC(info_.hdc, &window_client_rect);
 	render_target_->SetTransform(D2D1::IdentityMatrix());
-	target_.get_thread().begin_draw_();
+	thread.begin_draw_();
 
 	return utility::error_code::nil;
 }
@@ -511,24 +545,8 @@ LRESULT winp::events::erase_background::get_called_default_value_(){
 
 winp::utility::error_code winp::events::erase_background::begin_(){
 	info_.hdc = reinterpret_cast<HDC>(message_info_.wParam);
-
-	POINT offset{};
-	auto surface_context = dynamic_cast<ui::surface *>(&context_);
-
-	if (dynamic_cast<ui::window_surface *>(&context_) == nullptr){
-		auto &current_position = surface_context->get_current_position_();
-		offset = surface_context->convert_position_relative_to_ancestor_<ui::window_surface>(current_position.x, current_position.y);
-	}
-
-	if (ui::tree *tree_context = dynamic_cast<ui::tree *>(&context_); tree_context != nullptr){
-		tree_context->traverse_all_children_of<ui::visible_surface>([&](ui::visible_surface &child){
-			auto current_dimension = child.get_current_dimension_();
-			if (child.is_visible() && IsRectEmpty(&current_dimension) == FALSE)
-				ExcludeClipRect(info_.hdc, (current_dimension.left - offset.x), (current_dimension.top - offset.y), (current_dimension.right - offset.x), (current_dimension.bottom - offset.y));
-		}, true);
-	}
-
 	GetClipBox(info_.hdc, &info_.rcPaint);
+
 	return utility::error_code::nil;
 }
 
@@ -559,22 +577,6 @@ winp::utility::error_code winp::events::paint::begin_(){
 	else{//Begin paint
 		began_paint_ = true;
 		BeginPaint(message_info_.hwnd, &info_);
-	}
-
-	POINT offset{};
-	auto surface_context = dynamic_cast<ui::surface *>(&context_);
-
-	if (dynamic_cast<ui::window_surface *>(&context_) == nullptr){
-		auto &current_position = surface_context->get_current_position_();
-		offset = surface_context->convert_position_relative_to_ancestor_<ui::window_surface>(current_position.x, current_position.y);
-	}
-
-	if (ui::tree *tree_context = dynamic_cast<ui::tree *>(&context_); tree_context != nullptr){
-		tree_context->traverse_all_children_of<ui::visible_surface>([&](ui::visible_surface &child){
-			auto current_dimension = child.get_current_dimension_();
-			if (child.is_visible() && IsRectEmpty(&current_dimension) == FALSE)
-				ExcludeClipRect(info_.hdc, (current_dimension.left - offset.x), (current_dimension.top - offset.y), (current_dimension.right - offset.x), (current_dimension.bottom - offset.y));
-		}, true);
 	}
 
 	return utility::error_code::nil;

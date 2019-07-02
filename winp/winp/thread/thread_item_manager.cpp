@@ -158,9 +158,9 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return paint_(target, target, msg, true);
 	case WM_STYLECHANGING:
 		return style_changing_(target, msg);
-	case WINP_WM_WINDOWPOSCHANGING:
+	case WM_WINDOWPOSCHANGING:
 		return position_change_(target, msg, true);
-	case WINP_WM_WINDOWPOSCHANGED:
+	case WM_WINDOWPOSCHANGED:
 		return position_change_(target, msg, false);
 	case WM_NCHITTEST:
 		return trigger_event_<events::hit_test>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
@@ -428,27 +428,26 @@ LRESULT winp::thread::item_manager::position_change_(item &target, MSG &msg, boo
 	if (window_target == nullptr)
 		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
 
+	if (window_target->updating_dimension_)
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
+
 	LRESULT result = 0;
-	if (changing){
-		auto result_info = trigger_event_<events::position_change>(target, true, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name())));
-		if ((result_info.first & events::object::state_default_prevented) != 0u)
-			reinterpret_cast<WINDOWPOS *>(msg.lParam)->flags |= (SWP_NOMOVE | SWP_NOSIZE);
+	auto info = reinterpret_cast<WINDOWPOS *>(msg.lParam);
 
-		result = result_info.second;
-	}
-	else//Changed
-		result = trigger_event_<events::position_change>(target, false, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
-
-	/*if (!changing){
+	if (!changing){
 		if ((info->flags & SWP_NOMOVE) == 0u){
 			auto relative_position = window_target->convert_position_relative_to_ancestor_<ui::window_surface>(0, 0);
 			window_target->position_ = POINT{ (info->x - relative_position.x), (info->y - relative_position.y) };
+			window_target->cancel_animation_<POINT>();
 		}
 
-		if ((info->flags & SWP_NOSIZE) == 0u)
+		if ((info->flags & SWP_NOSIZE) == 0u){
 			window_target->size_ = SIZE{ info->cx, info->cy };
+			window_target->cancel_animation_<SIZE>();
+		}
 
 		result = trigger_event_<events::position_change>(target, false, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
+		trigger_event_<events::position_updated>(target, info->flags);
 	}
 	else{//Changing
 		auto result_info = trigger_event_<events::position_change>(target, true, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name())));
@@ -456,7 +455,7 @@ LRESULT winp::thread::item_manager::position_change_(item &target, MSG &msg, boo
 			info->flags |= (SWP_NOMOVE | SWP_NOSIZE);
 
 		result = result_info.second;
-	}*/
+	}
 
 	return result;
 }

@@ -209,5 +209,8 @@ namespace winp::thread{
 		unsigned int begin_draw_count_ = 0u;
 		events::object *current_event_ = nullptr;
 		D2D1_POINT_2F dpi_scale_{};
+
+		HRGN dummy_source_rgn_ = nullptr;
+		HRGN dummy_destination_rgn_ = nullptr;
 	};
 }

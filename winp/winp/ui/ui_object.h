@@ -265,6 +265,20 @@ namespace winp::ui{
 		virtual bool is_dialog_message_(MSG &msg) const;
 
 		template <typename target_type>
+		void cancel_animation_(){
+			cancel_animation_(thread::item::event_manager_type::get_key<target_type>());
+		}
+
+		void cancel_animation_(animation_hook::key_type key);
+
+		template <typename target_type>
+		void cancel_animation_(animation_hook &hk){
+			hk.cancel_<target_type>();
+		}
+
+		void cancel_animation_(animation_hook &hk, animation_hook::key_type key);
+
+		template <typename target_type>
 		animation_hook::key_info &get_animation_info_(animation_hook &hk) const{
 			return hk.get_<target_type>();
 		}

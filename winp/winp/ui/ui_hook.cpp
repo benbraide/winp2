@@ -54,8 +54,8 @@ void winp::ui::parent_size_hook::bind_size_event_(tree *parent, tree *previous_p
 	}
 
 	if (parent != nullptr && size_event_id_ == 0u){
-		size_event_id_ = parent->events().bind([this](events::position_change &e){
-			if (callback_ != nullptr && !e.is_changing() && (reinterpret_cast<WINDOWPOS *>(e.get_message().lParam)->flags & SWP_NOSIZE) == 0u)
+		size_event_id_ = parent->events().bind([this](events::position_updated &e){
+			if (callback_ != nullptr && (e.get_flags() & SWP_NOSIZE) == 0u)
 				callback_(*this);
 		});
 
@@ -85,9 +85,8 @@ winp::ui::children_size_and_position_hook::children_size_and_position_hook(objec
 		tree_target->traverse_all_children([this](object &child){
 			if (dynamic_cast<surface *>(&child) != nullptr && !child.has_similar_hook<parent_size_hook>()){
 				auto &info = event_ids_[&child];
-				info.position = child.events().bind([this](events::position_change &e){
-					if (!e.is_changing())
-						do_callback_(reinterpret_cast<WINDOWPOS *>(e.get_message().lParam)->flags);
+				info.position = child.events().bind([this](events::position_updated &e){
+					do_callback_(e.get_flags());
 				});
 
 				info.creation = child.events().bind([this](events::create &e){
@@ -122,9 +121,8 @@ void winp::ui::children_size_and_position_hook::children_change_(object &child, 
 	if (action == events::children_change::action_type::insert){
 		if (dynamic_cast<surface *>(&child) != nullptr && !child.has_similar_hook<parent_size_hook>()){
 			auto &info = event_ids_[&child];
-			info.position = child.events().bind([this](events::position_change &e){
-				if (!e.is_changing())
-					do_callback_(reinterpret_cast<WINDOWPOS *>(e.get_message().lParam)->flags);
+			info.position = child.events().bind([this](events::position_updated &e){
+				do_callback_(e.get_flags());
 			});
 
 			info.creation = child.events().bind([this](events::create &e){
@@ -234,9 +232,8 @@ void winp::ui::sibling_size_and_position_hook::siblings_change_(){
 			sibling_->events().unbind(position_event_id_);
 
 		if ((sibling_ = target_sibling) != nullptr){
-			position_event_id_ = sibling_->events().bind([this](events::position_change &e){
-				if (!e.is_changing())
-					do_callback_(reinterpret_cast<WINDOWPOS *>(e.get_message().lParam)->flags);
+			position_event_id_ = sibling_->events().bind([this](events::position_updated &e){
+				do_callback_(e.get_flags());
 			});
 		}
 		else
@@ -266,8 +263,8 @@ winp::ui::generic_placement_hook::generic_placement_hook(object &target, alignme
 
 winp::ui::generic_placement_hook::generic_placement_hook(object &target, alignment_type alignment, const POINT &offset, relative_type relativity)
 	: generic_target_(target), alignment_(alignment), offset_(offset), relativity_(relativity){
-	generic_size_event_id_ = generic_target_.events().bind([this](events::position_change &e){
-		if (!e.is_changing() && (reinterpret_cast<WINDOWPOS *>(e.get_message().lParam)->flags & SWP_NOSIZE) == 0u)
+	generic_size_event_id_ = generic_target_.events().bind([this](events::position_updated &e){
+		if ((e.get_flags() & SWP_NOSIZE) == 0u)
 			update_();
 	});
 }
@@ -370,16 +367,15 @@ void winp::ui::placement_hook::update_(){
 		return;
 
 	SIZE parent_size{};
-	auto &target_size = surface_target->get_size();
+	auto &target_size = surface_target->get_current_size_();
 
-	auto parent = target_.get_parent();
-	if (auto surface_parent = dynamic_cast<surface *>(parent); surface_parent == nullptr){
+	if (auto surface_parent = dynamic_cast<surface *>(target_.get_parent()); surface_parent == nullptr){
 		RECT dimension{};
 		GetClientRect(GetDesktopWindow(), &dimension);
 		parent_size = SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
 	}
 	else//Use client size
-		parent_size = surface_parent->get_client_size();
+		parent_size = surface_parent->get_current_client_size_();
 
 	auto computed_offset = offset_;
 	switch (alignment_){
@@ -468,8 +464,8 @@ void winp::ui::parent_fill_hook::init_(){
 		update_();
 	};
 
-	target_.events().bind([this](events::position_change &e){
-		if (!e.is_changing() && (reinterpret_cast<WINDOWPOS *>(e.get_message().lParam)->flags & SWP_NOSIZE) == 0u)
+	target_.events().bind([this](events::position_updated &e){
+		if ((e.get_flags() & SWP_NOSIZE) == 0u)
 			update_();
 	});
 
@@ -496,15 +492,13 @@ void winp::ui::parent_fill_hook::update_(){
 		return;
 
 	SIZE parent_size{}, offset{};
-	auto parent = target_.get_parent();
-
-	if (auto surface_parent = dynamic_cast<surface *>(parent); surface_parent == nullptr){
+	if (auto surface_parent = dynamic_cast<surface *>(target_.get_parent()); surface_parent == nullptr){
 		RECT dimension{};
 		GetClientRect(GetDesktopWindow(), &dimension);
 		parent_size = SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
 	}
 	else//Use client size
-		parent_size = surface_parent->get_client_size();
+		parent_size = surface_parent->get_current_client_size_();
 
 	if (std::holds_alternative<D2D1_SIZE_F>(offset_)){//Proportional offset
 		auto &proportional_offset = std::get<D2D1_SIZE_F>(offset_);
@@ -527,6 +521,7 @@ winp::ui::children_contain_hook::children_contain_hook(object &target, const SIZ
 	callback_ = [this](hook &, change_type){
 		update_();
 	};
+	update_();
 }
 
 winp::ui::children_contain_hook::~children_contain_hook() = default;
@@ -560,13 +555,16 @@ void winp::ui::children_contain_hook::update_(){
 	RECT union_rect{};
 	for (auto &info : event_ids_){
 		if (auto surface_child = dynamic_cast<surface *>(info.first); surface_child != nullptr){
-			auto child_dimension = surface_child->get_dimension();
+			auto child_dimension = surface_child->get_current_dimension_();
 			UnionRect(&union_rect, &child_dimension, &union_rect);
 		}
 	}
 
-	auto &target_size = surface_target->get_size();
-	auto target_client_size = surface_target->get_client_size();
+	if (IsRectEmpty(&union_rect) != FALSE)
+		return;//Empty
+
+	auto &target_size = surface_target->get_size_();
+	auto target_client_size = surface_target->get_client_size_();
 
 	surface_target->set_size_((union_rect.right + (target_size.cx - target_client_size.cx) + padding_.cx), (union_rect.bottom + (target_size.cy - target_client_size.cy) + padding_.cy), false);
 }
@@ -881,9 +879,9 @@ void winp::ui::sibling_placement_hook::update_(){
 	if (surface_sibling == nullptr)
 		return;
 
-	auto &sibling_position = surface_sibling->get_position_();
-	auto &target_size = surface_target->get_size_();
-	auto sibling_size = surface_sibling->get_client_size();
+	auto &sibling_position = surface_sibling->get_current_position_();
+	auto &target_size = surface_target->get_current_size_();
+	auto sibling_size = surface_sibling->get_current_size_();
 
 	switch (alignment_){
 	case alignment_type::top_left:
@@ -1126,6 +1124,13 @@ const std::chrono::microseconds &winp::ui::animation_hook::get_duration_(key_typ
 		return it->second.duration;
 
 	return duration_;
+}
+
+void winp::ui::animation_hook::cancel_(key_type key){
+	if (auto data = get_existing_(key); data != nullptr && data->is_active){
+		data->is_active = false;
+		++data->count;
+	}
 }
 
 winp::ui::animation_hook::key_info &winp::ui::animation_hook::get_(key_type key) const{
