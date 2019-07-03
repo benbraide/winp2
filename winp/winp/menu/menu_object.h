@@ -132,8 +132,6 @@ namespace winp::menu{
 
 	class bar : public object{
 	public:
-		explicit bar(ui::window_surface &owner);
-
 		virtual ~bar();
 
 		virtual const ui::window_surface &get_owner(const std::function<void(const ui::window_surface &)> &callback = nullptr) const;
@@ -142,6 +140,13 @@ namespace winp::menu{
 
 	protected:
 		friend class popup;
+		friend class ui::window_surface;
+
+		explicit bar(ui::window_surface &owner);
+
+		virtual void child_inserted_(ui::object &child) override;
+
+		virtual void child_erased_(ui::object &child) override;
 
 		virtual ui::object *get_target_() const override;
 

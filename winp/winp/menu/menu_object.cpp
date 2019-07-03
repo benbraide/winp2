@@ -358,21 +358,31 @@ winp::ui::window_surface &winp::menu::bar::get_owner(const std::function<void(ui
 	}, (callback != nullptr), &owner_);
 }
 
+void winp::menu::bar::child_inserted_(ui::object &child){
+	object::child_inserted_(child);
+	if (auto owner_handle = owner_.get_handle(); owner_handle != nullptr && handle_ != nullptr)
+		DrawMenuBar(owner_handle);
+}
+
+void winp::menu::bar::child_erased_(ui::object &child){
+	if (auto owner_handle = owner_.get_handle(); owner_handle != nullptr && handle_ != nullptr)
+		DrawMenuBar(owner_handle);
+	object::child_erased_(child);
+}
+
 winp::ui::object *winp::menu::bar::get_target_() const{
 	return &owner_;
 }
 
 HMENU winp::menu::bar::create_handle_(){
-	auto owner_handle = owner_.get_handle();
-	if (owner_handle == nullptr)
-		return nullptr;
-
 	auto value = CreateMenu();
 	if (value == nullptr)
 		return nullptr;
 
-	SetMenu(owner_handle, value);
-	DrawMenuBar(owner_handle);
+	if (auto owner_handle = owner_.get_handle(); owner_handle != nullptr){
+		SetMenu(owner_handle, value);
+		DrawMenuBar(owner_handle);
+	}
 
 	return value;
 }
@@ -381,6 +391,8 @@ winp::utility::error_code winp::menu::bar::destroy_handle_(){
 	if (DestroyMenu(handle_) == FALSE)
 		return utility::error_code::action_could_not_be_completed;
 
-	SetMenu(owner_.get_handle(), nullptr);
+	if (auto owner_handle = owner_.get_handle(); owner_handle != nullptr)
+		SetMenu(owner_handle, nullptr);
+
 	return utility::error_code::nil;
 }

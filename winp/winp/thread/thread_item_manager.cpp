@@ -563,13 +563,10 @@ LRESULT winp::thread::item_manager::mouse_move_(item &target, MSG &msg, DWORD po
 
 	ui::object *deepest_target = nullptr;
 	if (msg.message == WM_MOUSEMOVE){//Find deepest mouse target
-		auto tree_mouse_target = dynamic_cast<ui::tree *>(mouse_.target);
-		if (tree_mouse_target == nullptr || window_target->is_ancestor_(*tree_mouse_target)){
-			window_target->traverse_children_([&](ui::object &child){
-				return ((deepest_target = find_deepest_mouse_target(child, mouse_position)) == nullptr);
-			});
-		}
-		else{
+		auto mouse_target = ((mouse_.target == nullptr) ? window_target : mouse_.target);
+		auto tree_mouse_target = dynamic_cast<ui::tree *>(mouse_target);
+
+		if (tree_mouse_target != nullptr || (tree_mouse_target = mouse_target->get_first_ancestor_of_<ui::tree>(nullptr)) != nullptr){
 			tree_mouse_target->traverse_children_([&](ui::object &child){
 				return ((deepest_target = find_deepest_mouse_target(child, mouse_position)) == nullptr);
 			});
@@ -760,9 +757,7 @@ LRESULT winp::thread::item_manager::menu_command_(item &target, MSG &msg){
 	if (window_target == nullptr)
 		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
 
-	auto menu_handle = GetSystemMenu(window_target->handle_, FALSE);
-	auto menu = menus_.find(menu_handle);
-
+	auto menu = menus_.find(reinterpret_cast<HMENU>(msg.lParam));
 	if (menu == menus_.end())
 		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 

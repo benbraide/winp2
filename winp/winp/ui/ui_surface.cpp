@@ -732,7 +732,7 @@ POINT winp::ui::surface::convert_position_from_absolute_value_(int x, int y) con
 		return POINT{ (x - current_position.x), (y - current_position.y) };
 
 	auto absolute_position = get_absolute_position_();
-	auto client_offset = surface_parent->get_client_offset_();
+	auto client_offset = surface_parent->get_client_start_offset_();
 
 	return POINT{ (x - (absolute_position.x + client_offset.x)), (y - (absolute_position.y + client_offset.y)) };
 }

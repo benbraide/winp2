@@ -200,6 +200,11 @@ winp::utility::error_code winp::ui::window_surface::create_(){
 	}
 
 	system_menu_.create();
+	if (menu_bar_.is_created_()){
+		SetMenu(handle_, menu_bar_.handle_);
+		DrawMenuBar(handle_);
+	}
+
 	return utility::error_code::nil;
 }
 
