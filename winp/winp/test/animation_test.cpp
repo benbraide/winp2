@@ -2,6 +2,7 @@
 
 void winp::test::animation::run(int cmd_show){
 	winp::window::object ws;
+	ws.insert_hook<ui::system_menu_as_context_menu>();
 	ws.set_caption(L"Test Window");
 	ws.set_position(30, 30);
 	ws.set_size(900, 500);

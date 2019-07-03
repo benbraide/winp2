@@ -737,6 +737,9 @@ winp::ui::fullscreen_hook::fullscreen_hook(object &target)
 			if (!e.get_popup().is_system())
 				return;
 
+			if (auto window_target = dynamic_cast<window_surface *>(&target_); window_target != nullptr && window_target->is_minimized())
+				return;
+
 			if (is_fullscreen_){
 				e.get_popup().add_object([this](menu::separator &item){});
 
@@ -847,6 +850,20 @@ void winp::ui::fullscreen_hook::toggle_fullscreen_(){
 		escape_fullscreen_();
 	else
 		enter_fullscreen_();
+}
+
+winp::ui::system_menu_as_context_menu::system_menu_as_context_menu(object &target)
+	: hook(target){
+	event_id_ = target_.events().bind([this](events::context_menu &e) -> menu::popup *{
+		if (auto window_target = dynamic_cast<window_surface *>(&target_); window_target != nullptr)
+			return &window_target->get_system_menu();
+		return nullptr;
+	});
+}
+
+winp::ui::system_menu_as_context_menu::~system_menu_as_context_menu(){
+	target_.events().unbind(event_id_);
+	event_id_ = 0u;
 }
 
 winp::ui::sibling_placement_hook::sibling_placement_hook(object &target, sibling_type type, relative_type relativity)

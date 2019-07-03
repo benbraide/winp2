@@ -328,6 +328,16 @@ namespace winp::ui{
 		saved_info saved_{};
 	};
 
+	class system_menu_as_context_menu : public hook{
+	public:
+		explicit system_menu_as_context_menu(object &target);
+
+		virtual ~system_menu_as_context_menu();
+
+	protected:
+		unsigned __int64 event_id_ = 0u;
+	};
+
 	class sibling_placement_hook : public sibling_size_and_position_hook, public generic_placement_hook{
 	public:
 		sibling_placement_hook(object &target, sibling_type type, relative_type relativity = relative_type::self);

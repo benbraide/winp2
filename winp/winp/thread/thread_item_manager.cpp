@@ -781,9 +781,6 @@ LRESULT winp::thread::item_manager::system_command_(item &target, MSG &msg){
 	if (window_target == nullptr)
 		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
 
-	if (msg.lParam == -1 || msg.lParam == 0)//Accelerator or mnemonic
-		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
-
 	auto menu_handle = GetSystemMenu(window_target->handle_, FALSE);
 	auto menu = menus_.find(menu_handle);
 
@@ -817,46 +814,82 @@ LRESULT winp::thread::item_manager::context_menu_(item &target, MSG &msg){
 	if ((active_context_menu_ = std::make_shared<menu::popup>(thread_)) == nullptr || active_context_menu_->create() != utility::error_code::nil)
 		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
-	LRESULT result = 0;
-	std::pair<unsigned int, LRESULT> result_info;
-
 	ui::object *mouse_target = nullptr;
+	std::pair<unsigned int, LRESULT> result_info;
+	
 	if (mouse_.full_feature_enabled){
 		for (mouse_target = mouse_.target; mouse_target != nullptr; mouse_target = mouse_target->get_parent_()){
 			auto visible_ancestor = dynamic_cast<ui::visible_surface *>(mouse_target);
 			if (visible_ancestor == nullptr || !visible_ancestor->is_visible() || !mouse_target->has_hook_<ui::io_hook>())
 				continue;
 
-			active_context_menu_->target_ = mouse_target;
-			if (mouse_target == &target)
-				result = (result_info = trigger_event_with_target_<events::context_menu>(*mouse_target, *mouse_.target, *active_context_menu_, msg, thread_.get_class_entry_(window_target->get_class_name()))).second;
-			else//Ignore result
-				result_info = trigger_event_with_target_<events::context_menu>(*mouse_target, *mouse_.target, *active_context_menu_, msg, nullptr);
+			result_info = trigger_event_with_target_<events::context_menu>(*mouse_target, *mouse_.target, *active_context_menu_, msg, nullptr);
+			if ((result_info.first & events::object::state_default_prevented) != 0u)
+				return 0;//Default prevented
 
-			if (active_context_menu_->target_ == nullptr)
-				return result;//Handled
-
-			active_context_menu_->target_ = nullptr;
-			if ((result_info.first & events::object::state_propagation_stopped) != 0u || GetMenuItemCount(active_context_menu_->get_handle()) != 0)
+			if (result_info.second != 0 || (result_info.first & events::object::state_propagation_stopped) != 0u || GetMenuItemCount(active_context_menu_->get_handle()) != 0)
 				break;//Propagation stopped
 		}
 	}
-	else//Simple
-		result = trigger_event_<events::context_menu>(*(mouse_target = window_target), *dynamic_cast<menu::popup *>(active_context_menu_.get()), msg, thread_.get_class_entry_(window_target->get_class_name())).second;
+	else{//Simple
+		result_info = trigger_event_<events::context_menu>(*(mouse_target = window_target), *dynamic_cast<menu::popup *>(active_context_menu_.get()), msg, thread_.get_class_entry_(window_target->get_class_name()));
+		if ((result_info.first & events::object::state_default_prevented) != 0u)
+			return 0;//Default prevented
+	}
 
-	if (mouse_target == nullptr || GetMenuItemCount(active_context_menu_->get_handle()) == 0)
-		return 0;//Handled
+	if (mouse_target == nullptr || (result_info.second == 0 && GetMenuItemCount(active_context_menu_->get_handle()) == 0))
+		return 0;//No response
 
 	if (position.x == -1 && position.y == -1){//Retrieve position
 		auto value = trigger_event_with_target_<events::get_context_menu_position>(*mouse_target, *mouse_.target, msg, nullptr).second;
 		position = POINT{ GET_X_LPARAM(value), GET_Y_LPARAM(value) };
 	}
 
-	active_context_menu_->target_ = mouse_target;
-	TrackPopupMenu(active_context_menu_->get_handle(), (GetSystemMetrics(SM_MENUDROPALIGNMENT) | TPM_RIGHTBUTTON), position.x, position.y, 0, window_target->handle_, nullptr);
-	active_context_menu_->target_ = nullptr;
+	menu::popup *menu;
+	if (result_info.second == 0)
+		menu = active_context_menu_.get();
+	else//Menu returned
+		menu = reinterpret_cast<menu::popup *>(result_info.second);
 
-	return result;
+	if (!menu->is_created_() || menu->get_items_count_() == 0u)
+		return 0;//Empty menu
+
+	menu->target_ = mouse_target;
+	if (auto window_mouse_target = dynamic_cast<ui::window_surface *>(mouse_target); window_mouse_target != nullptr && menu == &window_mouse_target->system_menu_){
+		menu->traverse_items_([&](menu::item &item){
+			switch (item.local_id_){
+			case SC_RESTORE:
+				item.set_enabled_state(window_mouse_target->is_maximized() || window_mouse_target->is_minimized());
+				break;
+			case SC_MOVE:
+			case SC_SIZE:
+				item.set_enabled_state(!window_mouse_target->is_maximized() && !window_mouse_target->is_minimized());
+				break;
+			case SC_MAXIMIZE:
+				item.set_enabled_state(!window_mouse_target->is_maximized());
+				break;
+			case SC_MINIMIZE:
+				item.set_enabled_state(!window_mouse_target->is_minimized());
+				break;
+			case SC_CLOSE:
+				item.set_enabled_state(true);
+				item.add_states(MFS_DEFAULT);
+				break;
+			default:
+				break;
+			}
+
+			return true;
+		});
+
+		auto code = TrackPopupMenu(menu->get_handle(), (GetSystemMetrics(SM_MENUDROPALIGNMENT) | TPM_RIGHTBUTTON | TPM_RETURNCMD), position.x, position.y, 0, window_target->handle_, nullptr);
+		SendMessageW(window_mouse_target->handle_, WM_SYSCOMMAND, code, 0);
+	}
+	else//Not a system menu
+		TrackPopupMenu(menu->get_handle(), (GetSystemMetrics(SM_MENUDROPALIGNMENT) | TPM_RIGHTBUTTON), position.x, position.y, 0, window_target->handle_, nullptr);
+	
+	menu->target_ = nullptr;
+	return 0;
 }
 
 LRESULT winp::thread::item_manager::menu_init_(item &target, MSG &msg){
@@ -904,8 +937,14 @@ LRESULT winp::thread::item_manager::menu_uninit_(item &target, MSG &msg){
 	if (menu == menus_.end())
 		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
-	if (auto it = wrapped_menus_.find(menu_handle); it != wrapped_menus_.end())
+	if (menu->second == active_context_menu_.get()){
+		black_listed_menus_.push_back(active_context_menu_);
+		active_context_menu_ = nullptr;
+	}
+	else if (auto it = wrapped_menus_.find(menu_handle); it != wrapped_menus_.end()){
 		black_listed_menus_.push_back(it->second);
+		wrapped_menus_.erase(it);
+	}
 
 	if (auto popup_menu = dynamic_cast<menu::popup *>(menu->second); popup_menu != nullptr)
 		black_listed_modified_menus_.push_back(popup_menu);

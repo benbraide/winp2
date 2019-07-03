@@ -20,6 +20,12 @@ winp::menu::item::~item(){
 	destruct();
 }
 
+UINT winp::menu::item::get_local_id(const std::function<void(UINT)> &callback) const{
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, local_id_);
+	}, (callback != nullptr), 0u);
+}
+
 winp::utility::error_code winp::menu::item::set_absolute_index(std::size_t value, const std::function<void(item &, utility::error_code)> &callback){
 	return compute_or_post_task_inside_thread_context([=]{
 		return pass_return_value_to_callback(callback, *this, set_absolute_index_(value));

@@ -185,7 +185,7 @@ winp::utility::error_code winp::menu::popup::destroy_handle_(){
 
 bool winp::menu::popup::is_system_() const{
 	if (auto top_popup = dynamic_cast<popup *>(get_top_()); top_popup != nullptr)
-		return top_popup->is_system_();
+		return (top_popup != this && top_popup->is_system_());
 	return false;
 }
 

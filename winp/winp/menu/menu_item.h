@@ -22,6 +22,8 @@ namespace winp::menu{
 
 		virtual ~item();
 
+		virtual UINT get_local_id(const std::function<void(UINT)> &callback = nullptr) const;
+
 		virtual utility::error_code set_absolute_index(std::size_t value, const std::function<void(item &, utility::error_code)> &callback = nullptr);
 
 		virtual std::size_t get_absolute_index(const std::function<void(std::size_t)> &callback = nullptr) const;
@@ -59,6 +61,7 @@ namespace winp::menu{
 		friend class popup;
 		friend class wrapped_popup;
 		friend class system_popup;
+		friend class thread::item_manager;
 
 		virtual utility::error_code create_() override;
 
