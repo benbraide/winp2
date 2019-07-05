@@ -15,6 +15,16 @@ namespace winp::thread{
 	public:
 		using animation_frame_callback_type = std::function<void(const std::chrono::time_point<std::chrono::steady_clock> &)>;
 
+		struct outbound_event_info{
+			item *target;
+			item::event_manager_type::key_type key;
+		};
+
+		struct item_info{
+			item *target;
+			std::unordered_map<unsigned __int64, outbound_event_info> outbound_events_;
+		};
+
 		~object();
 
 		int run();
@@ -160,7 +170,7 @@ namespace winp::thread{
 
 		void add_item_(item &item);
 
-		void remove_item_(unsigned __int64 id);
+		void remove_item_(item &item);
 
 		void add_timer_(const std::chrono::milliseconds &duration, const std::function<void()> &callback, unsigned __int64 id);
 
@@ -189,7 +199,7 @@ namespace winp::thread{
 		DWORD local_id_;
 
 		HWND message_hwnd_ = nullptr;
-		std::unordered_map<unsigned __int64, item *> items_;
+		std::unordered_map<unsigned __int64, item_info> items_;
 		utility::random_integral_number_generator random_generator_;
 
 		bool running_animation_loop_ = false;

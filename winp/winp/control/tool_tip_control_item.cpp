@@ -17,11 +17,6 @@ winp::control::tool_tip_item::tool_tip_item(ui::tree &parent, std::size_t index)
 }
 
 winp::control::tool_tip_item::~tool_tip_item(){
-	if (target_ != nullptr){
-		target_->events().unbind(event_id_);
-		event_id_ = 0u;
-	}
-
 	destruct();
 }
 
@@ -177,7 +172,7 @@ winp::utility::error_code winp::control::tool_tip_item::set_dimension_(int x, in
 	if (auto error_code = ui::surface::set_dimension_(x, y, width, height, flags, false); error_code != utility::error_code::nil)
 		return error_code;
 
-	compute_values_();
+	compute_values_(false);
 	auto computed_handle = ((computed_target_ == nullptr) ? nullptr : computed_target_->get_handle());
 	if (computed_handle == nullptr)
 		return utility::error_code::nil;
@@ -195,9 +190,12 @@ winp::utility::error_code winp::control::tool_tip_item::set_dimension_(int x, in
 }
 
 winp::utility::error_code winp::control::tool_tip_item::set_target_(ui::object &value){
+	if (&value == target_)//No changes
+		return utility::error_code::nil;
+
 	destroy_();
 	(target_ = &value)->insert_hook<ui::no_drag_position_updated_hook>();
-	compute_values_();
+	compute_values_(true);
 
 	return utility::error_code::nil;
 }
@@ -321,11 +319,9 @@ winp::ui::window_surface *winp::control::tool_tip_item::get_target_window_ancest
 	return ancestor;
 }
 
-void winp::control::tool_tip_item::compute_values_(){
-	if (target_ != nullptr){
-		target_->events().unbind(event_id_);
-		event_id_ = 0u;
-	}
+void winp::control::tool_tip_item::compute_values_(bool target_changed){
+	if (target_changed && target_ != nullptr)
+		unbind_outbound_events_<events::non_drag_position_updated>(target_);
 
 	initial_dimension_ = get_dimension_();
 	if ((computed_target_ = dynamic_cast<ui::window_surface *>(target_)) != nullptr){
@@ -350,7 +346,10 @@ void winp::control::tool_tip_item::compute_values_(){
 		computed_dimension_ = surface_target->get_current_dimension();
 
 	OffsetRect(&computed_dimension_, computed_offset_.x, computed_offset_.y);//Move relative to window ancestor
-	event_id_ = target_->events().bind([this](events::non_drag_position_updated &e){
+	if (!target_changed)
+		return;
+
+	target_->events().bind([this](events::non_drag_position_updated &e){
 		if (handle_ == nullptr || IsRectEmpty(&initial_dimension_) == FALSE || (e.get_flags() & (SWP_NOMOVE | SWP_NOSIZE)) == (SWP_NOMOVE | SWP_NOSIZE))
 			return;//No dimension update
 
@@ -380,7 +379,7 @@ void winp::control::tool_tip_item::compute_values_(){
 		};
 
 		SendMessageW(handle_, TTM_NEWTOOLRECTW, 0, reinterpret_cast<LPARAM>(&info));
-	});
+	}, this);
 }
 
 winp::control::inplace_tool_tip_item::inplace_tool_tip_item()

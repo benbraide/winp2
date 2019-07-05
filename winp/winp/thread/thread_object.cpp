@@ -316,17 +316,39 @@ WNDPROC winp::thread::object::get_message_entry(){
 
 void winp::thread::object::add_item_(item &item){
 	if (&item.thread_ == this && is_thread_context())
-		items_[item.id_] = &item;
+		items_[item.id_].target = &item;
 	else
 		throw utility::error_code::outside_thread_context;
 }
 
-void winp::thread::object::remove_item_(unsigned __int64 id){
+void winp::thread::object::remove_item_(item &item){
 	if (!is_thread_context())
 		throw utility::error_code::outside_thread_context;
 
-	if (!items_.empty())//Inside thread context
-		items_.erase(id);
+	if (items_.empty())
+		return;
+
+	auto it = items_.find(item.id_);
+	if (it == items_.end())
+		return;
+
+	auto outbound_events = std::move(it->second.outbound_events_);
+	for (auto &info : outbound_events)//Unbind all outgoing events
+		info.second.target->events_manager_.unbind_(info.first);
+
+	items_.erase(it);
+	if (item.events_manager_.handlers_.empty())
+		return;
+
+	for (auto &info : item.events_manager_.handlers_){//Erase all incoming events references
+		for (auto &item_info : items_){
+			auto out_it = item_info.second.outbound_events_.find(info.first);
+			if (out_it != item_info.second.outbound_events_.end()){
+				item_info.second.outbound_events_.erase(out_it);
+				break;
+			}
+		}
+	}
 }
 
 void winp::thread::object::add_timer_(const std::chrono::milliseconds &duration, const std::function<void()> &callback, unsigned __int64 id){

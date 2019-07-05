@@ -78,7 +78,7 @@ namespace winp::control{
 
 		virtual ui::window_surface *get_target_window_ancestor_(POINT &offset) const;
 
-		virtual void compute_values_();
+		virtual void compute_values_(bool target_changed);
 
 		HWND handle_ = nullptr;
 		UINT_PTR local_id_ = 0u;
@@ -96,8 +96,6 @@ namespace winp::control{
 
 		HFONT font_ = nullptr;
 		HGDIOBJ image_ = nullptr;
-
-		unsigned __int64 event_id_ = 0u;
 	};
 
 	class inplace_tool_tip_item : public tool_tip_item{

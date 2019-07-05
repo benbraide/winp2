@@ -27,42 +27,34 @@ winp::ui::parent_size_hook::parent_size_hook(object &target, const std::function
 winp::ui::parent_size_hook::parent_size_hook(object &target)
 	: hook(target){
 	bind_size_event_(target_.get_parent(), nullptr);
-	tree_event_id_ = target_.events().bind([this](events::parent_change &e){
+	target_.events().bind([this](events::parent_change &e){
 		if (!e.is_changing()){
 			bind_size_event_(e.get_value(), e.get_previous_value());
 			if (callback_ != nullptr)
 				callback_(*this);
 		}
-	});
+	}, this);
 }
 
-winp::ui::parent_size_hook::~parent_size_hook(){
-	if (auto parent = target_.get_parent(); parent != nullptr){
-		parent->events().unbind(size_event_id_);
-		parent->events().unbind(creation_event_id_);
-	}
-
-	target_.events().unbind(tree_event_id_);
-	tree_event_id_ = size_event_id_ = creation_event_id_ = 0u;
-}
+winp::ui::parent_size_hook::~parent_size_hook() = default;
 
 void winp::ui::parent_size_hook::bind_size_event_(tree *parent, tree *previous_parent){
-	if (previous_parent != nullptr){
-		previous_parent->events().unbind(size_event_id_);
-		previous_parent->events().unbind(creation_event_id_);
-		size_event_id_ = creation_event_id_ = 0u;
-	}
+	if (parent == previous_parent)
+		return;
 
-	if (parent != nullptr && size_event_id_ == 0u){
-		size_event_id_ = parent->events().bind([this](events::position_updated &e){
+	if (previous_parent != nullptr)
+		unbind_outbound_events_(previous_parent);
+
+	if (parent != nullptr){
+		parent->events().bind([this](events::position_updated &e){
 			if (callback_ != nullptr && (e.get_flags() & SWP_NOSIZE) == 0u)
 				callback_(*this);
-		});
+		}, this);
 
-		creation_event_id_ = parent->events().bind([this](events::create &e){
+		parent->events().bind([this](events::create &e){
 			if (callback_ != nullptr && !e.is_creating())
 				callback_(*this);
-		});
+		}, this);
 	}
 }
 
@@ -84,63 +76,44 @@ winp::ui::children_size_and_position_hook::children_size_and_position_hook(objec
 	if (auto tree_target = dynamic_cast<tree *>(&target_); tree_target != nullptr){
 		tree_target->traverse_all_children([this](object &child){
 			if (dynamic_cast<surface *>(&child) != nullptr && !child.has_similar_hook<parent_size_hook>()){
-				auto &info = event_ids_[&child];
-				info.position = child.events().bind([this](events::position_updated &e){
+				child.events().bind([this](events::position_updated &e){
 					do_callback_(e.get_flags());
-				});
+				}, this);
 
-				info.creation = child.events().bind([this](events::create &e){
+				child.events().bind([this](events::create &e){
 					if (!e.is_creating())
 						do_callback_(0u);
-				});
+				}, this);
 			}
 		}, true);
 
-		tree_event_id_ = target_.events().bind([this](events::children_change &e){
+		target_.events().bind([this](events::children_change &e){
 			if (!e.is_changing())
 				children_change_(e.get_value(), e.get_action());
-		});
+		}, this);
 	}
 }
 
-winp::ui::children_size_and_position_hook::~children_size_and_position_hook(){
-	if (!event_ids_.empty()){
-		for (auto &info : event_ids_){
-			info.first->events().unbind(info.second.position);
-			info.first->events().unbind(info.second.creation);
-		}
-
-		event_ids_.clear();
-	}
-
-	target_.events().unbind(tree_event_id_);
-	tree_event_id_ = 0u;
-}
+winp::ui::children_size_and_position_hook::~children_size_and_position_hook() = default;
 
 void winp::ui::children_size_and_position_hook::children_change_(object &child, events::children_change::action_type action){
 	if (action == events::children_change::action_type::insert){
 		if (dynamic_cast<surface *>(&child) != nullptr && !child.has_similar_hook<parent_size_hook>()){
-			auto &info = event_ids_[&child];
-			info.position = child.events().bind([this](events::position_updated &e){
+			child.events().bind([this](events::position_updated &e){
 				do_callback_(e.get_flags());
-			});
+			}, this);
 
-			info.creation = child.events().bind([this](events::create &e){
+			child.events().bind([this](events::create &e){
 				if (!e.is_creating())
 					do_callback_(0u);
-			});
+			}, this);
 
 			do_callback_(0u);
 		}
 	}
-	else if (action == events::children_change::action_type::remove && !event_ids_.empty()){
-		if (auto it = event_ids_.find(&child); it != event_ids_.end()){
-			it->first->events().unbind(it->second.position);
-			it->first->events().unbind(it->second.creation);
-
-			event_ids_.erase(it);
-			do_callback_(0u);
-		}
+	else if (action == events::children_change::action_type::remove){
+		unbind_outbound_events_(&child);
+		do_callback_(0u);
 	}
 }
 
@@ -172,48 +145,35 @@ winp::ui::sibling_size_and_position_hook::sibling_size_and_position_hook(object 
 winp::ui::sibling_size_and_position_hook::sibling_size_and_position_hook(object &target, sibling_type type)
 	: hook(target), sibling_type_(type){
 	if (auto object_target = dynamic_cast<object *>(&target_); object_target != nullptr){
-		tree_event_id_ = target_.events().bind([this](events::parent_change &e){
-			if (e.is_changing())
+		target_.events().bind([this](events::parent_change &e){
+			if (e.is_changing() || e.get_value() == e.get_previous_value())
 				return;
 
 			if (auto previous_parent = e.get_previous_value(); previous_parent != nullptr)
-				previous_parent->events().unbind(parent_tree_event_id_);//Unbind previous
+				unbind_outbound_events_(previous_parent);//Unbind previous
 
 			if (auto parent = e.get_value(); parent != nullptr){
-				parent_tree_event_id_ = parent->events().bind([this](events::children_change &e){
+				parent->events().bind([this](events::children_change &e){
 					if (!e.is_changing())
 						siblings_change_();
-				});
+				}, this);
 			}
-			else//No parent
-				parent_tree_event_id_ = 0u;
 
 			siblings_change_();
-		});
+		}, this);
 
 		if (auto parent = object_target->get_parent(); parent != nullptr){
-			parent_tree_event_id_ = parent->events().bind([this](events::children_change &e){
+			parent->events().bind([this](events::children_change &e){
 				if (!e.is_changing())
 					siblings_change_();
-			});
+			}, this);
 		}
 
 		siblings_change_();
 	}
 }
 
-winp::ui::sibling_size_and_position_hook::~sibling_size_and_position_hook(){
-	if (auto object_target = dynamic_cast<object *>(&target_); object_target != nullptr){
-		if (auto parent = object_target->get_parent(); parent != nullptr)
-			parent->events().unbind(parent_tree_event_id_);
-	}
-
-	if (sibling_ != nullptr)
-		sibling_->events().unbind(position_event_id_);
-
-	target_.events().unbind(tree_event_id_);
-	tree_event_id_ = position_event_id_ = parent_tree_event_id_ = 0u;
-}
+winp::ui::sibling_size_and_position_hook::~sibling_size_and_position_hook() = default;
 
 winp::ui::sibling_size_and_position_hook::sibling_type winp::ui::sibling_size_and_position_hook::get_sibling_type(const std::function<void(sibling_type)> &callback) const{
 	return target_.compute_or_post_task_inside_thread_context([=]{
@@ -229,15 +189,13 @@ void winp::ui::sibling_size_and_position_hook::siblings_change_(){
 	object *target_sibling = ((sibling_type_ == sibling_type::previous) ? object_target->get_previous_sibling() : object_target->get_next_sibling());
 	if (target_sibling != sibling_){
 		if (sibling_ != nullptr)
-			sibling_->events().unbind(position_event_id_);
+			unbind_outbound_events_(sibling_);
 
 		if ((sibling_ = target_sibling) != nullptr){
-			position_event_id_ = sibling_->events().bind([this](events::position_updated &e){
+			sibling_->events().bind([this](events::position_updated &e){
 				do_callback_(e.get_flags());
-			});
+			}, this);
 		}
-		else
-			position_event_id_ = 0u;
 
 		do_callback_(0u);
 	}
@@ -263,16 +221,13 @@ winp::ui::generic_placement_hook::generic_placement_hook(object &target, alignme
 
 winp::ui::generic_placement_hook::generic_placement_hook(object &target, alignment_type alignment, const POINT &offset, relative_type relativity)
 	: generic_target_(target), alignment_(alignment), offset_(offset), relativity_(relativity){
-	generic_size_event_id_ = generic_target_.events().bind([this](events::position_updated &e){
+	generic_target_.events().bind([this](events::position_updated &e){
 		if ((e.get_flags() & SWP_NOSIZE) == 0u)
 			update_();
-	});
+	}, dynamic_cast<thread::item *>(this));
 }
 
-winp::ui::generic_placement_hook::~generic_placement_hook(){
-	generic_target_.events().unbind(generic_size_event_id_);
-	generic_size_event_id_ = 0u;
-}
+winp::ui::generic_placement_hook::~generic_placement_hook() = default;
 
 winp::utility::error_code winp::ui::generic_placement_hook::set_alignment(alignment_type value, const std::function<void(generic_placement_hook &, utility::error_code)> &callback){
 	return generic_target_.compute_or_post_task_inside_thread_context([=]{
@@ -467,7 +422,7 @@ void winp::ui::parent_fill_hook::init_(){
 	target_.events().bind([this](events::position_updated &e){
 		if ((e.get_flags() & SWP_NOSIZE) == 0u)
 			update_();
-	});
+	}, this);
 
 	update_();
 }
@@ -549,15 +504,17 @@ winp::utility::error_code winp::ui::children_contain_hook::set_padding_(const SI
 
 void winp::ui::children_contain_hook::update_(){
 	auto surface_target = dynamic_cast<surface *>(&target_);
-	if (surface_target == nullptr || event_ids_.empty())
+	if (surface_target == nullptr)
 		return;
 
 	RECT union_rect{};
-	for (auto &info : event_ids_){
-		if (auto surface_child = dynamic_cast<surface *>(info.first); surface_child != nullptr){
-			auto child_dimension = surface_child->get_current_dimension_();
-			UnionRect(&union_rect, &child_dimension, &union_rect);
-		}
+	if (auto tree_target = dynamic_cast<tree *>(&target_); tree_target != nullptr){
+		tree_target->traverse_all_children([&](object &child){
+			if (auto surface_child = dynamic_cast<surface *>(&child); surface_child != nullptr){
+				auto child_dimension = surface_child->get_current_dimension_();
+				UnionRect(&union_rect, &child_dimension, &union_rect);
+			}
+		}, true);
 	}
 
 	if (IsRectEmpty(&union_rect) != FALSE)
@@ -579,92 +536,73 @@ winp::ui::drag_hook::drag_hook(object &target)
 	target_.insert_hook<io_hook>();
 	target_.insert_hook<no_drag_position_updated_hook>();
 
-	drag_begin_event_id_ = target_.events().bind([](events::mouse_drag_begin &e){
+	target_.events().bind([](events::mouse_drag_begin &e){
 		return true;
-	});
+	}, this);
 
-	drag_event_id_ = target_.events().bind([this](events::mouse_drag &e){
+	target_.events().bind([this](events::mouse_drag &e){
 		if (auto surface_target = dynamic_cast<surface *>(&target_); surface_target != nullptr){
 			auto offset = e.get_offset();
 			surface_target->set_position_((surface_target->position_.x + offset.x), (surface_target->position_.y + offset.y), false);
 		}
-	});
+	}, this);
 }
 
-winp::ui::drag_hook::~drag_hook(){
-	target_.events().unbind(drag_event_id_);
-	target_.events().unbind(drag_begin_event_id_);
-	drag_begin_event_id_ = drag_event_id_ = 0u;
-}
+winp::ui::drag_hook::~drag_hook() = default;
 
 winp::ui::no_drag_position_updated_hook::no_drag_position_updated_hook(object &target)
 	: hook(target){
-	drag_event_id_ = target_.events().bind([this](events::mouse_drag &e){
+	target_.events().bind([this](events::mouse_drag &e){
 		is_dragging_ = true;
-	});
+	}, this);
 
-	drag_end_event_id_ = target_.events().bind([this](events::mouse_drag_end &e){
+	target_.events().bind([this](events::mouse_drag_end &e){
 		is_dragging_ = false;
 		trigger_event_of_<events::non_drag_position_updated>(target_, SWP_NOSIZE);
-	});
+	}, this);
 
-	position_updated_event_id_ = target_.events().bind([this](events::position_updated &e){
+	target_.events().bind([this](events::position_updated &e){
 		if (!is_dragging_)
 			trigger_event_of_<events::non_drag_position_updated>(target_, e.get_flags());
 		else if ((e.get_flags() & SWP_NOSIZE) == 0u)//Size updated
 			trigger_event_of_<events::non_drag_position_updated>(target_, SWP_NOMOVE);
-	});
+	}, this);
 }
 
-winp::ui::no_drag_position_updated_hook::~no_drag_position_updated_hook(){
-	target_.events().unbind(drag_event_id_);
-	target_.events().unbind(drag_end_event_id_);
-	target_.events().unbind(position_updated_event_id_);
-	position_updated_event_id_ = drag_end_event_id_ = drag_event_id_ = 0u;
-}
+winp::ui::no_drag_position_updated_hook::~no_drag_position_updated_hook() = default;
 
 winp::ui::mouse_hover_hook::mouse_hover_hook(object &target, const std::chrono::milliseconds &delay)
 	: hook(target), delay_(delay){
 	target_.insert_hook<io_hook>();
-	move_event_id_ = target_.events().bind([this](events::mouse_move &e){
+	target_.events().bind([this](events::mouse_move &e){
 		remove_hover_();
 		if (!e.is_non_client())
 			bind_timer_();
-	});
+	}, this);
 
-	leave_event_id_ = target_.events().bind([this](events::mouse_leave &e){
+	target_.events().bind([this](events::mouse_leave &e){
 		remove_hover_();
-	});
+	}, this);
 
-	down_event_id_ = target_.events().bind([this](events::mouse_down &e){
-		remove_hover_();
-		if (!e.is_non_client())
-			bind_timer_();
-	});
-
-	up_event_id_ = target_.events().bind([this](events::mouse_up &e){
+	target_.events().bind([this](events::mouse_down &e){
 		remove_hover_();
 		if (!e.is_non_client())
 			bind_timer_();
-	});
+	}, this);
 
-	wheel_event_id_ = target_.events().bind([this](events::mouse_wheel &e){
+	target_.events().bind([this](events::mouse_up &e){
+		remove_hover_();
+		if (!e.is_non_client())
+			bind_timer_();
+	}, this);
+
+	target_.events().bind([this](events::mouse_wheel &e){
 		remove_hover_();
 		bind_timer_();
-	});
+	}, this);
 }
 
-winp::ui::mouse_hover_hook::~mouse_hover_hook(){
-	target_.events().unbind(timer_event_id_);
-	target_.events().unbind(move_event_id_);
-	target_.events().unbind(leave_event_id_);
-
-	target_.events().unbind(down_event_id_);
-	target_.events().unbind(up_event_id_);
-	target_.events().unbind(wheel_event_id_);
-
-	timer_event_id_ = move_event_id_ = leave_event_id_ = down_event_id_ = up_event_id_ = wheel_event_id_ = 0u;
-}
+winp::ui::mouse_hover_hook::~mouse_hover_hook() = default;
 
 winp::utility::error_code winp::ui::mouse_hover_hook::set_delay(const std::chrono::milliseconds &value, const std::function<void(mouse_hover_hook &, utility::error_code)> &callback){
 	return target_.compute_or_post_task_inside_thread_context([=]{
@@ -685,7 +623,9 @@ winp::utility::error_code winp::ui::mouse_hover_hook::set_delay_(const std::chro
 
 void winp::ui::mouse_hover_hook::bind_timer_(){
 	auto state = ++state_;
-	timer_event_id_ = target_.events().bind([=](events::timer &e){
+	unbind_outbound_events_<events::timer>(&target_);
+
+	target_.events().bind([=](events::timer &e){
 		if (state_ != state){
 			e.prevent_default();
 			return 0ll;
@@ -694,18 +634,15 @@ void winp::ui::mouse_hover_hook::bind_timer_(){
 		if (e.needs_duration())
 			return delay_.count();
 
-		timer_event_id_ = 0u;
 		if (!is_hovered_)
 			target_.trigger_event_<events::mouse_hover>(is_hovered_ = true);
 
 		return 0ll;
-	});
+	}, this);
 }
 
 void winp::ui::mouse_hover_hook::remove_hover_(){
-	target_.events().unbind(timer_event_id_);
 	++state_;
-
 	if (is_hovered_)
 		target_.trigger_event_<events::mouse_hover>(is_hovered_ = false);
 }
@@ -715,7 +652,7 @@ winp::ui::auto_hide_cursor_hook::auto_hide_cursor_hook(object &target, const std
 	if (auto hk = target_.insert_hook<mouse_hover_hook>(); hk != nullptr)
 		hk->set_delay(delay_);
 	
-	event_id_ = target_.events().bind([this](events::mouse_hover &e){
+	target_.events().bind([this](events::mouse_hover &e){
 		if (e.is_hovered() && !is_hidden_){
 			ShowCursor(FALSE);
 			is_hidden_ = true;
@@ -724,13 +661,10 @@ winp::ui::auto_hide_cursor_hook::auto_hide_cursor_hook(object &target, const std
 			ShowCursor(TRUE);
 			is_hidden_ = false;
 		}
-	});
+	}, this);
 }
 
 winp::ui::auto_hide_cursor_hook::~auto_hide_cursor_hook(){
-	target_.events().unbind(event_id_);
-	event_id_ = 0u;
-
 	if (is_hidden_){
 		ShowCursor(TRUE);
 		is_hidden_ = false;
@@ -761,7 +695,7 @@ winp::ui::fullscreen_hook::fullscreen_hook(object &target)
 	: hook(target){
 	target_.insert_hook<io_hook>();
 	if (dynamic_cast<window_surface *>(&target_) != nullptr){
-		append_menu_event_id_ = target_.events().bind([this](events::modify_context_menu &e){
+		target_.events().bind([this](events::modify_context_menu &e){
 			if (!e.get_popup().is_system())
 				return;
 
@@ -788,13 +722,13 @@ winp::ui::fullscreen_hook::fullscreen_hook(object &target)
 					});
 				});
 			}
-		});
+		}, this);
 
-		dbl_click_event_id_ = target_.events().bind([this](events::mouse_dbl_clk &e){
+		target_.events().bind([this](events::mouse_dbl_clk &e){
 			toggle_fullscreen_();
-		});
+		}, this);
 
-		key_down_event_id_ = target_.events().bind([this](events::key_down &e){
+		target_.events().bind([this](events::key_down &e){
 			switch (e.get_virtual_code()){
 			case VK_ESCAPE:
 				escape_fullscreen_();
@@ -805,9 +739,9 @@ winp::ui::fullscreen_hook::fullscreen_hook(object &target)
 			default:
 				break;
 			}
-		});
+		}, this);
 
-		key_up_event_id_ = target_.events().bind([this](events::key_up &e){
+		target_.events().bind([this](events::key_up &e){
 			switch (e.get_virtual_code()){
 			case VK_ESCAPE:
 				escape_fullscreen_();
@@ -815,17 +749,11 @@ winp::ui::fullscreen_hook::fullscreen_hook(object &target)
 			default:
 				break;
 			}
-		});
+		}, this);
 	}
 }
 
 winp::ui::fullscreen_hook::~fullscreen_hook(){
-	target_.events().unbind(append_menu_event_id_);
-	target_.events().unbind(dbl_click_event_id_);
-	target_.events().unbind(key_down_event_id_);
-	target_.events().unbind(key_up_event_id_);
-
-	key_up_event_id_ = key_down_event_id_ = dbl_click_event_id_ = append_menu_event_id_ = 0u;
 	escape_fullscreen_();
 }
 
@@ -882,17 +810,14 @@ void winp::ui::fullscreen_hook::toggle_fullscreen_(){
 
 winp::ui::system_menu_as_context_menu::system_menu_as_context_menu(object &target)
 	: hook(target){
-	event_id_ = target_.events().bind([this](events::context_menu &e) -> menu::popup *{
+	target_.events().bind([this](events::context_menu &e) -> menu::popup *{
 		if (auto window_target = dynamic_cast<window_surface *>(&target_); window_target != nullptr)
 			return &window_target->get_system_menu();
 		return nullptr;
-	});
+	}, this);
 }
 
-winp::ui::system_menu_as_context_menu::~system_menu_as_context_menu(){
-	target_.events().unbind(event_id_);
-	event_id_ = 0u;
-}
+winp::ui::system_menu_as_context_menu::~system_menu_as_context_menu() = default;
 
 winp::ui::sibling_placement_hook::sibling_placement_hook(object &target, sibling_type type, relative_type relativity)
 	: sibling_placement_hook(target, type, alignment_type::top_left, POINT{}, relativity){}

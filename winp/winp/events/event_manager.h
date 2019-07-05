@@ -10,6 +10,10 @@
 #include "menu_events.h"
 #include "control_events.h"
 
+namespace winp::thread{
+	class object;
+}
+
 namespace winp::events{
 	class handler_base{
 	public:
@@ -69,43 +73,43 @@ namespace winp::events{
 
 		template <class return_type, class object_type>
 		struct bind_helper<return_type, object_type, 1u>{
-			static unsigned __int64 bind(manager &m, const std::function<return_type(object_type &)> &handler){
-				return m.bind_<return_type, object_type>(handler);
+			static unsigned __int64 bind(manager &m, const std::function<return_type(object_type &)> &handler, owner_type *owner){
+				return m.bind_<return_type, object_type>(handler, owner);
 			}
 
-			static unsigned __int64 bind(manager &m, const std::function<return_type(const object_type &)> &handler){
-				return m.bind_<return_type, object_type>(handler);
+			static unsigned __int64 bind(manager &m, const std::function<return_type(const object_type &)> &handler, owner_type *owner){
+				return m.bind_<return_type, object_type>(handler, owner);
 			}
 		};
 
 		template <class return_type>
 		struct bind_helper<return_type, void, 1u>{
 			template <typename object_type>
-			static unsigned __int64 bind(manager &m, const std::function<return_type(object_type &)> &handler){
-				return m.bind_<return_type, object_type>(handler);
+			static unsigned __int64 bind(manager &m, const std::function<return_type(object_type &)> &handler, owner_type *owner){
+				return m.bind_<return_type, object_type>(handler, owner);
 			}
 
 			template <typename object_type>
-			static unsigned __int64 bind(manager &m, const std::function<return_type(const object_type &)> &handler){
-				return m.bind_<return_type, object_type>(handler);
+			static unsigned __int64 bind(manager &m, const std::function<return_type(const object_type &)> &handler, owner_type *owner){
+				return m.bind_<return_type, object_type>(handler, owner);
 			}
 		};
 
 		template <class return_type, class object_type>
 		struct bind_helper<return_type, object_type, 0u>{
-			static unsigned __int64 bind(manager &m, const std::function<return_type()> &handler){
+			static unsigned __int64 bind(manager &m, const std::function<return_type()> &handler, owner_type *owner){
 				return bind_helper<return_type, object_type, 1u>::template bind(m, [handler](object_type &){
 					return handler();
-				});
+				}, owner);
 			}
 		};
 
 		template <class return_type>
 		struct bind_helper<return_type, void, 0u>{
-			static unsigned __int64 bind(manager &m, const std::function<return_type()> &handler){
+			static unsigned __int64 bind(manager &m, const std::function<return_type()> &handler, owner_type *owner){
 				return bind_helper<return_type, unhandled, 1u>::template bind(m, [handler](unhandled &){
 					return handler();
-				});
+				}, owner);
 			}
 		};
 
@@ -132,18 +136,18 @@ namespace winp::events{
 		}
 
 		template <typename handler_type>
-		unsigned __int64 bind(const handler_type &handler){
+		unsigned __int64 bind(const handler_type &handler, owner_type *owner = nullptr){
 			return owner_.compute_task_inside_thread_context([&]{
 				using traits_type = utility::object_to_function_traits::traits<handler_type>;
-				return bind_helper<typename traits_type::m_return_type, void, traits_type::template arg_count>::template bind(*this, utility::object_to_function_traits::get(handler));
+				return bind_helper<typename traits_type::m_return_type, void, traits_type::template arg_count>::template bind(*this, utility::object_to_function_traits::get(handler), owner);
 			});
 		}
 
 		template <typename object_type, typename handler_type>
-		unsigned __int64 bind(const handler_type &handler){
+		unsigned __int64 bind(const handler_type &handler, owner_type *owner = nullptr){
 			return owner_.compute_task_inside_thread_context([&]{
 				using traits_type = utility::object_to_function_traits::traits<handler_type>;
-				return bind_helper<typename traits_type::m_return_type, object_type, traits_type::template arg_count>::template bind(*this, utility::object_to_function_traits::get(handler));
+				return bind_helper<typename traits_type::m_return_type, object_type, traits_type::template arg_count>::template bind(*this, utility::object_to_function_traits::get(handler), owner);
 			});
 		}
 
@@ -196,11 +200,12 @@ namespace winp::events{
 
 	private:
 		friend owner_type;
+		friend class thread::object;
 		
 		template <typename return_type, typename object_type>
-		unsigned __int64 bind_(const std::function<return_type(object_type &)> &handler){
+		unsigned __int64 bind_(const std::function<return_type(object_type &)> &handler, owner_type *owner){
 			auto key = get_key<object_type>();
-			if (!owner_.adding_event_handler_(*this, key))
+			if (!owner_.adding_event_handler_(*this, key, owner))
 				return 0u;//Rejected
 
 			auto handler_object = std::make_shared<events::handler<object_type &, return_type>>(handler);
@@ -219,7 +224,7 @@ namespace winp::events{
 			});
 
 			++count_;
-			owner_.added_event_handler_(*this, key, id);
+			owner_.added_event_handler_(*this, key, id, owner);
 
 			activity e(key, (handler_list.first.size() - 1u), handler_list.first.size(), owner_);
 			trigger_(e, 0u);

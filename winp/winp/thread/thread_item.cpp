@@ -100,7 +100,7 @@ winp::utility::error_code winp::thread::item::destruct_(){
 		return utility::error_code::outside_thread_context;
 
 	thread_.get_queue().add_id_to_black_list(id_);
-	thread_.remove_item_(id_);
+	thread_.remove_item_(*this);
 
 	return utility::error_code::nil;
 }
@@ -109,11 +109,45 @@ bool winp::thread::item::event_is_supported_(event_manager_type::key_type key) c
 	return true;
 }
 
-bool winp::thread::item::adding_event_handler_(event_manager_type &manager, event_manager_type::key_type key) const{
+void winp::thread::item::unbind_outbound_events_(item *target){
+	unbind_outbound_events_(target, static_cast<event_manager_type::key_type>(0));
+}
+
+void winp::thread::item::unbind_outbound_events_(item *target, event_manager_type::key_type key){
+	if (thread_.items_.empty())
+		return;
+
+	auto it = thread_.items_.find(id_);
+	if (it == thread_.items_.end())
+		return;
+
+	if (target != nullptr || key != static_cast<event_manager_type::key_type>(0)){//Unbind events bound to target or specific to key type
+		std::list<unsigned __int64> event_ids;
+		for (auto &out_info : it->second.outbound_events_){
+			if ((target == nullptr || out_info.second.target == target) && (key == static_cast<event_manager_type::key_type>(0) || key == out_info.second.key))
+				event_ids.push_back(out_info.first);
+		}
+
+		for (auto event_id : event_ids)
+			target->events_manager_.unbind_(event_id);
+	}
+	else{//Unbind all events
+		auto outbound_events = std::move(it->second.outbound_events_);
+		for (auto &info : outbound_events)//Unbind all outgoing events
+			info.second.target->events_manager_.unbind_(info.first);
+	}
+}
+
+bool winp::thread::item::adding_event_handler_(event_manager_type &manager, event_manager_type::key_type key, item *owner) const{
 	return true;
 }
 
-void winp::thread::item::added_event_handler_(event_manager_type &manager, event_manager_type::key_type key, unsigned __int64 id) const{
+void winp::thread::item::added_event_handler_(event_manager_type &manager, event_manager_type::key_type key, unsigned __int64 id, item *owner) const{
+	if (owner != nullptr && &manager == &events_manager_){
+		if (auto it = thread_.items_.find(owner->id_); it != thread_.items_.end())
+			it->second.outbound_events_[id] = object::outbound_event_info{ const_cast<item *>(this), key };
+	}
+
 	std::pair<unsigned int, LRESULT> result_info{};
 	if (key == event_manager_type::get_key<events::timer>())
 		result_info = trigger_single_event_<events::timer>(id, true);
@@ -138,6 +172,17 @@ void winp::thread::item::added_event_handler_(event_manager_type &manager, event
 void winp::thread::item::removed_event_handler_(event_manager_type &manager, event_manager_type::key_type key, unsigned __int64 id) const{
 	if (key == event_manager_type::get_key<events::timer>() || key == event_manager_type::get_key<events::interval>())
 		thread_.remove_timer_(id);
+
+	if (&manager != &events_manager_ || thread_.items_.empty())
+		return;
+
+	for (auto &item_info : thread_.items_){//Erase incoming event reference for ID
+		auto out_it = item_info.second.outbound_events_.find(id);
+		if (out_it != item_info.second.outbound_events_.end()){
+			item_info.second.outbound_events_.erase(out_it);
+			break;
+		}
+	}
 }
 
 void winp::thread::item::trigger_event_handler_(events::object &e) const{

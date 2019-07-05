@@ -32,9 +32,6 @@ namespace winp::ui{
 		virtual void bind_size_event_(tree *parent, tree *previous_parent);
 
 		std::function<void(hook &)> callback_;
-		unsigned __int64 size_event_id_ = 0u;
-		unsigned __int64 tree_event_id_ = 0u;
-		unsigned __int64 creation_event_id_ = 0u;
 	};
 
 	class children_size_and_position_hook : public hook{
@@ -64,8 +61,6 @@ namespace winp::ui{
 		virtual void do_callback_(UINT flags);
 
 		std::function<void(hook &, change_type)> callback_;
-		std::unordered_map<object *, event_id_info> event_ids_;
-		unsigned __int64 tree_event_id_ = 0u;
 	};
 
 	class sibling_size_and_position_hook : public hook{
@@ -100,9 +95,6 @@ namespace winp::ui{
 		std::function<void(hook &, change_type)> callback_;
 
 		object *sibling_ = nullptr;
-		unsigned __int64 position_event_id_ = 0u;
-		unsigned __int64 tree_event_id_ = 0u;
-		unsigned __int64 parent_tree_event_id_ = 0u;
 	};
 
 	class generic_placement_hook{
@@ -157,9 +149,9 @@ namespace winp::ui{
 
 		virtual void update_() = 0;
 
-		unsigned __int64 generic_size_event_id_ = 0u;
 		object &generic_target_;
 		alignment_type alignment_;
+
 		POINT offset_;
 		relative_type relativity_;
 	};
@@ -244,10 +236,6 @@ namespace winp::ui{
 		explicit drag_hook(object &target);
 
 		virtual ~drag_hook();
-
-	protected:
-		unsigned __int64 drag_begin_event_id_ = 0u;
-		unsigned __int64 drag_event_id_ = 0u;
 	};
 
 	class no_drag_position_updated_hook : public hook{
@@ -258,9 +246,6 @@ namespace winp::ui{
 
 	protected:
 		bool is_dragging_ = false;
-		unsigned __int64 drag_event_id_ = 0u;
-		unsigned __int64 drag_end_event_id_ = 0u;
-		unsigned __int64 position_updated_event_id_ = 0u;
 	};
 
 	class mouse_hover_hook : public hook{
@@ -283,14 +268,6 @@ namespace winp::ui{
 		std::chrono::milliseconds delay_;
 		unsigned __int64 state_ = 0u;
 		bool is_hovered_ = false;
-
-		unsigned __int64 move_event_id_ = 0u;
-		unsigned __int64 leave_event_id_ = 0u;
-		unsigned __int64 timer_event_id_ = 0u;
-
-		unsigned __int64 down_event_id_ = 0u;
-		unsigned __int64 up_event_id_ = 0u;
-		unsigned __int64 wheel_event_id_ = 0u;
 	};
 
 	class auto_hide_cursor_hook : public hook{
@@ -307,7 +284,6 @@ namespace winp::ui{
 		virtual utility::error_code set_delay_(const std::chrono::milliseconds &value);
 
 		std::chrono::milliseconds delay_;
-		unsigned __int64 event_id_ = 0u;
 		bool is_hidden_ = false;
 	};
 
@@ -331,12 +307,6 @@ namespace winp::ui{
 
 		virtual void toggle_fullscreen_();
 
-		unsigned __int64 append_menu_event_id_ = 0u;
-		unsigned __int64 dbl_click_event_id_ = 0u;
-
-		unsigned __int64 key_down_event_id_ = 0u;
-		unsigned __int64 key_up_event_id_ = 0u;
-
 		bool is_fullscreen_ = false;
 		saved_info saved_{};
 	};
@@ -346,9 +316,6 @@ namespace winp::ui{
 		explicit system_menu_as_context_menu(object &target);
 
 		virtual ~system_menu_as_context_menu();
-
-	protected:
-		unsigned __int64 event_id_ = 0u;
 	};
 
 	class sibling_placement_hook : public sibling_size_and_position_hook, public generic_placement_hook{

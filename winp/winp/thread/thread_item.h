@@ -129,9 +129,18 @@ namespace winp::thread{
 			events_manager_.remove_state_<event_type, others...>(state);
 		}
 
-		virtual bool adding_event_handler_(event_manager_type &manager, event_manager_type::key_type key) const;
+		template <typename event_type>
+		void unbind_outbound_events_(item *target){
+			unbind_outbound_events_(target, event_manager_type::get_key<event_type>());
+		}
 
-		virtual void added_event_handler_(event_manager_type &manager, event_manager_type::key_type key, unsigned __int64 id) const;
+		virtual void unbind_outbound_events_(item *target);
+
+		virtual void unbind_outbound_events_(item *target, event_manager_type::key_type key);
+
+		virtual bool adding_event_handler_(event_manager_type &manager, event_manager_type::key_type key, item *owner) const;
+
+		virtual void added_event_handler_(event_manager_type &manager, event_manager_type::key_type key, unsigned __int64 id, item *owner) const;
 
 		virtual void removed_event_handler_(event_manager_type &manager, event_manager_type::key_type key, unsigned __int64 id) const;
 
