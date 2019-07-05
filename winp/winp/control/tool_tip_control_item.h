@@ -2,7 +2,7 @@
 
 #include "../ui/ui_window_surface.h"
 
-namespace winp::ui{
+namespace ui{
 	class window_surface;
 }
 
@@ -21,9 +21,9 @@ namespace winp::control{
 
 		virtual ~tool_tip_item();
 
-		virtual utility::error_code set_target(ui::window_surface &value, const std::function<void(tool_tip_item &, utility::error_code)> &callback = nullptr);
+		virtual utility::error_code set_target(ui::object &value, const std::function<void(tool_tip_item &, utility::error_code)> &callback = nullptr);
 
-		virtual ui::window_surface *get_target(const std::function<void(ui::window_surface *)> &callback = nullptr) const;
+		virtual ui::object *get_target(const std::function<void(ui::object *)> &callback = nullptr) const;
 
 		virtual utility::error_code set_max_width(int value, const std::function<void(tool_tip_item &, utility::error_code)> &callback = nullptr);
 
@@ -54,7 +54,7 @@ namespace winp::control{
 
 		virtual utility::error_code set_dimension_(int x, int y, int width, int height, UINT flags, bool allow_animation) override;
 
-		virtual utility::error_code set_target_(ui::window_surface &value);
+		virtual utility::error_code set_target_(ui::object &value);
 
 		virtual utility::error_code set_max_width_(int value);
 
@@ -78,17 +78,26 @@ namespace winp::control{
 
 		virtual ui::window_surface *get_target_window_ancestor_(POINT &offset) const;
 
+		virtual void compute_values_();
+
 		HWND handle_ = nullptr;
 		UINT_PTR local_id_ = 0u;
 
-		ui::window_surface *target_ = nullptr;
-		int max_width_ = 0;
+		ui::object *target_ = nullptr;
+		RECT initial_dimension_{};
 
+		ui::window_surface *computed_target_ = nullptr;
+		RECT computed_dimension_{};
+		POINT computed_offset_{};
+
+		int max_width_ = 0;
 		std::wstring title_;
 		std::wstring text_;
 
 		HFONT font_ = nullptr;
 		HGDIOBJ image_ = nullptr;
+
+		unsigned __int64 event_id_ = 0u;
 	};
 
 	class inplace_tool_tip_item : public tool_tip_item{

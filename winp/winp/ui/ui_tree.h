@@ -101,6 +101,7 @@ namespace winp::ui{
 					return nullptr;
 			}
 
+			auto_create_();
 			object->create();
 			objects_[object.get()] = object;
 

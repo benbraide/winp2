@@ -17,16 +17,21 @@ winp::control::tool_tip_item::tool_tip_item(ui::tree &parent, std::size_t index)
 }
 
 winp::control::tool_tip_item::~tool_tip_item(){
+	if (target_ != nullptr){
+		target_->events().unbind(event_id_);
+		event_id_ = 0u;
+	}
+
 	destruct();
 }
 
-winp::utility::error_code winp::control::tool_tip_item::set_target(ui::window_surface &value, const std::function<void(tool_tip_item &, utility::error_code)> &callback){
+winp::utility::error_code winp::control::tool_tip_item::set_target(ui::object &value, const std::function<void(tool_tip_item &, utility::error_code)> &callback){
 	return compute_or_post_task_inside_thread_context([=, &value]{
 		return pass_return_value_to_callback(callback, *this, set_target_(value));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
-winp::ui::window_surface *winp::control::tool_tip_item::get_target(const std::function<void(ui::window_surface *)> &callback) const{
+winp::ui::object *winp::control::tool_tip_item::get_target(const std::function<void(ui::object *)> &callback) const{
 	return compute_or_post_task_inside_thread_context([=]{
 		return pass_return_value_to_callback(callback, target_);
 	}, (callback != nullptr), nullptr);
@@ -88,19 +93,26 @@ winp::utility::error_code winp::control::tool_tip_item::create_(){
 		return utility::error_code::object_destructed;
 
 	auto tool_tip_parent = dynamic_cast<tool_tip *>(parent_);
-	if (tool_tip_parent == nullptr || !tool_tip_parent->is_created())
+	if (tool_tip_parent == nullptr)
 		return utility::error_code::parent_not_created;
 
-	if (!target_->is_created())
+	tool_tip_parent->auto_create();
+	if (!tool_tip_parent->is_created())
+		return utility::error_code::parent_not_created;
+
+	if (computed_target_ == nullptr)
 		return utility::error_code::tool_tip_target_not_created;
 
-	auto target_handle = target_->get_handle();
-	auto target_rect = get_dimension_();
+	computed_target_->auto_create();
+	auto computed_handle = computed_target_->get_handle();
+
+	if (computed_handle == nullptr)
+		return utility::error_code::tool_tip_target_not_created;
 
 	UINT flags = TTF_SUBCLASS;
-	if (IsRectEmpty(&target_rect) != FALSE){
+	if (computed_target_ == target_ && IsRectEmpty(&initial_dimension_) != FALSE){
 		flags |= TTF_IDISHWND;
-		local_id_ = reinterpret_cast<UINT_PTR>(target_handle);
+		local_id_ = reinterpret_cast<UINT_PTR>(computed_handle);
 	}
 	else//Rectangular tip
 		local_id_ = static_cast<UINT_PTR>(id_);
@@ -108,9 +120,9 @@ winp::utility::error_code winp::control::tool_tip_item::create_(){
 	TTTOOLINFOW info{
 		sizeof(TTTOOLINFOW),
 		flags,
-		target_handle,
+		computed_handle,
 		local_id_,
-		target_rect,
+		computed_dimension_,
 		nullptr,
 		LPSTR_TEXTCALLBACKW,
 		reinterpret_cast<LPARAM>(this)
@@ -159,33 +171,34 @@ winp::utility::error_code winp::control::tool_tip_item::set_parent_value_(ui::tr
 }
 
 winp::utility::error_code winp::control::tool_tip_item::set_dimension_(int x, int y, int width, int height, UINT flags, bool allow_animation){
+	if (local_id_ != 0u && local_id_ != id_)//Tool covers entire target's surface
+		return utility::error_code::not_supported;
+
 	if (auto error_code = ui::surface::set_dimension_(x, y, width, height, flags, false); error_code != utility::error_code::nil)
 		return error_code;
 
-	if (handle_ == nullptr)
+	compute_values_();
+	auto computed_handle = ((computed_target_ == nullptr) ? nullptr : computed_target_->get_handle());
+	if (computed_handle == nullptr)
 		return utility::error_code::nil;
-
-	if (local_id_ != id_){
-		position_ = POINT{};
-		size_ = SIZE{};
-		return utility::error_code::nil;
-	}
 
 	TTTOOLINFOW info{
 		sizeof(TTTOOLINFOW),
 		0u,
-		handle_,
+		computed_handle,
 		local_id_,
-		get_dimension_(),
+		computed_dimension_,
 	};
 
 	SendMessageW(handle_, TTM_NEWTOOLRECTW, 0, reinterpret_cast<LPARAM>(&info));
 	return utility::error_code::nil;
 }
 
-winp::utility::error_code winp::control::tool_tip_item::set_target_(ui::window_surface &value){
+winp::utility::error_code winp::control::tool_tip_item::set_target_(ui::object &value){
 	destroy_();
 	target_ = &value;
+	compute_values_();
+
 	return utility::error_code::nil;
 }
 
@@ -284,18 +297,89 @@ LRESULT winp::control::tool_tip_item::link_clicked_() const{
 }
 
 winp::ui::window_surface *winp::control::tool_tip_item::get_target_window_ancestor_(POINT &offset) const{
-	offset = POINT{};
-	return dynamic_cast<ui::object *>(target_)->get_first_ancestor_of<ui::window_surface>([&](ui::tree &ancestor){
+	auto ancestor = target_->get_first_ancestor_of<ui::window_surface>([&](ui::tree &ancestor){
 		if (!ancestor.is_created())
 			return false;
 
 		if (auto surface_ancestor = dynamic_cast<surface *>(&ancestor); surface_ancestor != nullptr){
-			auto ancestor_position = surface_ancestor->get_position();
-			offset.x += ancestor_position.x;
-			offset.y += ancestor_position.y;
+			auto &ancestor_position = surface_ancestor->get_current_position();
+			auto ancestor_client_start_offset = surface_ancestor->get_client_start_offset();
+
+			offset.x += (ancestor_position.x + ancestor_client_start_offset.x);
+			offset.y += (ancestor_position.y + ancestor_client_start_offset.y);
 		}
 
 		return true;
+	});
+
+	if (ancestor != nullptr){
+		auto ancestor_client_start_offset = ancestor->get_client_start_offset();
+		offset.x += ancestor_client_start_offset.x;
+		offset.y += ancestor_client_start_offset.y;
+	}
+
+	return ancestor;
+}
+
+void winp::control::tool_tip_item::compute_values_(){
+	if (target_ != nullptr){
+		target_->events().unbind(event_id_);
+		event_id_ = 0u;
+	}
+
+	initial_dimension_ = get_dimension_();
+	if ((computed_target_ = dynamic_cast<ui::window_surface *>(target_)) != nullptr){
+		computed_dimension_ = initial_dimension_;
+		return;
+	}
+
+	auto surface_target = dynamic_cast<ui::surface *>(target_);
+	if (surface_target == nullptr)
+		return;
+
+	computed_offset_ = POINT{};
+	if ((computed_target_ = get_target_window_ancestor_(computed_offset_)) == nullptr)
+		return;
+
+	if (IsRectEmpty(&initial_dimension_) == FALSE){
+		auto &position = surface_target->get_current_position();
+		computed_dimension_ = initial_dimension_;
+		OffsetRect(&computed_dimension_, position.x, position.y);
+	}
+	else//Use target's area
+		computed_dimension_ = surface_target->get_current_dimension();
+
+	OffsetRect(&computed_dimension_, computed_offset_.x, computed_offset_.y);//Move relative to window ancestor
+	event_id_ = target_->events().bind([this](events::position_updated &e){
+		if (handle_ == nullptr || IsRectEmpty(&initial_dimension_) == FALSE || (e.get_flags() & (SWP_NOMOVE | SWP_NOSIZE)) == (SWP_NOMOVE | SWP_NOSIZE))
+			return;//No dimension update
+
+		auto computed_handle = ((computed_target_ == nullptr) ? nullptr : computed_target_->get_handle());
+		if (computed_handle == nullptr)
+			return;
+
+		auto surface_target = dynamic_cast<ui::surface *>(target_);
+		if (surface_target == nullptr)
+			return;
+
+		if (IsRectEmpty(&initial_dimension_) == FALSE){
+			auto &position = surface_target->get_current_position();
+			computed_dimension_ = initial_dimension_;
+			OffsetRect(&computed_dimension_, position.x, position.y);
+		}
+		else//Use target's area
+			computed_dimension_ = surface_target->get_current_dimension();
+
+		OffsetRect(&computed_dimension_, computed_offset_.x, computed_offset_.y);//Move relative to window ancestor
+		TTTOOLINFOW info{
+			sizeof(TTTOOLINFOW),
+			0u,
+			computed_handle,
+			local_id_,
+			computed_dimension_,
+		};
+
+		SendMessageW(handle_, TTM_NEWTOOLRECTW, 0, reinterpret_cast<LPARAM>(&info));
 	});
 }
 
@@ -308,11 +392,15 @@ winp::control::inplace_tool_tip_item::inplace_tool_tip_item(thread::object &thre
 		if (handle_ == nullptr || target_ == nullptr)
 			return;
 
+		auto surface_target = dynamic_cast<ui::surface *>(target_);
+		if (surface_target == nullptr)
+			return;
+
 		RECT target_rect{};
-		if (local_id_ == id_)
-			target_rect = target_->convert_dimension_to_absolute_value(get_dimension_());
+		if (local_id_ == id_)//Rectangular tip
+			target_rect = surface_target->convert_dimension_to_absolute_value(get_dimension_());
 		else
-			target_rect = target_->get_absolute_dimension();
+			target_rect = surface_target->get_absolute_dimension();
 
 		SendMessageW(handle_, TTM_ADJUSTRECT, TRUE, reinterpret_cast<LPARAM>(&target_rect));
 		dynamic_cast<tool_tip *>(parent_)->set_absolute_position(target_rect.left, target_rect.top);

@@ -16,6 +16,8 @@ namespace winp::control{
 
 		virtual ~tab();
 
+		virtual utility::error_code set_active_page(tab_page &value, const std::function<void(tab &, utility::error_code)> &callback = nullptr);
+
 		virtual tab_page *get_active_page(const std::function<void(tab_page *)> &callback = nullptr) const;
 
 	protected:
@@ -25,11 +27,15 @@ namespace winp::control{
 
 		virtual SIZE get_client_size_() const override;
 
+		virtual SIZE get_current_client_size_() const override;
+
 		virtual POINT get_client_offset_() const override;
 
 		virtual POINT get_client_start_offset_() const override;
 
 		virtual LRESULT dispatch_notification_(MSG &msg) const override;
+
+		virtual utility::error_code set_active_page_(tab_page &value, int index);
 
 		virtual tab_page *get_active_page_() const;
 	};

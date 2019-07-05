@@ -130,11 +130,12 @@ winp::utility::error_code winp::menu::item::create_(){
 	if (is_destructed_)
 		return utility::error_code::object_destructed;
 
-	if (parent_ != nullptr && parent_->auto_create() != utility::error_code::nil)
+	auto object_parent = dynamic_cast<menu::object *>(parent_);
+	if (object_parent != nullptr)
 		return utility::error_code::parent_not_created;
 
-	auto object_parent = dynamic_cast<menu::object *>(parent_);
-	if (object_parent == nullptr || !object_parent->is_created())
+	object_parent->auto_create();
+	if (!object_parent->is_created())
 		return utility::error_code::parent_not_created;
 
 	if ((handle_ = create_handle_()) == nullptr)

@@ -713,7 +713,7 @@ LRESULT winp::thread::item_manager::kill_focus_(item &target, MSG &msg){
 		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
 
 	focused_object_ = nullptr;
-	if (mouse_.full_feature_enabled && mouse_.clicked != window_target){
+	if (mouse_.full_feature_enabled && mouse_.clicked != nullptr && mouse_.clicked != window_target){
 		auto lost_focus_window = find_window_(reinterpret_cast<HWND>(msg.wParam), false);
 		if (lost_focus_window == nullptr || !mouse_.clicked->is_ancestor_(*lost_focus_window))
 			mouse_.clicked = nullptr;

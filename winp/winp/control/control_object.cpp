@@ -7,7 +7,8 @@ winp::control::object::object(thread::object &thread, const std::wstring &class_
 	styles_ |= WS_TABSTOP;
 	thread_.init_control(class_name_, common_id);
 	add_event_handler_([this](events::create &e){
-		show_();
+		if (!e.is_creating())
+			show_();
 	});
 }
 

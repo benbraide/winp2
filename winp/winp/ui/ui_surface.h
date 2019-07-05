@@ -206,14 +206,11 @@ namespace winp::ui{
 
 			auto ancestor = object_self->get_first_ancestor_of_<ancestor_type>([&](tree &ancestor){
 				if (auto surface_ancestor = dynamic_cast<surface *>(&ancestor); surface_ancestor != nullptr){
-					auto &current_position = surface_ancestor->get_current_position_();
-					auto ancestor_position = POINT{ current_position.x, current_position.y };
-
-					auto ancestor_client_offset = surface_ancestor->get_client_offset();
+					auto &ancestor_position = surface_ancestor->get_current_position_();
 					auto ancestor_client_start_offset = surface_ancestor->get_client_start_offset();
 
-					x += (ancestor_position.x + ancestor_client_offset.x + ancestor_client_start_offset.x);
-					y += (ancestor_position.y + ancestor_client_offset.y + ancestor_client_start_offset.y);
+					x += (ancestor_position.x + ancestor_client_start_offset.x);
+					y += (ancestor_position.y + ancestor_client_start_offset.y);
 				}
 
 				return true;

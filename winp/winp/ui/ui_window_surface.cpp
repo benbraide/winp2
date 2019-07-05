@@ -146,9 +146,6 @@ winp::utility::error_code winp::ui::window_surface::create_(){
 	if (is_destructed_)
 		return utility::error_code::object_destructed;
 
-	if (parent_ != nullptr && parent_->auto_create() != utility::error_code::nil)
-		return utility::error_code::parent_not_created;
-
 	auto position = position_;
 	auto window_ancestor = get_first_ancestor_of_<window_surface>([&](tree &ancestor){
 		if (auto surface_ancestor = dynamic_cast<surface *>(&ancestor); surface_ancestor != nullptr){
@@ -161,6 +158,12 @@ winp::utility::error_code winp::ui::window_surface::create_(){
 
 		return true;
 	});
+
+	if (window_ancestor != nullptr){
+		window_ancestor->auto_create();
+		if (!window_ancestor->is_created())
+			return utility::error_code::parent_not_created;
+	}
 
 	auto ancestor_handle = ((window_ancestor == nullptr) ? nullptr : window_ancestor->handle_);
 	if (parent_ != nullptr && ancestor_handle == nullptr)
