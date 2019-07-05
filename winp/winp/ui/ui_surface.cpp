@@ -694,7 +694,12 @@ winp::utility::error_code winp::ui::surface::animate_dimension_(object &object_s
 }
 
 winp::utility::error_code winp::ui::surface::update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags){
-	synchronized_item_trigger_event_<events::position_updated>(flags);
+	if (auto object_self = dynamic_cast<ui::object *>(this); object_self != nullptr){
+		object_self->trigger_event_<events::position_updated>(flags);
+		if (!object_self->has_hook_<ui::no_drag_position_updated_hook>())
+			object_self->trigger_event_<events::non_drag_position_updated>(flags);
+	}
+
 	if (auto tree_self = dynamic_cast<tree *>(this); tree_self != nullptr && (flags & SWP_NOMOVE) == 0u){
 		tree_self->traverse_all_children_of<window_surface>([](window_surface &child){
 			child.update_position_();

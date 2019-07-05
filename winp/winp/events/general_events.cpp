@@ -116,6 +116,12 @@ UINT winp::events::position_updated::get_flags() const{
 	return flags_;
 }
 
+UINT winp::events::non_drag_position_updated::get_flags() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return flags_;
+}
+
 ID2D1Brush *winp::events::background_brush_change::get_value() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;

@@ -301,7 +301,10 @@ winp::utility::error_code winp::ui::window_surface::update_dimension_(const RECT
 	auto error_code = ((SetWindowPos(handle_, nullptr, x, y, width, height, (flags | SWP_NOZORDER | SWP_NOACTIVATE)) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
 
 	updating_dimension_ = false;
-	synchronized_item_trigger_event_<events::position_updated>(flags);
+	trigger_event_<events::position_updated>(flags);
+
+	if (!has_hook_<ui::no_drag_position_updated_hook>())
+		trigger_event_<events::non_drag_position_updated>(flags);
 
 	return error_code;
 }

@@ -201,6 +201,48 @@ namespace winp::thread{
 			return std::make_pair(e.states_, e.result_);
 		}
 
+		virtual void trigger_event_of_(item &owner, events::object &e, unsigned __int64 id = 0u) const;
+
+		template <typename event_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> trigger_event_of_(item &owner, args_types &&... args) const{
+			return owner.trigger_event_<event_type>(args...);
+		}
+
+		template <typename event_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> trigger_event_with_target_of_(item &owner, item &target, args_types &&... args) const{
+			return owner.trigger_event_with_target_<event_type>(target, args...);
+		}
+
+		template <typename event_type, typename value_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> trigger_event_with_value_of_(item &owner, const value_type &value, args_types &&... args) const{
+			return owner.trigger_event_with_value_<event_type>(value, args...);
+		}
+
+		template <typename event_type, typename value_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> trigger_event_with_target_and_value_of_(item &owner, item &target, const value_type &value, args_types &&... args) const{
+			return owner.trigger_event_with_target_and_value_<event_type>(target, value, args...);
+		}
+
+		template <typename event_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> trigger_single_event_of_(item &owner, unsigned __int64 id, args_types &&... args) const{
+			return owner.trigger_single_event_<event_type>(id, args...);
+		}
+
+		template <typename event_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> trigger_single_event_with_target_of_(item &owner, unsigned __int64 id, item &target, args_types &&... args) const{
+			return owner.trigger_single_event_with_target_<event_type>(id, target, args...);
+		}
+
+		template <typename event_type, typename value_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> trigger_single_event_with_value_of_(item &owner, unsigned __int64 id, const value_type &value, args_types &&... args) const{
+			return owner.trigger_single_event_with_value_<event_type>(id, value, args...);
+		}
+
+		template <typename event_type, typename value_type, typename... args_types>
+		std::pair<unsigned int, LRESULT> trigger_single_event_with_target_and_value_of_(item &owner, unsigned __int64 id, item &target, const value_type &value, args_types &&... args) const{
+			return owner.trigger_single_event_with_target_and_value_<event_type>(id, target, value, args...);
+		}
+
 		object &thread_;
 		unsigned __int64 id_;
 

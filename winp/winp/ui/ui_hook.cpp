@@ -7,7 +7,7 @@
 #include "ui_window_surface.h"
 
 winp::ui::hook::hook(object &target)
-	: target_(target){}
+	: item(target.get_thread()), target_(target){}
 
 winp::ui::hook::~hook() = default;
 
@@ -577,6 +577,8 @@ winp::ui::io_hook::~io_hook() = default;
 winp::ui::drag_hook::drag_hook(object &target)
 	: hook(target){
 	target_.insert_hook<io_hook>();
+	target_.insert_hook<no_drag_position_updated_hook>();
+
 	drag_begin_event_id_ = target_.events().bind([](events::mouse_drag_begin &e){
 		return true;
 	});
@@ -593,6 +595,32 @@ winp::ui::drag_hook::~drag_hook(){
 	target_.events().unbind(drag_event_id_);
 	target_.events().unbind(drag_begin_event_id_);
 	drag_begin_event_id_ = drag_event_id_ = 0u;
+}
+
+winp::ui::no_drag_position_updated_hook::no_drag_position_updated_hook(object &target)
+	: hook(target){
+	drag_event_id_ = target_.events().bind([this](events::mouse_drag &e){
+		is_dragging_ = true;
+	});
+
+	drag_end_event_id_ = target_.events().bind([this](events::mouse_drag_end &e){
+		is_dragging_ = false;
+		trigger_event_of_<events::non_drag_position_updated>(target_, SWP_NOSIZE);
+	});
+
+	position_updated_event_id_ = target_.events().bind([this](events::position_updated &e){
+		if (!is_dragging_)
+			trigger_event_of_<events::non_drag_position_updated>(target_, e.get_flags());
+		else if ((e.get_flags() & SWP_NOSIZE) == 0u)//Size updated
+			trigger_event_of_<events::non_drag_position_updated>(target_, SWP_NOMOVE);
+	});
+}
+
+winp::ui::no_drag_position_updated_hook::~no_drag_position_updated_hook(){
+	target_.events().unbind(drag_event_id_);
+	target_.events().unbind(drag_end_event_id_);
+	target_.events().unbind(position_updated_event_id_);
+	position_updated_event_id_ = drag_end_event_id_ = drag_event_id_ = 0u;
 }
 
 winp::ui::mouse_hover_hook::mouse_hover_hook(object &target, const std::chrono::milliseconds &delay)

@@ -150,6 +150,10 @@ void winp::thread::item::trigger_event_(events::object &e, unsigned __int64 id) 
 	e.do_default();
 }
 
+void winp::thread::item::trigger_event_of_(item &owner, events::object &e, unsigned __int64 id) const{
+	owner.trigger_event_(e, id);
+}
+
 winp::thread::synchronized_item::~synchronized_item() = default;
 
 void winp::thread::synchronized_item::synchronized_item_execute_task_inside_thread_context(const std::function<void()> &task) const{

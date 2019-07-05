@@ -196,7 +196,7 @@ winp::utility::error_code winp::control::tool_tip_item::set_dimension_(int x, in
 
 winp::utility::error_code winp::control::tool_tip_item::set_target_(ui::object &value){
 	destroy_();
-	target_ = &value;
+	(target_ = &value)->insert_hook<ui::no_drag_position_updated_hook>();
 	compute_values_();
 
 	return utility::error_code::nil;
@@ -350,7 +350,7 @@ void winp::control::tool_tip_item::compute_values_(){
 		computed_dimension_ = surface_target->get_current_dimension();
 
 	OffsetRect(&computed_dimension_, computed_offset_.x, computed_offset_.y);//Move relative to window ancestor
-	event_id_ = target_->events().bind([this](events::position_updated &e){
+	event_id_ = target_->events().bind([this](events::non_drag_position_updated &e){
 		if (handle_ == nullptr || IsRectEmpty(&initial_dimension_) == FALSE || (e.get_flags() & (SWP_NOMOVE | SWP_NOSIZE)) == (SWP_NOMOVE | SWP_NOSIZE))
 			return;//No dimension update
 

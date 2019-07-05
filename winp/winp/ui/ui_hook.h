@@ -8,7 +8,7 @@
 namespace winp::ui{
 	class object;
 
-	class hook{
+	class hook : public thread::item{
 	public:
 		explicit hook(object &target);
 
@@ -248,6 +248,19 @@ namespace winp::ui{
 	protected:
 		unsigned __int64 drag_begin_event_id_ = 0u;
 		unsigned __int64 drag_event_id_ = 0u;
+	};
+
+	class no_drag_position_updated_hook : public hook{
+	public:
+		explicit no_drag_position_updated_hook(object &target);
+
+		virtual ~no_drag_position_updated_hook();
+
+	protected:
+		bool is_dragging_ = false;
+		unsigned __int64 drag_event_id_ = 0u;
+		unsigned __int64 drag_end_event_id_ = 0u;
+		unsigned __int64 position_updated_event_id_ = 0u;
 	};
 
 	class mouse_hover_hook : public hook{

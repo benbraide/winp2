@@ -448,6 +448,8 @@ LRESULT winp::thread::item_manager::position_change_(item &target, MSG &msg, boo
 
 		result = trigger_event_<events::position_change>(target, false, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 		trigger_event_<events::position_updated>(target, info->flags);
+		if (!window_target->has_hook_<ui::no_drag_position_updated_hook>())
+			trigger_event_<events::non_drag_position_updated>(target, info->flags);
 	}
 	else{//Changing
 		auto result_info = trigger_event_<events::position_change>(target, true, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name())));
@@ -599,6 +601,13 @@ LRESULT winp::thread::item_manager::mouse_move_(item &target, MSG &msg, DWORD po
 
 		if ((result_info.first & events::object::state_propagation_stopped) != 0u)
 			break;//Propagation stopped
+	}
+
+	if (mouse_.dragging != nullptr && mouse_.dragging != mouse_.target){//Different target
+		if (auto tree_dragging_target = dynamic_cast<ui::tree *>(mouse_.dragging); tree_dragging_target == nullptr || !mouse_.target->is_ancestor_(*tree_dragging_target)){
+			trigger_event_<events::mouse_drag_end>(*mouse_.dragging, events::mouse::button_type_nil, false, msg, nullptr);
+			mouse_.dragging = nullptr;
+		}
 	}
 
 	if (msg.message == WM_MOUSEMOVE && mouse_.dragging == nullptr && mouse_.button_down != events::mouse::button_type_nil){//Check fro drag begin

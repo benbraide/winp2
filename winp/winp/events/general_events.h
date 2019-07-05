@@ -180,6 +180,18 @@ namespace winp::events{
 		UINT flags_;
 	};
 
+	class non_drag_position_updated : public object{
+	public:
+		template <typename... args_types>
+		explicit non_drag_position_updated(UINT flags, args_types &&... args)
+			: object(std::forward<args_types>(args)...), flags_(flags){}
+
+		virtual UINT get_flags() const;
+
+	protected:
+		UINT flags_;
+	};
+
 	class background_brush_change : public object{
 	public:
 		template <typename... args_types>
