@@ -7,8 +7,6 @@ namespace winp::control{
 	public:
 		split_button();
 
-		explicit split_button(thread::object &thread);
-
 		explicit split_button(tree &parent);
 
 		split_button(tree &parent, std::size_t index);
@@ -28,8 +26,6 @@ namespace winp::control{
 	class default_split_button : public split_button{
 	public:
 		default_split_button();
-
-		explicit default_split_button(thread::object &thread);
 
 		explicit default_split_button(tree &parent);
 

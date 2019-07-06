@@ -7,8 +7,6 @@ namespace winp::menu{
 	public:
 		check_item();
 
-		explicit check_item(thread::object &thread);
-
 		explicit check_item(ui::tree &parent);
 
 		check_item(ui::tree &parent, std::size_t index);

@@ -7,8 +7,6 @@ namespace winp::control{
 	public:
 		label();
 
-		explicit label(thread::object &thread);
-
 		explicit label(tree &parent);
 
 		label(tree &parent, std::size_t index);

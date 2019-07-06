@@ -815,7 +815,7 @@ LRESULT winp::thread::item_manager::context_menu_(item &target, MSG &msg){
 	if (msg.wParam != 0 && find_window_(reinterpret_cast<HWND>(msg.wParam), false) != &target)
 		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
-	if ((active_context_menu_ = std::make_shared<menu::popup>(thread_)) == nullptr || active_context_menu_->create() != utility::error_code::nil)
+	if ((active_context_menu_ = std::make_shared<menu::popup>()) == nullptr || active_context_menu_->create() != utility::error_code::nil)
 		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 
 	ui::object *mouse_target = nullptr;
@@ -909,7 +909,7 @@ LRESULT winp::thread::item_manager::menu_init_(item &target, MSG &msg){
 	auto menu_handle = reinterpret_cast<HMENU>(msg.wParam);
 
 	if (auto it = menus_.find(menu_handle); it == menus_.end() || (dynamic_cast<menu::wrapped_popup *>(it->second) != nullptr && dynamic_cast<menu::system_popup *>(it->second) == nullptr)){//Wrap menu
-		if (auto wrapped_menu = std::make_shared<menu::wrapped_popup>(thread_, menu_handle)){
+		if (auto wrapped_menu = std::make_shared<menu::wrapped_popup>(menu_handle)){
 			menu = wrapped_menu.get();
 			wrapped_menus_[menu_handle] = wrapped_menu;
 		}

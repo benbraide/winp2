@@ -2,11 +2,7 @@
 
 #include "elliptical_non_window.h"
 
-winp::non_window::ellipsis::ellipsis()
-	: ellipsis(app::object::get_thread()){}
-
-winp::non_window::ellipsis::ellipsis(thread::object &thread)
-	: non_window_surface(thread){
+winp::non_window::ellipsis::ellipsis(){
 	set_event_state_<events::create_non_window_handle, events::update_non_window_handle, events::destroy_non_window_handle>((event_manager_type::state_disable_bounding | event_manager_type::state_disable_triggering));
 	add_event_handler_([this](events::create_non_window_handle &e) -> HRGN{
 		auto &current_size = get_current_size_();
@@ -23,23 +19,18 @@ winp::non_window::ellipsis::ellipsis(tree &parent)
 	: ellipsis(parent, static_cast<std::size_t>(-1)){}
 
 winp::non_window::ellipsis::ellipsis(tree &parent, std::size_t index)
-	: ellipsis(parent.get_thread()){
+	: ellipsis(){
 	set_parent(&parent, index);
 }
 
 winp::non_window::ellipsis::~ellipsis() = default;
 
-winp::non_window::circle::circle()
-	: circle(app::object::get_thread()){}
-
-winp::non_window::circle::circle(thread::object &thread)
-	: ellipsis(thread){}
+winp::non_window::circle::circle() = default;
 
 winp::non_window::circle::circle(tree &parent)
 	: circle(parent, static_cast<std::size_t>(-1)){}
 
-winp::non_window::circle::circle(tree &parent, std::size_t index)
-	: circle(parent.get_thread()){
+winp::non_window::circle::circle(tree &parent, std::size_t index){
 	set_parent(&parent, index);
 }
 

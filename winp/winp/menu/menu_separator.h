@@ -7,8 +7,6 @@ namespace winp::menu{
 	public:
 		separator();
 
-		explicit separator(thread::object &thread);
-
 		explicit separator(ui::tree &parent);
 
 		separator(ui::tree &parent, std::size_t index);

@@ -11,8 +11,6 @@ namespace winp::grid{
 	public:
 		column();
 
-		explicit column(thread::object &thread);
-
 		explicit column(ui::tree &parent);
 
 		column(ui::tree &parent, std::size_t index);
@@ -41,8 +39,6 @@ namespace winp::grid{
 	public:
 		fixed_column();
 
-		explicit fixed_column(thread::object &thread);
-
 		explicit fixed_column(ui::tree &parent);
 
 		fixed_column(ui::tree &parent, std::size_t index);
@@ -60,8 +56,6 @@ namespace winp::grid{
 	class proportional_column : public fixed_column{
 	public:
 		proportional_column();
-
-		explicit proportional_column(thread::object &thread);
 
 		explicit proportional_column(ui::tree &parent);
 
@@ -84,8 +78,6 @@ namespace winp::grid{
 	class proportional_shared_column : public column{
 	public:
 		proportional_shared_column();
-
-		explicit proportional_shared_column(thread::object &thread);
 
 		explicit proportional_shared_column(ui::tree &parent);
 

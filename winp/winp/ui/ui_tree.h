@@ -9,8 +9,6 @@ namespace winp::ui{
 	public:
 		tree();
 
-		explicit tree(thread::object &thread);
-
 		virtual ~tree();
 
 		template <typename callback_type, typename... args_types>
@@ -87,7 +85,7 @@ namespace winp::ui{
 		friend class object;
 		friend class thread::item_manager;
 
-		virtual utility::error_code destruct_() override;
+		virtual void before_destruct_() override;
 
 		template <typename object_type, typename... args_types>
 		object_type *add_object_(const std::function<void(object_type &)> &callback, args_types &&... args){

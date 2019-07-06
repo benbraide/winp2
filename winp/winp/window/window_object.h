@@ -7,8 +7,6 @@ namespace winp::window{
 	public:
 		object();
 
-		explicit object(thread::object &thread);
-
 		explicit object(tree &parent);
 
 		object(tree &parent, std::size_t index);

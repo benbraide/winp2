@@ -7,8 +7,6 @@ namespace winp::control{
 	public:
 		radio_group();
 
-		explicit radio_group(thread::object &thread);
-
 		explicit radio_group(tree &parent);
 
 		radio_group(tree &parent, std::size_t index);

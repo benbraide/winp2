@@ -8,8 +8,6 @@ namespace winp::control{
 	public:
 		tab();
 
-		explicit tab(thread::object &thread);
-
 		explicit tab(tree &parent);
 
 		tab(tree &parent, std::size_t index);

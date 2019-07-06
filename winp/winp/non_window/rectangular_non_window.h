@@ -7,8 +7,6 @@ namespace winp::non_window{
 	public:
 		rectangle();
 
-		explicit rectangle(thread::object &thread);
-
 		explicit rectangle(tree &parent);
 
 		rectangle(tree &parent, std::size_t index);

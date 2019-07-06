@@ -2,11 +2,7 @@
 
 #include "tab_control.h"
 
-winp::control::tab_page::tab_page()
-	: tab_page(app::object::get_thread()){}
-
-winp::control::tab_page::tab_page(thread::object &thread)
-	: window_surface(thread){
+winp::control::tab_page::tab_page(){
 	insert_hook<ui::parent_fill_hook>();
 	insert_hook<ui::placement_hook>(ui::placement_hook::alignment_type::top_left);
 
@@ -43,12 +39,12 @@ winp::control::tab_page::tab_page(ui::tree &parent)
 	: tab_page(parent, static_cast<std::size_t>(-1)){}
 
 winp::control::tab_page::tab_page(ui::tree &parent, std::size_t index)
-	: tab_page(parent.get_thread()){
+	: tab_page(){
 	set_parent(&parent, index);
 }
 
 winp::control::tab_page::~tab_page(){
-	destruct();
+	destruct_();
 }
 
 winp::utility::error_code winp::control::tab_page::set_title(const std::wstring &value, const std::function<void(tab_page &, utility::error_code)> &callback){

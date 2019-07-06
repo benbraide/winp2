@@ -3,17 +3,12 @@
 #include "control_group.h"
 #include "check_control.h"
 
-winp::control::radio_group::radio_group()
-	: radio_group(app::object::get_thread()){}
-
-winp::control::radio_group::radio_group(thread::object &thread)
-	: tree(thread){}
+winp::control::radio_group::radio_group() = default;
 
 winp::control::radio_group::radio_group(tree &parent)
 	: radio_group(parent, static_cast<std::size_t>(-1)){}
 
-winp::control::radio_group::radio_group(tree &parent, std::size_t index)
-	: radio_group(parent.get_thread()){
+winp::control::radio_group::radio_group(tree &parent, std::size_t index){
 	set_parent(&parent, index);
 }
 

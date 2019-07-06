@@ -7,8 +7,6 @@ namespace winp::control{
 	public:
 		command_link();
 
-		explicit command_link(thread::object &thread);
-
 		explicit command_link(tree &parent);
 
 		command_link(tree &parent, std::size_t index);

@@ -2,11 +2,7 @@
 
 #include "window_object.h"
 
-winp::window::object::object()
-	: object(app::object::get_thread()){}
-
-winp::window::object::object(thread::object &thread)
-	: window_surface(thread){
+winp::window::object::object(){
 	styles_ |= WS_OVERLAPPEDWINDOW;
 }
 
@@ -14,7 +10,7 @@ winp::window::object::object(tree &parent)
 	: object(parent, static_cast<std::size_t>(-1)){}
 
 winp::window::object::object(tree &parent, std::size_t index)
-	: object(parent.get_thread()){
+	: object(){
 	set_parent(&parent, index);
 }
 

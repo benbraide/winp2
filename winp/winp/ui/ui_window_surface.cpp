@@ -3,10 +3,7 @@
 #include "ui_window_surface.h"
 
 winp::ui::window_surface::window_surface()
-	: window_surface(app::object::get_thread()){}
-
-winp::ui::window_surface::window_surface(thread::object &thread)
-	: tree(thread), system_menu_(*this), menu_bar_(*this){
+	: system_menu_(*this), menu_bar_(*this){
 	styles_ = (WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
 	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
 	insert_hook<io_hook>();
@@ -21,12 +18,12 @@ winp::ui::window_surface::window_surface(tree &parent)
 	: window_surface(parent, static_cast<std::size_t>(-1)){}
 
 winp::ui::window_surface::window_surface(tree &parent, std::size_t index)
-	: window_surface(parent.get_thread()){
+	: window_surface(){
 	set_parent(&parent, index);
 }
 
 winp::ui::window_surface::~window_surface(){
-	destruct();
+	destruct_();
 }
 
 winp::utility::error_code winp::ui::window_surface::show(int how, const std::function<void(window_surface &, utility::error_code)> &callback){
@@ -108,16 +105,15 @@ HWND winp::ui::window_surface::get_handle(const std::function<void(HWND)> &callb
 }
 
 winp::ui::window_surface::popup_menu_type &winp::ui::window_surface::get_system_menu(const std::function<void(popup_menu_type &)> &callback) const{
-	system_menu_.create();
-	if (callback != nullptr)
-		callback(system_menu_);
-	return system_menu_;
+	return *compute_or_post_task_inside_thread_context([=]{
+		return &pass_return_ref_value_to_callback(callback, &system_menu_);
+	}, (callback != nullptr), &system_menu_);
 }
 
 winp::menu::bar &winp::ui::window_surface::get_menu_bar(const std::function<void(menu::bar &)> &callback) const{
-	if (callback != nullptr)
-		callback(menu_bar_);
-	return menu_bar_;
+	return *compute_or_post_task_inside_thread_context([=]{
+		return &pass_return_ref_value_to_callback(callback, &menu_bar_);
+	}, (callback != nullptr), &menu_bar_);
 }
 
 const std::wstring &winp::ui::window_surface::get_class_name(const std::function<void(const std::wstring &)> &callback) const{
@@ -143,7 +139,7 @@ winp::utility::error_code winp::ui::window_surface::create_(){
 	if (handle_ != nullptr)
 		return utility::error_code::nil;
 
-	if (is_destructed_)
+	if (is_destructed_())
 		return utility::error_code::object_destructed;
 
 	auto position = position_;

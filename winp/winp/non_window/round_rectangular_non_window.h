@@ -7,8 +7,6 @@ namespace winp::non_window{
 	public:
 		round_rectangle();
 
-		explicit round_rectangle(thread::object &thread);
-
 		explicit round_rectangle(tree &parent);
 
 		round_rectangle(tree &parent, std::size_t index);

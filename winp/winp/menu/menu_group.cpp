@@ -3,17 +3,12 @@
 #include "menu_group.h"
 #include "menu_check_item.h"
 
-winp::menu::radio_group::radio_group()
-	: radio_group(app::object::get_thread()){}
-
-winp::menu::radio_group::radio_group(thread::object &thread)
-	: tree(thread){}
+winp::menu::radio_group::radio_group() = default;
 
 winp::menu::radio_group::radio_group(ui::tree &parent)
 	: radio_group(parent, static_cast<std::size_t>(-1)){}
 
-winp::menu::radio_group::radio_group(ui::tree &parent, std::size_t index)
-	: radio_group(parent.get_thread()){
+winp::menu::radio_group::radio_group(ui::tree &parent, std::size_t index){
 	set_parent(&parent, index);
 }
 

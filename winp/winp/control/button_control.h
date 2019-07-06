@@ -28,9 +28,9 @@ namespace winp::control{
 		virtual const scale_type &get_scale(const std::function<void(const scale_type &)> &callback = nullptr) const;
 
 	protected:
-		explicit button(thread::object &thread);
+		button();
 
-		explicit button(thread::object &thread, const std::wstring &class_name, DWORD common_id);
+		explicit button(const std::wstring &class_name, DWORD common_id);
 
 		virtual DWORD get_filtered_styles_(bool is_extended) const override;
 

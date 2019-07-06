@@ -8,8 +8,6 @@ namespace winp::control{
 	public:
 		tool_tip();
 
-		explicit tool_tip(thread::object &thread);
-
 		explicit tool_tip(tree &parent);
 
 		tool_tip(tree &parent, std::size_t index);

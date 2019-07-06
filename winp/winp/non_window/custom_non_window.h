@@ -7,8 +7,6 @@ namespace winp::non_window{
 	public:
 		custom();
 
-		explicit custom(thread::object &thread);
-
 		explicit custom(tree &parent);
 
 		custom(tree &parent, std::size_t index);

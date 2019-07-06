@@ -3,17 +3,12 @@
 #include "menu_object.h"
 #include "menu_separator.h"
 
-winp::menu::separator::separator()
-	: separator(app::object::get_thread()){}
-
-winp::menu::separator::separator(thread::object &thread)
-	: item(thread){}
+winp::menu::separator::separator() = default;
 
 winp::menu::separator::separator(ui::tree &parent)
 	: separator(parent, static_cast<std::size_t>(-1)){}
 
-winp::menu::separator::separator(ui::tree &parent, std::size_t index)
-	: separator(parent.get_thread()){
+winp::menu::separator::separator(ui::tree &parent, std::size_t index){
 	set_parent(&parent, index);
 }
 
@@ -46,7 +41,7 @@ winp::menu::wrapped_separator::wrapped_separator(menu::object &parent, std::size
 }
 
 winp::menu::wrapped_separator::~wrapped_separator(){
-	destruct();
+	destruct_();
 }
 
 winp::utility::error_code winp::menu::wrapped_separator::create_(){

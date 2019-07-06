@@ -2,11 +2,7 @@
 
 #include "label_control.h"
 
-winp::control::label::label()
-	: label(app::object::get_thread()){}
-
-winp::control::label::label(thread::object &thread)
-	: button(thread, WC_STATICW, ICC_STANDARD_CLASSES){
+winp::control::label::label(){
 	add_event_handler_([this](events::hit_test &e){
 		e.prevent_default();
 		e.set_result_if_not_set(surface::absolute_hit_test_(e.get_position().x, e.get_position().y));
@@ -20,7 +16,7 @@ winp::control::label::label(tree &parent)
 	: label(parent, static_cast<std::size_t>(-1)){}
 
 winp::control::label::label(tree &parent, std::size_t index)
-	: label(parent.get_thread()){
+	: label(){
 	set_parent(&parent, index);
 }
 

@@ -16,8 +16,6 @@ namespace winp::menu{
 	public:
 		object();
 
-		explicit object(thread::object &thread);
-
 		virtual ~object();
 
 		virtual HMENU get_handle(const std::function<void(HMENU)> &callback = nullptr) const;
@@ -51,8 +49,6 @@ namespace winp::menu{
 	class popup : public object{
 	public:
 		popup();
-
-		explicit popup(thread::object &thread);
 
 		explicit popup(link_item &owner);
 
@@ -95,14 +91,14 @@ namespace winp::menu{
 
 	class wrapped_popup : public popup{
 	public:
-		wrapped_popup(thread::object &thread, HMENU target_handle);
+		explicit wrapped_popup(HMENU target_handle);
 
 		wrapped_popup(link_item &owner, HMENU target_handle);
 
 		virtual ~wrapped_popup();
 
 	protected:
-		explicit wrapped_popup(thread::object &thread);
+		wrapped_popup();
 
 		virtual bool should_generate_id_(menu::item &target) const override;
 
@@ -134,9 +130,7 @@ namespace winp::menu{
 	public:
 		virtual ~bar();
 
-		virtual const ui::window_surface &get_owner(const std::function<void(const ui::window_surface &)> &callback = nullptr) const;
-
-		virtual ui::window_surface &get_owner(const std::function<void(ui::window_surface &)> &callback = nullptr);
+		virtual ui::window_surface *get_owner(const std::function<void(ui::window_surface *)> &callback = nullptr) const;
 
 	protected:
 		friend class popup;
@@ -154,6 +148,6 @@ namespace winp::menu{
 
 		virtual utility::error_code destroy_handle_() override;
 
-		ui::window_surface &owner_;
+		ui::window_surface *owner_ = nullptr;
 	};
 }

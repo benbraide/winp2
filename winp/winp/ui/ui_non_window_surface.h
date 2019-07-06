@@ -8,8 +8,6 @@ namespace winp::ui{
 	public:
 		non_window_surface();
 
-		explicit non_window_surface(thread::object &thread);
-
 		explicit non_window_surface(tree &parent);
 
 		non_window_surface(tree &parent, std::size_t index);

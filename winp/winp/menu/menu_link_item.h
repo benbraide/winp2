@@ -5,7 +5,7 @@
 namespace winp::menu{
 	class link_item : public item{
 	public:
-		explicit link_item(thread::object &thread);
+		link_item();
 
 		explicit link_item(ui::tree &parent);
 

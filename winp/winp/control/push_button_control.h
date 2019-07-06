@@ -7,8 +7,6 @@ namespace winp::control{
 	public:
 		push_button();
 
-		explicit push_button(thread::object &thread);
-
 		explicit push_button(tree &parent);
 
 		push_button(tree &parent, std::size_t index);
@@ -26,8 +24,6 @@ namespace winp::control{
 	class default_push_button : public push_button{
 	public:
 		default_push_button();
-
-		explicit default_push_button(thread::object &thread);
 
 		explicit default_push_button(tree &parent);
 

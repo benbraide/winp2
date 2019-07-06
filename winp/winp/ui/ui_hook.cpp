@@ -7,7 +7,7 @@
 #include "ui_window_surface.h"
 
 winp::ui::hook::hook(object &target)
-	: item(target.get_thread()), target_(target){}
+	: target_(target){}
 
 winp::ui::hook::~hook() = default;
 

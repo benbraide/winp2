@@ -2,17 +2,12 @@
 
 #include "split_button_control.h"
 
-winp::control::split_button::split_button()
-	: split_button(app::object::get_thread()){}
-
-winp::control::split_button::split_button(thread::object &thread)
-	: push_button(thread){}
+winp::control::split_button::split_button() = default;
 
 winp::control::split_button::split_button(tree &parent)
 	: split_button(parent, static_cast<std::size_t>(-1)){}
 
-winp::control::split_button::split_button(tree &parent, std::size_t index)
-	: split_button(parent.get_thread()){
+winp::control::split_button::split_button(tree &parent, std::size_t index){
 	set_parent(&parent, index);
 }
 
@@ -37,17 +32,12 @@ SIZE winp::control::split_button::compute_additional_size_() const{
 	return SIZE{ 20, 0 };
 }
 
-winp::control::default_split_button::default_split_button()
-	: default_split_button(app::object::get_thread()){}
-
-winp::control::default_split_button::default_split_button(thread::object &thread)
-	: split_button(thread){}
+winp::control::default_split_button::default_split_button() = default;
 
 winp::control::default_split_button::default_split_button(tree &parent)
 	: default_split_button(parent, static_cast<std::size_t>(-1)){}
 
-winp::control::default_split_button::default_split_button(tree &parent, std::size_t index)
-	: default_split_button(parent.get_thread()){
+winp::control::default_split_button::default_split_button(tree &parent, std::size_t index){
 	set_parent(&parent, index);
 }
 

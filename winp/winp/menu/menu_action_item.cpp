@@ -3,17 +3,12 @@
 #include "menu_object.h"
 #include "menu_action_item.h"
 
-winp::menu::action_item::action_item()
-	: action_item(app::object::get_thread()){}
-
-winp::menu::action_item::action_item(thread::object &thread)
-	: item(thread){}
+winp::menu::action_item::action_item() = default;
 
 winp::menu::action_item::action_item(ui::tree &parent)
 	: action_item(parent, static_cast<std::size_t>(-1)){}
 
-winp::menu::action_item::action_item(ui::tree &parent, std::size_t index)
-	: action_item(parent.get_thread()){
+winp::menu::action_item::action_item(ui::tree &parent, std::size_t index){
 	set_parent(&parent, index);
 }
 
@@ -87,7 +82,7 @@ winp::menu::wrapped_action_item::wrapped_action_item(menu::object &parent, std::
 }
 
 winp::menu::wrapped_action_item::~wrapped_action_item(){
-	destruct();
+	destruct_();
 }
 
 winp::utility::error_code winp::menu::wrapped_action_item::create_(){

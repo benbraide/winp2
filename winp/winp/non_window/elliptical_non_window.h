@@ -7,8 +7,6 @@ namespace winp::non_window{
 	public:
 		ellipsis();
 
-		explicit ellipsis(thread::object &thread);
-
 		explicit ellipsis(tree &parent);
 
 		ellipsis(tree &parent, std::size_t index);
@@ -19,8 +17,6 @@ namespace winp::non_window{
 	class circle : public ellipsis{
 	public:
 		circle();
-
-		explicit circle(thread::object &thread);
 
 		explicit circle(tree &parent);
 

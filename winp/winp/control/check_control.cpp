@@ -3,11 +3,7 @@
 #include "check_control.h"
 #include "control_group.h"
 
-winp::control::check::check()
-	: check(app::object::get_thread()){}
-
-winp::control::check::check(thread::object &thread)
-	: push_button(thread){
+winp::control::check::check(){
 	add_event_handler_([this](events::click &e){
 		if (!is_radio_())//Toggle check state
 			set_checked_state_(!is_checked_);
@@ -35,7 +31,7 @@ winp::control::check::check(tree &parent)
 	: check(parent, static_cast<std::size_t>(-1)){}
 
 winp::control::check::check(tree &parent, std::size_t index)
-	: check(parent.get_thread()){
+	: check(){
 	set_parent(&parent, index);
 }
 
@@ -84,11 +80,7 @@ bool winp::control::check::is_radio_() const{
 	return (get_first_ancestor_of_<radio_group>(nullptr) != nullptr);
 }
 
-winp::control::three_state_check::three_state_check()
-	: three_state_check(app::object::get_thread()){}
-
-winp::control::three_state_check::three_state_check(thread::object &thread)
-	: push_button(thread){
+winp::control::three_state_check::three_state_check(){
 	add_event_handler_([this](events::click &e){
 		set_checked_state_(get_next_checked_state(checked_state_));
 	});
@@ -101,7 +93,7 @@ winp::control::three_state_check::three_state_check(tree &parent)
 	: three_state_check(parent, static_cast<std::size_t>(-1)){}
 
 winp::control::three_state_check::three_state_check(tree &parent, std::size_t index)
-	: three_state_check(parent.get_thread()){
+	: three_state_check(){
 	set_parent(&parent, index);
 }
 

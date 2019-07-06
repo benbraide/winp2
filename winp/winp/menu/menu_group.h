@@ -7,8 +7,6 @@ namespace winp::menu{
 	public:
 		radio_group();
 
-		explicit radio_group(thread::object &thread);
-
 		explicit radio_group(ui::tree &parent);
 
 		radio_group(ui::tree &parent, std::size_t index);

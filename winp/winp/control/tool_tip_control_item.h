@@ -13,8 +13,6 @@ namespace winp::control{
 	public:
 		tool_tip_item();
 
-		explicit tool_tip_item(thread::object &thread);
-
 		explicit tool_tip_item(ui::tree &parent);
 
 		tool_tip_item(ui::tree &parent, std::size_t index);
@@ -101,8 +99,6 @@ namespace winp::control{
 	class inplace_tool_tip_item : public tool_tip_item{
 	public:
 		inplace_tool_tip_item();
-
-		explicit inplace_tool_tip_item(thread::object &thread);
 
 		explicit inplace_tool_tip_item(ui::tree &parent);
 

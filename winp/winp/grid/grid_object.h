@@ -7,8 +7,6 @@ namespace winp::grid{
 	public:
 		object();
 
-		explicit object(thread::object &thread);
-
 		explicit object(ui::tree &parent);
 
 		object(ui::tree &parent, std::size_t index);

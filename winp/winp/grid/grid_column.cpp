@@ -2,11 +2,7 @@
 
 #include "grid_row.h"
 
-winp::grid::column::column()
-	: column(app::object::get_thread()){}
-
-winp::grid::column::column(thread::object &thread)
-	: custom(thread){
+winp::grid::column::column(){
 	add_event_handler_([this](events::create_non_window_handle &e) -> HRGN{
 		if ((e.get_states() & events::object::state_result_set) == 0u){
 			auto &current_size = get_current_size_();
@@ -30,13 +26,11 @@ winp::grid::column::column(ui::tree &parent)
 	: column(parent, static_cast<std::size_t>(-1)){}
 
 winp::grid::column::column(ui::tree &parent, std::size_t index)
-	: column(parent.get_thread()){
+	: column(){
 	set_parent(&parent, index);
 }
 
-winp::grid::column::~column(){
-	destruct();
-}
+winp::grid::column::~column() = default;
 
 winp::utility::error_code winp::grid::column::refresh(const std::function<void(column &, utility::error_code)> &callback){
 	return compute_or_post_task_inside_thread_context([=]{
@@ -70,17 +64,12 @@ winp::utility::error_code winp::grid::column::refresh_(){
 	return utility::error_code::nil;
 }
 
-winp::grid::fixed_column::fixed_column()
-	: fixed_column(app::object::get_thread()){}
-
-winp::grid::fixed_column::fixed_column(thread::object &thread)
-	: column(thread){}
+winp::grid::fixed_column::fixed_column() = default;
 
 winp::grid::fixed_column::fixed_column(ui::tree &parent)
 	: fixed_column(parent, static_cast<std::size_t>(-1)){}
 
-winp::grid::fixed_column::fixed_column(ui::tree &parent, std::size_t index)
-	: fixed_column(parent.get_thread()){
+winp::grid::fixed_column::fixed_column(ui::tree &parent, std::size_t index){
 	set_parent(&parent, index);
 }
 
@@ -102,17 +91,12 @@ bool winp::grid::fixed_column::is_fixed_() const{
 	return true;
 }
 
-winp::grid::proportional_column::proportional_column()
-	: proportional_column(app::object::get_thread()){}
-
-winp::grid::proportional_column::proportional_column(thread::object &thread)
-	: fixed_column(thread){}
+winp::grid::proportional_column::proportional_column() = default;
 
 winp::grid::proportional_column::proportional_column(ui::tree &parent)
 	: proportional_column(parent, static_cast<std::size_t>(-1)){}
 
-winp::grid::proportional_column::proportional_column(ui::tree &parent, std::size_t index)
-	: proportional_column(parent.get_thread()){
+winp::grid::proportional_column::proportional_column(ui::tree &parent, std::size_t index){
 	set_parent(&parent, index);
 }
 
@@ -145,17 +129,12 @@ winp::utility::error_code winp::grid::proportional_column::set_proportion_(float
 	return utility::error_code::nil;
 }
 
-winp::grid::proportional_shared_column::proportional_shared_column()
-	: proportional_shared_column(app::object::get_thread()){}
-
-winp::grid::proportional_shared_column::proportional_shared_column(thread::object &thread)
-	: column(thread){}
+winp::grid::proportional_shared_column::proportional_shared_column() = default;
 
 winp::grid::proportional_shared_column::proportional_shared_column(ui::tree &parent)
 	: proportional_shared_column(parent, static_cast<std::size_t>(-1)){}
 
-winp::grid::proportional_shared_column::proportional_shared_column(ui::tree &parent, std::size_t index)
-	: proportional_shared_column(parent.get_thread()){
+winp::grid::proportional_shared_column::proportional_shared_column(ui::tree &parent, std::size_t index){
 	set_parent(&parent, index);
 }
 

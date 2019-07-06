@@ -3,16 +3,13 @@
 #include "tool_tip_control.h"
 
 winp::control::tool_tip::tool_tip()
-	: tool_tip(app::object::get_thread()){}
-
-winp::control::tool_tip::tool_tip(thread::object &thread)
-	: object(thread, TOOLTIPS_CLASSW, ICC_TAB_CLASSES){}
+	: object(TOOLTIPS_CLASSW, ICC_TAB_CLASSES){}
 
 winp::control::tool_tip::tool_tip(tree &parent)
 	: tool_tip(parent, static_cast<std::size_t>(-1)){}
 
 winp::control::tool_tip::tool_tip(tree &parent, std::size_t index)
-	: tool_tip(parent.get_thread()){
+	: tool_tip(){
 	set_parent(&parent, index);
 }
 

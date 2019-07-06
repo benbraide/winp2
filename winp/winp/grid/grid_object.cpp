@@ -2,11 +2,7 @@
 
 #include "grid_object.h"
 
-winp::grid::object::object()
-	: object(app::object::get_thread()){}
-
-winp::grid::object::object(thread::object &thread)
-	: custom(thread){
+winp::grid::object::object(){
 	background_color_.a = 0.0f;
 	add_event_handler_([this](events::create_non_window_handle &e) -> HRGN{
 		if ((e.get_states() & events::object::state_result_set) == 0u){
@@ -31,7 +27,7 @@ winp::grid::object::object(ui::tree &parent)
 	: object(parent, static_cast<std::size_t>(-1)){}
 
 winp::grid::object::object(ui::tree &parent, std::size_t index)
-	: object(parent.get_thread()){
+	: object(){
 	set_parent(&parent, index);
 }
 

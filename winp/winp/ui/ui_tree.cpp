@@ -2,14 +2,10 @@
 
 #include "ui_tree.h"
 
-winp::ui::tree::tree()
-	: tree(app::object::get_thread()){}
-
-winp::ui::tree::tree(thread::object &thread)
-	: object(thread){}
+winp::ui::tree::tree() = default;
 
 winp::ui::tree::~tree(){
-	destruct();
+	destruct_();
 }
 
 winp::utility::error_code winp::ui::tree::add_child(object &child, const std::function<void(tree &, utility::error_code)> &callback){
@@ -78,7 +74,7 @@ void winp::ui::tree::traverse_all_offspring(const std::function<void(object &)> 
 	}, block);
 }
 
-winp::utility::error_code winp::ui::tree::destruct_(){
+void winp::ui::tree::before_destruct_(){
 	while (!children_.empty()){//Erase all children
 		if (erase_child_(0) != utility::error_code::nil){//Force erase
 			(*children_.begin())->parent_ = nullptr;
@@ -86,7 +82,7 @@ winp::utility::error_code winp::ui::tree::destruct_(){
 		}
 	}
 
-	return object::destruct_();
+	object::before_destruct_();
 }
 
 winp::utility::error_code winp::ui::tree::insert_child_(object &child, std::size_t index){

@@ -7,8 +7,6 @@ namespace winp::control{
 	public:
 		check();
 
-		explicit check(thread::object &thread);
-
 		explicit check(tree &parent);
 
 		check(tree &parent, std::size_t index);
@@ -42,8 +40,6 @@ namespace winp::control{
 		};
 
 		three_state_check();
-
-		explicit three_state_check(thread::object &thread);
 
 		explicit three_state_check(tree &parent);
 

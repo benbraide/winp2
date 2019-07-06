@@ -2,24 +2,17 @@
 
 #include "ui_window_surface.h"
 
-winp::ui::non_window_surface::non_window_surface()
-	: non_window_surface(app::object::get_thread()){}
-
-winp::ui::non_window_surface::non_window_surface(thread::object &thread)
-	: tree(thread){
-	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
-}
+winp::ui::non_window_surface::non_window_surface() = default;
 
 winp::ui::non_window_surface::non_window_surface(tree &parent)
 	: non_window_surface(parent, static_cast<std::size_t>(-1)){}
 
-winp::ui::non_window_surface::non_window_surface(tree &parent, std::size_t index)
-	: non_window_surface(parent.get_thread()){
+winp::ui::non_window_surface::non_window_surface(tree &parent, std::size_t index){
 	set_parent(&parent, index);
 }
 
 winp::ui::non_window_surface::~non_window_surface(){
-	destruct();
+	destruct_();
 }
 
 HRGN winp::ui::non_window_surface::get_handle(const std::function<void(HRGN)> &callback) const{
@@ -32,7 +25,7 @@ winp::utility::error_code winp::ui::non_window_surface::create_(){
 	if (is_created_())
 		return utility::error_code::nil;
 
-	if (is_destructed_)
+	if (is_destructed_())
 		return utility::error_code::object_destructed;
 
 	if (parent_ != nullptr)

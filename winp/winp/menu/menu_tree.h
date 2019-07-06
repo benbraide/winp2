@@ -9,8 +9,6 @@ namespace winp::menu{
 
 		tree();
 
-		explicit tree(thread::object &thread);
-
 		virtual ~tree();
 
 		virtual std::size_t get_items_count(const std::function<void(std::size_t)> &callback = nullptr) const;

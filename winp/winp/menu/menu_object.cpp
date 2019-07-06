@@ -6,11 +6,7 @@
 #include "menu_link_item.h"
 #include "menu_separator.h"
 
-winp::menu::object::object() 
-	: object(app::object::get_thread()){}
-
-winp::menu::object::object(thread::object &thread)
-	: tree(thread){
+winp::menu::object::object(){
 	add_event_handler_([this](events::menu_init &e){
 		e.do_default();
 
@@ -36,7 +32,7 @@ winp::menu::object::object(thread::object &thread)
 }
 
 winp::menu::object::~object(){
-	destruct();
+	destruct_();
 }
 
 HMENU winp::menu::object::get_handle(const std::function<void(HMENU)> &callback) const{
@@ -55,7 +51,7 @@ winp::utility::error_code winp::menu::object::create_(){
 	if (handle_ != nullptr)
 		return utility::error_code::nil;
 
-	if (is_destructed_)
+	if (is_destructed_())
 		return utility::error_code::object_destructed;
 
 	if ((handle_ = create_handle_()) == nullptr)
@@ -113,19 +109,13 @@ std::size_t winp::menu::object::get_items_count_before_() const{
 	return 0u;
 }
 
-winp::menu::popup::popup()
-	: popup(app::object::get_thread()){}
-
-winp::menu::popup::popup(thread::object &thread)
-	: object(thread){}
+winp::menu::popup::popup() = default;
 
 winp::menu::popup::popup(link_item &owner)
-	: object(owner.get_thread()){
-	owner_ = &owner;
-}
+	: owner_(&owner){}
 
 winp::menu::popup::~popup(){
-	destruct();
+	destruct_();
 }
 
 bool winp::menu::popup::is_system(const std::function<void(bool)> &callback) const{
@@ -201,24 +191,23 @@ void winp::menu::popup::clear_modified_list_(){
 	}
 }
 
-winp::menu::wrapped_popup::wrapped_popup(thread::object &thread)
-	: popup(thread){}
+winp::menu::wrapped_popup::wrapped_popup() = default;
 
-winp::menu::wrapped_popup::wrapped_popup(thread::object &thread, HMENU target_handle)
-	: wrapped_popup(thread){
+winp::menu::wrapped_popup::wrapped_popup(HMENU target_handle){
 	handle_ = target_handle;
 	wrap_();
 }
 
-winp::menu::wrapped_popup::wrapped_popup(link_item &owner, HMENU target_handle)
-	: wrapped_popup(owner.get_thread()){
-	handle_ = target_handle;
-	owner_ = &owner;
-	wrap_();
+winp::menu::wrapped_popup::wrapped_popup(link_item &owner, HMENU target_handle){
+	if (&owner.get_thread() == &thread_){
+		handle_ = target_handle;
+		owner_ = &owner;
+		wrap_();
+	}
 }
 
 winp::menu::wrapped_popup::~wrapped_popup(){
-	destruct();
+	destruct_();
 }
 
 bool winp::menu::wrapped_popup::should_generate_id_(menu::item &target) const{
@@ -310,19 +299,26 @@ void winp::menu::wrapped_popup::wrap_(){
 	is_wrapping_ = false;
 }
 
-winp::menu::system_popup::system_popup(ui::window_surface &owner)
-	: wrapped_popup(owner.get_thread()){
-	owner_ = &owner;
+winp::menu::system_popup::system_popup(ui::window_surface &owner){
+	if (&owner.get_thread() == &thread_)
+		owner_ = &owner;
 }
 
 winp::menu::system_popup::~system_popup() = default;
 
 HMENU winp::menu::system_popup::create_handle_(){
-	if (auto owner_handle = dynamic_cast<ui::window_surface *>(owner_)->get_handle(); owner_handle != nullptr){
-		GetSystemMenu(owner_handle, TRUE);//Reset menu
-		handle_ = GetSystemMenu(owner_handle, FALSE);
-		wrap_();
-	}
+	auto window_owner = dynamic_cast<ui::window_surface *>(owner_);
+	if (window_owner == nullptr)
+		return nullptr;
+
+	window_owner->auto_create();
+	auto owner_handle = window_owner->get_handle();
+	if (owner_handle == nullptr)
+		return nullptr;
+
+	GetSystemMenu(owner_handle, TRUE);//Reset menu
+	handle_ = GetSystemMenu(owner_handle, FALSE);
+	wrap_();
 
 	return handle_;
 }
@@ -339,59 +335,71 @@ bool winp::menu::system_popup::is_sub_() const{
 	return false;
 }
 
-winp::menu::bar::bar(ui::window_surface &owner)
-	: object(owner.get_thread()), owner_(owner){}
+winp::menu::bar::bar(ui::window_surface &owner){
+	if (&owner.get_thread() == &thread_)
+		owner_ = &owner;
+}
 
 winp::menu::bar::~bar(){
-	destruct();
+	destruct_();
 }
 
-const winp::ui::window_surface &winp::menu::bar::get_owner(const std::function<void(const ui::window_surface &)> &callback) const{
-	return *compute_or_post_task_inside_thread_context([=]{
-		return &pass_return_ref_value_to_callback(callback, &owner_);
-	}, (callback != nullptr), &owner_);
-}
-
-winp::ui::window_surface &winp::menu::bar::get_owner(const std::function<void(ui::window_surface &)> &callback){
-	return *compute_or_post_task_inside_thread_context([=]{
-		return &pass_return_ref_value_to_callback(callback, &owner_);
-	}, (callback != nullptr), &owner_);
+winp::ui::window_surface *winp::menu::bar::get_owner(const std::function<void(ui::window_surface *)> &callback) const{
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, owner_);
+	}, (callback != nullptr), nullptr);
 }
 
 void winp::menu::bar::child_inserted_(ui::object &child){
 	object::child_inserted_(child);
-	if (auto owner_handle = owner_.get_handle(); owner_handle != nullptr && handle_ != nullptr)
+	if (owner_ == nullptr)
+		return;
+
+	if (auto owner_handle = owner_->get_handle(); owner_handle != nullptr && handle_ != nullptr)
 		DrawMenuBar(owner_handle);
 }
 
 void winp::menu::bar::child_erased_(ui::object &child){
-	if (auto owner_handle = owner_.get_handle(); owner_handle != nullptr && handle_ != nullptr)
+	if (owner_ == nullptr)
+		return object::child_erased_(child);
+
+	if (auto owner_handle = owner_->get_handle(); owner_handle != nullptr && handle_ != nullptr)
 		DrawMenuBar(owner_handle);
+
 	object::child_erased_(child);
 }
 
 winp::ui::object *winp::menu::bar::get_target_() const{
-	return &owner_;
+	return owner_;
 }
 
 HMENU winp::menu::bar::create_handle_(){
+	if (owner_ == nullptr)
+		return nullptr;
+
+	owner_->auto_create();
+	auto owner_handle = owner_->get_handle();
+	if (owner_handle == nullptr)
+		return nullptr;
+
 	auto value = CreateMenu();
 	if (value == nullptr)
 		return nullptr;
 
-	if (auto owner_handle = owner_.get_handle(); owner_handle != nullptr){
-		SetMenu(owner_handle, value);
-		DrawMenuBar(owner_handle);
-	}
+	SetMenu(owner_handle, value);
+	DrawMenuBar(owner_handle);
 
 	return value;
 }
 
 winp::utility::error_code winp::menu::bar::destroy_handle_(){
+	if (owner_ == nullptr)
+		return utility::error_code::nil;
+
 	if (DestroyMenu(handle_) == FALSE)
 		return utility::error_code::action_could_not_be_completed;
 
-	if (auto owner_handle = owner_.get_handle(); owner_handle != nullptr)
+	if (auto owner_handle = owner_->get_handle(); owner_handle != nullptr)
 		SetMenu(owner_handle, nullptr);
 
 	return utility::error_code::nil;

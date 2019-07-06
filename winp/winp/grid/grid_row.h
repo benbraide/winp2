@@ -9,8 +9,6 @@ namespace winp::grid{
 	public:
 		row();
 
-		explicit row(thread::object &thread);
-
 		explicit row(ui::tree &parent);
 
 		row(ui::tree &parent, std::size_t index);
@@ -48,8 +46,6 @@ namespace winp::grid{
 	public:
 		fixed_row();
 
-		explicit fixed_row(thread::object &thread);
-
 		explicit fixed_row(ui::tree &parent);
 
 		fixed_row(ui::tree &parent, std::size_t index);
@@ -67,8 +63,6 @@ namespace winp::grid{
 	class proportional_row : public fixed_row{
 	public:
 		proportional_row();
-
-		explicit proportional_row(thread::object &thread);
 
 		explicit proportional_row(ui::tree &parent);
 
@@ -91,8 +85,6 @@ namespace winp::grid{
 	class proportional_shared_row : public row{
 	public:
 		proportional_shared_row();
-
-		explicit proportional_shared_row(thread::object &thread);
 
 		explicit proportional_shared_row(ui::tree &parent);
 

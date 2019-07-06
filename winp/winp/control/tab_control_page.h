@@ -9,8 +9,6 @@ namespace winp::control{
 	public:
 		tab_page();
 
-		explicit tab_page(thread::object &thread);
-
 		explicit tab_page(ui::tree &parent);
 
 		tab_page(ui::tree &parent, std::size_t index);

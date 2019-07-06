@@ -7,8 +7,6 @@ namespace winp::menu{
 	public:
 		action_item();
 
-		explicit action_item(thread::object &thread);
-
 		explicit action_item(ui::tree &parent);
 
 		action_item(ui::tree &parent, std::size_t index);

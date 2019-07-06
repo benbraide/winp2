@@ -14,7 +14,7 @@ namespace winp::control{
 	protected:
 		friend class thread::item_manager;
 
-		object(thread::object &thread, const std::wstring &class_name, DWORD common_id);
+		object(const std::wstring &class_name, DWORD common_id);
 
 		virtual bool is_dialog_message_(MSG &msg) const override;
 

@@ -2,11 +2,7 @@
 
 #include "ui_tree.h"
 
-winp::ui::object::object()
-	: object(app::object::get_thread()){}
-
-winp::ui::object::object(thread::object &thread)
-	: item(thread){
+winp::ui::object::object(){
 	insert_hook<ui::auto_create_hook>();
 }
 
@@ -14,12 +10,12 @@ winp::ui::object::object(tree &parent)
 	: object(parent, static_cast<std::size_t>(-1)){}
 
 winp::ui::object::object(tree &parent, std::size_t index)
-	: object(parent.thread_){
+	: object(){
 	set_parent(&parent, index);
 }
 
 winp::ui::object::~object(){
-	destruct();
+	destruct_();
 }
 
 winp::utility::error_code winp::ui::object::create(const std::function<void(object &, utility::error_code)> &callback){
@@ -157,14 +153,14 @@ bool winp::ui::object::is_dialog_message(MSG &msg) const{
 	});
 }
 
-winp::utility::error_code winp::ui::object::destruct_(){
+void winp::ui::object::before_destruct_(){
 	destroy_();
 	if (parent_ != nullptr){//Remove parent
 		set_parent_(nullptr, static_cast<std::size_t>(-1));
 		parent_ = nullptr;
 	}
 
-	return item::destruct_();
+	item::before_destruct_();
 }
 
 winp::utility::error_code winp::ui::object::create_(){

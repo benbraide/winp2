@@ -2,11 +2,11 @@
 
 #include "button_control.h"
 
-winp::control::button::button(thread::object &thread)
-	: button(thread, WC_BUTTONW, ICC_STANDARD_CLASSES){}
+winp::control::button::button()
+	: button(WC_BUTTONW, ICC_STANDARD_CLASSES){}
 
-winp::control::button::button(thread::object &thread, const std::wstring &class_name, DWORD common_id)
-	: object(thread, class_name, common_id){}
+winp::control::button::button(const std::wstring &class_name, DWORD common_id)
+	: object(class_name, common_id){}
 
 winp::control::button::~button() = default;
 

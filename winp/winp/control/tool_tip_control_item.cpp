@@ -2,22 +2,17 @@
 
 #include "tool_tip_control.h"
 
-winp::control::tool_tip_item::tool_tip_item()
-	: tool_tip_item(app::object::get_thread()){}
-
-winp::control::tool_tip_item::tool_tip_item(thread::object &thread)
-	: object(thread){}
+winp::control::tool_tip_item::tool_tip_item() = default;
 
 winp::control::tool_tip_item::tool_tip_item(ui::tree &parent)
 	: tool_tip_item(parent, static_cast<std::size_t>(-1)){}
 
-winp::control::tool_tip_item::tool_tip_item(ui::tree &parent, std::size_t index)
-	: tool_tip_item(parent.get_thread()){
+winp::control::tool_tip_item::tool_tip_item(ui::tree &parent, std::size_t index){
 	set_parent(&parent, index);
 }
 
 winp::control::tool_tip_item::~tool_tip_item(){
-	destruct();
+	destruct_();
 }
 
 winp::utility::error_code winp::control::tool_tip_item::set_target(ui::object &value, const std::function<void(tool_tip_item &, utility::error_code)> &callback){
@@ -84,7 +79,7 @@ winp::utility::error_code winp::control::tool_tip_item::create_(){
 	if (handle_ != nullptr)
 		return utility::error_code::nil;
 
-	if (is_destructed_)
+	if (is_destructed_())
 		return utility::error_code::object_destructed;
 
 	auto tool_tip_parent = dynamic_cast<tool_tip *>(parent_);
@@ -382,11 +377,7 @@ void winp::control::tool_tip_item::compute_values_(bool target_changed){
 	}, this);
 }
 
-winp::control::inplace_tool_tip_item::inplace_tool_tip_item()
-	: inplace_tool_tip_item(app::object::get_thread()){}
-
-winp::control::inplace_tool_tip_item::inplace_tool_tip_item(thread::object &thread)
-	: tool_tip_item(thread){
+winp::control::inplace_tool_tip_item::inplace_tool_tip_item(){
 	add_event_handler_([this](events::show &e){
 		if (handle_ == nullptr || target_ == nullptr)
 			return;
@@ -412,7 +403,7 @@ winp::control::inplace_tool_tip_item::inplace_tool_tip_item(ui::tree &parent)
 	: inplace_tool_tip_item(parent, static_cast<std::size_t>(-1)){}
 
 winp::control::inplace_tool_tip_item::inplace_tool_tip_item(ui::tree &parent, std::size_t index)
-	: inplace_tool_tip_item(parent.get_thread()){
+	: inplace_tool_tip_item(){
 	set_parent(&parent, index);
 }
 

@@ -2,17 +2,12 @@
 
 #include "command_link_control.h"
 
-winp::control::command_link::command_link()
-	: command_link(app::object::get_thread()){}
-
-winp::control::command_link::command_link(thread::object &thread)
-	: push_button(thread){}
+winp::control::command_link::command_link() = default;
 
 winp::control::command_link::command_link(tree &parent)
 	: command_link(parent, static_cast<std::size_t>(-1)){}
 
-winp::control::command_link::command_link(tree &parent, std::size_t index)
-	: command_link(parent.get_thread()){
+winp::control::command_link::command_link(tree &parent, std::size_t index){
 	set_parent(&parent, index);
 }
 

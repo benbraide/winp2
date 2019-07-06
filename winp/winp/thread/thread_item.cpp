@@ -2,37 +2,23 @@
 #include "../app/app_object.h"
 
 winp::thread::item::item()
-	: item(app::object::get_thread()){}
-
-winp::thread::item::item(object &thread)
-	: thread_(thread), id_(reinterpret_cast<unsigned __int64>(this)), scope_thread_id_(std::this_thread::get_id()), local_scope_thread_id_(GetCurrentThreadId()){
-	thread_.get_queue().execute_task([this]{
-		thread_.add_item_(*this);
-	}, queue::urgent_task_priority, id_);
+	: thread_(app::object::get_thread()), id_(reinterpret_cast<unsigned __int64>(this)){
+	thread_.add_item_(*this);
 }
 
 winp::thread::item::~item(){
-	destruct();
+	destruct_();
 }
 
 winp::utility::error_code winp::thread::item::destruct(const std::function<void(item &, utility::error_code)> &callback){
 	return compute_or_post_task_inside_thread_context([=]{
-		if (is_destructed_)
-			return utility::error_code::nil;
-
-		is_destructed_ = true;
-		auto error_code = destruct_();
-
-		if (error_code == utility::error_code::nil)
-			trigger_event_<events::destruct>();
-
-		return pass_return_value_to_callback(callback, *this, error_code);
+		return pass_return_value_to_callback(callback, *this, destruct_());
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
 bool winp::thread::item::is_destructed(const std::function<void(bool)> &callback) const{
 	return compute_or_post_task_inside_thread_context([=]{
-		return pass_return_value_to_callback(callback, is_destructed_);
+		return pass_return_value_to_callback(callback, is_destructed_());
 	}, (callback != nullptr), false);
 }
 
@@ -45,27 +31,21 @@ winp::thread::object &winp::thread::item::get_thread(){
 }
 
 const winp::thread::queue &winp::thread::item::get_thread_queue() const{
-	return thread_.get_queue();
+	return thread_.queue_;
 }
 
 winp::thread::queue &winp::thread::item::get_thread_queue(){
-	return thread_.get_queue();
+	return thread_.queue_;
 }
 
-unsigned __int64 winp::thread::item::get_id() const{
-	return id_;
+unsigned __int64 winp::thread::item::get_id(const std::function<void(unsigned __int64)> &callback) const{
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, id_);
+	}, (callback != nullptr), 0u);
 }
 
-std::thread::id winp::thread::item::get_scope_thread_id() const{
-	return scope_thread_id_;
-}
-
-DWORD winp::thread::item::get_local_scope_thread_id() const{
-	return local_scope_thread_id_;
-}
-
-bool winp::thread::item::is_cross_thread() const{
-	return (local_scope_thread_id_ != thread_.local_id_);
+bool winp::thread::item::is_thread_context() const{
+	return thread_.is_thread_context();
 }
 
 void winp::thread::item::execute_task_inside_thread_context(const std::function<void()> &task) const{
@@ -96,13 +76,27 @@ winp::thread::item::event_manager_type &winp::thread::item::events(){
 }
 
 winp::utility::error_code winp::thread::item::destruct_(){
-	if (!thread_.is_thread_context())
-		return utility::error_code::outside_thread_context;
+	if (id_ == 0u)
+		return utility::error_code::nil;
 
-	thread_.get_queue().add_id_to_black_list(id_);
+	before_destruct_();
+	trigger_event_<events::destruct>();
+
+	thread_.queue_.add_id_to_black_list(id_);
 	thread_.remove_item_(*this);
 
+	id_ = 0u;
+	after_destruct_();
+
 	return utility::error_code::nil;
+}
+
+void winp::thread::item::before_destruct_(){}
+
+void winp::thread::item::after_destruct_(){}
+
+bool winp::thread::item::is_destructed_() const{
+	return (id_ == 0u);
 }
 
 bool winp::thread::item::event_is_supported_(event_manager_type::key_type key) const{

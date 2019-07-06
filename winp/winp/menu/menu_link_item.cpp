@@ -3,8 +3,7 @@
 #include "menu_object.h"
 #include "menu_link_item.h"
 
-winp::menu::link_item::link_item(thread::object &thread)
-	: item(thread){
+winp::menu::link_item::link_item(){
 	target_ = std::make_shared<popup>(*this);
 }
 
@@ -12,7 +11,7 @@ winp::menu::link_item::link_item(ui::tree &parent)
 	: link_item(parent, static_cast<std::size_t>(-1)){}
 
 winp::menu::link_item::link_item(ui::tree &parent, std::size_t index)
-	: link_item(parent.get_thread()){
+	: link_item(){
 	set_parent(&parent, index);
 }
 
@@ -95,7 +94,7 @@ winp::menu::wrapped_link_item::wrapped_link_item(menu::object &parent, std::size
 }
 
 winp::menu::wrapped_link_item::~wrapped_link_item(){
-	destruct();
+	destruct_();
 }
 
 winp::utility::error_code winp::menu::wrapped_link_item::create_(){

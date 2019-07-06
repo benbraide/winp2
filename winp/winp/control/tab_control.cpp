@@ -3,10 +3,7 @@
 #include "tab_control.h"
 
 winp::control::tab::tab()
-	: tab(app::object::get_thread()){}
-
-winp::control::tab::tab(thread::object &thread)
-	: object(thread, WC_TABCONTROLW, ICC_TAB_CLASSES){
+	: object(WC_TABCONTROLW, ICC_TAB_CLASSES){
 	insert_hook<ui::parent_fill_hook>();
 	insert_hook<ui::placement_hook>(ui::placement_hook::alignment_type::top_left);
 }
@@ -15,7 +12,7 @@ winp::control::tab::tab(tree &parent)
 	: tab(parent, static_cast<std::size_t>(-1)){}
 
 winp::control::tab::tab(tree &parent, std::size_t index)
-	: tab(parent.get_thread()){
+	: tab(){
 	set_parent(&parent, index);
 }
 

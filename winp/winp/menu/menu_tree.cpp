@@ -3,11 +3,7 @@
 #include "menu_object.h"
 #include "menu_link_item.h"
 
-winp::menu::tree::tree()
-	: tree(app::object::get_thread()){}
-
-winp::menu::tree::tree(thread::object &thread)
-	: ui_tree_type(thread){
+winp::menu::tree::tree(){
 	add_event_handler_([this](events::children_change &e){
 		if (e.is_changing() && e.get_action() == events::children_change::action_type::insert && dynamic_cast<menu::item *>(&e.get_value()) == nullptr && dynamic_cast<menu::tree *>(&e.get_value()) == nullptr)
 			e.prevent_default();//Menu Item or Tree required

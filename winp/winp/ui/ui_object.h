@@ -13,8 +13,6 @@ namespace winp::ui{
 
 		object();
 
-		explicit object(thread::object &thread);
-
 		explicit object(tree &parent);
 
 		object(tree &parent, std::size_t index);
@@ -162,7 +160,7 @@ namespace winp::ui{
 		friend class visible_surface;
 		friend class thread::item_manager;
 
-		virtual utility::error_code destruct_() override;
+		virtual void before_destruct_() override;
 
 		virtual utility::error_code create_();
 

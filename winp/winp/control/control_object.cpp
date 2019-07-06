@@ -2,8 +2,8 @@
 
 #include "control_object.h"
 
-winp::control::object::object(thread::object &thread, const std::wstring &class_name, DWORD common_id)
-	: window_surface(thread), class_name_(class_name){
+winp::control::object::object(const std::wstring &class_name, DWORD common_id)
+	: class_name_(class_name){
 	styles_ |= WS_TABSTOP;
 	thread_.init_control(class_name_, common_id);
 	add_event_handler_([this](events::create &e){

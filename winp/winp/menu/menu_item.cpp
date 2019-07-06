@@ -2,22 +2,17 @@
 
 #include "menu_object.h"
 
-winp::menu::item::item()
-	: item(app::object::get_thread()){}
-
-winp::menu::item::item(thread::object &thread)
-	: object(thread){}
+winp::menu::item::item() = default;
 
 winp::menu::item::item(tree &parent)
 	: item(parent, static_cast<std::size_t>(-1)){}
 
-winp::menu::item::item(tree &parent, std::size_t index)
-	: item(parent.get_thread()){
+winp::menu::item::item(tree &parent, std::size_t index){
 	set_parent(&parent, index);
 }
 
 winp::menu::item::~item(){
-	destruct();
+	destruct_();
 }
 
 UINT winp::menu::item::get_local_id(const std::function<void(UINT)> &callback) const{
@@ -127,11 +122,11 @@ winp::utility::error_code winp::menu::item::create_(){
 	if (handle_ != nullptr)
 		return utility::error_code::nil;
 
-	if (is_destructed_)
+	if (is_destructed_())
 		return utility::error_code::object_destructed;
 
 	auto object_parent = dynamic_cast<menu::object *>(parent_);
-	if (object_parent != nullptr)
+	if (object_parent == nullptr)
 		return utility::error_code::parent_not_created;
 
 	object_parent->auto_create();

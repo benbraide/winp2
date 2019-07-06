@@ -14,8 +14,6 @@ namespace winp::menu{
 	public:
 		item();
 
-		explicit item(thread::object &thread);
-
 		explicit item(tree &parent);
 
 		item(tree &parent, std::size_t index);

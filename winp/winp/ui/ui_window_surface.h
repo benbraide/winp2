@@ -13,8 +13,6 @@ namespace winp::ui{
 
 		window_surface();
 
-		explicit window_surface(thread::object &thread);
-
 		explicit window_surface(tree &parent);
 
 		window_surface(tree &parent, std::size_t index);

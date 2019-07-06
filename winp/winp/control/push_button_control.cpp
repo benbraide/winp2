@@ -2,17 +2,12 @@
 
 #include "push_button_control.h"
 
-winp::control::push_button::push_button()
-	: push_button(app::object::get_thread()){}
-
-winp::control::push_button::push_button(thread::object &thread)
-	: button(thread){}
+winp::control::push_button::push_button() = default;
 
 winp::control::push_button::push_button(tree &parent)
 	: push_button(parent, static_cast<std::size_t>(-1)){}
 
-winp::control::push_button::push_button(tree &parent, std::size_t index)
-	: push_button(parent.get_thread()){
+winp::control::push_button::push_button(tree &parent, std::size_t index){
 	set_parent(&parent, index);
 }
 
@@ -39,17 +34,12 @@ LRESULT winp::control::push_button::dispatch_command_(MSG &msg) const{
 	return button::dispatch_command_(msg);
 }
 
-winp::control::default_push_button::default_push_button()
-	: default_push_button(app::object::get_thread()){}
-
-winp::control::default_push_button::default_push_button(thread::object &thread)
-	: push_button(thread){}
+winp::control::default_push_button::default_push_button() = default;
 
 winp::control::default_push_button::default_push_button(tree &parent)
 	: default_push_button(parent, static_cast<std::size_t>(-1)){}
 
-winp::control::default_push_button::default_push_button(tree &parent, std::size_t index)
-	: default_push_button(parent.get_thread()){
+winp::control::default_push_button::default_push_button(tree &parent, std::size_t index){
 	set_parent(&parent, index);
 }
 

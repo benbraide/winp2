@@ -3,11 +3,7 @@
 #include "menu_group.h"
 #include "menu_check_item.h"
 
-winp::menu::check_item::check_item()
-	: check_item(app::object::get_thread()){}
-
-winp::menu::check_item::check_item(thread::object &thread)
-	: action_item(thread){
+winp::menu::check_item::check_item(){
 	add_event_handler_([this](events::menu_item_select &e){
 		if ((get_types_() & MFT_RADIOCHECK) == 0u)//Toggle check state
 			set_checked_state_((get_states_() & MFS_CHECKED) == 0u);
@@ -32,7 +28,7 @@ winp::menu::check_item::check_item(ui::tree &parent)
 	: check_item(parent, static_cast<std::size_t>(-1)){}
 
 winp::menu::check_item::check_item(ui::tree &parent, std::size_t index)
-	: check_item(parent.get_thread()){
+	: check_item(){
 	set_parent(&parent, index);
 }
 

@@ -24,8 +24,6 @@ namespace winp::thread{
 
 		item();
 
-		explicit item(object &thread);
-
 		virtual ~item();
 
 		item(const item &) = delete;
@@ -44,13 +42,9 @@ namespace winp::thread{
 
 		virtual queue &get_thread_queue();
 
-		virtual unsigned __int64 get_id() const;
+		virtual unsigned __int64 get_id(const std::function<void(unsigned __int64)> &callback = nullptr) const;
 
-		virtual std::thread::id get_scope_thread_id() const;
-
-		virtual DWORD get_local_scope_thread_id() const;
-
-		virtual bool is_cross_thread() const;
+		virtual bool is_thread_context() const;
 
 		virtual void execute_task_inside_thread_context(const std::function<void()> &task) const;
 
@@ -116,6 +110,12 @@ namespace winp::thread{
 		friend class ui::mouse_hover_hook;
 
 		virtual utility::error_code destruct_();
+
+		virtual void before_destruct_();
+
+		virtual void after_destruct_();
+
+		virtual bool is_destructed_() const;
 
 		virtual bool event_is_supported_(event_manager_type::key_type key) const;
 
@@ -255,10 +255,6 @@ namespace winp::thread{
 		object &thread_;
 		unsigned __int64 id_;
 
-		std::thread::id scope_thread_id_;
-		DWORD local_scope_thread_id_;
-
-		bool is_destructed_ = false;
 		event_manager_type events_manager_{ *this };
 		event_manager_type event_handlers_{ *this };
 	};
