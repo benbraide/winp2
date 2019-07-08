@@ -2,7 +2,8 @@
 
 #include "label_control.h"
 
-winp::control::label::label(){
+winp::control::label::label()
+	: button(WC_STATICW, ICC_STANDARD_CLASSES){
 	add_event_handler_([this](events::hit_test &e){
 		e.prevent_default();
 		e.set_result_if_not_set(surface::absolute_hit_test_(e.get_position().x, e.get_position().y));

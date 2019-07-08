@@ -12,6 +12,28 @@ void winp::test::control::run(int cmd_show){
 	ws.add_object([&](winp::control::tab &tab){
 		tab.add_object([&](winp::control::tab_page &page){
 			page.set_title(L"Buttons");
+
+			page.add_object([&](winp::control::split_button &btn){
+				btn.set_text(L"Split Button");
+				btn.set_position(30, 20);
+				btn.insert_hook<ui::drag_hook>();
+
+				btn.events().bind([](events::split_button_menu &e){
+					e.get_popup().add_object([](winp::menu::action_item &item){
+						item.set_text(L"First SBM Item");
+					});
+
+					e.get_popup().add_object([](winp::menu::action_item &item){
+						item.set_text(L"Second SBM Item");
+					});
+
+					e.get_popup().add_object([](winp::menu::separator &item){});
+
+					e.get_popup().add_object([](winp::menu::action_item &item){
+						item.set_text(L"Last SBM Item");
+					});
+				});
+			});
 		});
 
 		tab.add_object([&](winp::control::tab_page &page){
@@ -66,6 +88,12 @@ void winp::test::control::run(int cmd_show){
 
 		tab.add_object([](winp::control::tab_page &page){
 			page.set_title(L"Text IO");
+
+			page.add_object([&](winp::control::label &lbl){
+				lbl.set_text(L"Label Text");
+				lbl.set_position(30, 20);
+				lbl.insert_hook<ui::drag_hook>();
+			});
 		});
 
 		tab.add_object([](winp::control::tab_page &page){

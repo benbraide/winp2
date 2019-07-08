@@ -77,6 +77,13 @@ namespace winp::events{
 			: context_menu_base(std::forward<args_types>(args)...){}
 	};
 
+	class get_split_button_menu_position : public get_context_menu_position{
+	public:
+		template <typename... args_types>
+		explicit get_split_button_menu_position(args_types &&... args)
+			: get_context_menu_position(std::forward<args_types>(args)...){}
+	};
+
 	class context_menu : public context_menu_base{
 	public:
 		template <typename... args_types>

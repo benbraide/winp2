@@ -5,6 +5,10 @@
 #include "../window/window_object.h"
 #include "../non_window/rectangular_non_window.h"
 
+#include "../menu/menu_action_item.h"
+#include "../menu/menu_link_item.h"
+#include "../menu/menu_separator.h"
+
 #include "../control/push_button_control.h"
 #include "../control/split_button_control.h"
 #include "../control/command_link_control.h"

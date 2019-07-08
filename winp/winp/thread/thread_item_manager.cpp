@@ -821,31 +821,34 @@ LRESULT winp::thread::item_manager::context_menu_(item &target, MSG &msg){
 	ui::object *mouse_target = nullptr;
 	std::pair<unsigned int, LRESULT> result_info;
 	
-	if (mouse_.full_feature_enabled){
+	if (mouse_.full_feature_enabled && msg.message == WM_CONTEXTMENU){
 		for (mouse_target = mouse_.target; mouse_target != nullptr; mouse_target = mouse_target->get_parent_()){
 			auto visible_ancestor = dynamic_cast<ui::visible_surface *>(mouse_target);
 			if (visible_ancestor == nullptr || !visible_ancestor->is_visible() || !mouse_target->has_hook_<ui::io_hook>())
 				continue;
 
 			result_info = trigger_event_with_target_<events::context_menu>(*mouse_target, *mouse_.target, *active_context_menu_, msg, nullptr);
-			if ((result_info.first & events::object::state_default_prevented) != 0u)
-				return 0;//Default prevented
-
-			if (result_info.second != 0 || (result_info.first & events::object::state_propagation_stopped) != 0u || GetMenuItemCount(active_context_menu_->get_handle()) != 0)
-				break;//Propagation stopped
+			if (result_info.second != 0 || (result_info.first & (events::object::state_default_prevented | events::object::state_propagation_stopped)) != 0u || GetMenuItemCount(active_context_menu_->get_handle()) != 0)
+				break;//Result set OR Default prevented OR Propagation stopped OR Empty menu
 		}
 	}
-	else{//Simple
-		result_info = trigger_event_<events::context_menu>(*(mouse_target = window_target), *dynamic_cast<menu::popup *>(active_context_menu_.get()), msg, thread_.get_class_entry_(window_target->get_class_name()));
-		if ((result_info.first & events::object::state_default_prevented) != 0u)
-			return 0;//Default prevented
-	}
+	else if (msg.message == WM_CONTEXTMENU)//Simple
+		result_info = trigger_event_<events::context_menu>(*(mouse_target = window_target), *active_context_menu_, msg, thread_.get_class_entry_(window_target->get_class_name()));
+	else//Split button menu
+		result_info = trigger_event_<events::split_button_menu>(*(mouse_target = window_target), *active_context_menu_, msg, thread_.get_class_entry_(window_target->get_class_name()));
+
+	if ((result_info.first & events::object::state_default_prevented) != 0u)
+		return 0;//Default prevented
 
 	if (mouse_target == nullptr || (result_info.second == 0 && GetMenuItemCount(active_context_menu_->get_handle()) == 0))
 		return 0;//No response
 
-	if (position.x == -1 && position.y == -1){//Retrieve position
+	if (msg.message == WM_CONTEXTMENU && position.x == -1 && position.y == -1){//Retrieve position
 		auto value = trigger_event_with_target_<events::get_context_menu_position>(*mouse_target, *mouse_.target, msg, nullptr).second;
+		position = POINT{ GET_X_LPARAM(value), GET_Y_LPARAM(value) };
+	}
+	else if (msg.message != WM_CONTEXTMENU){//Retrieve position for split button menu
+		auto value = trigger_event_with_target_<events::get_split_button_menu_position>(*mouse_target, *mouse_.target, msg, nullptr).second;
 		position = POINT{ GET_X_LPARAM(value), GET_Y_LPARAM(value) };
 	}
 
