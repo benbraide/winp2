@@ -218,7 +218,7 @@ namespace winp::events{
 			if ((handler_list.second & state_disable_bounding) != 0u)
 				return 0u;//Bounding disabled
 
-			handler_list.first.push_back(handler_info{
+			handler_list.first.push_front(handler_info{
 				id,
 				handler_object
 			});
@@ -276,14 +276,18 @@ namespace winp::events{
 			std::size_t index = 0u;
 			std::list<std::size_t> unbind_list;
 
+			auto executed = false, unbind_on_exit = false;
 			for (auto &handler_info : it->second.first){
 				if (id != 0u && handler_info.id != id)
 					continue;
 
 				handler_info.handler->call(e);
-				if ((e.states_ & object::state_unbind_on_exit) != 0u){//Unbind
-					unbind_list.push_back(index);
+				executed = true;
+
+				if (!unbind_on_exit && (e.states_ & object::state_unbind_on_exit) != 0u){//Unbind
 					e.states_ &= ~object::state_unbind_on_exit;
+					unbind_list.push_back(index);
+					unbind_on_exit = true;
 				}
 
 				++index;
@@ -293,6 +297,9 @@ namespace winp::events{
 
 			for (auto unbind_item = unbind_list.rbegin(); unbind_item != unbind_list.rend(); ++unbind_item)
 				it->second.first.erase(std::next(it->second.first.begin(), *unbind_item));
+
+			if (id != 0u && (!executed || unbind_on_exit))
+				e.states_ |= object::state_unbind_on_exit;
 		}
 
 		template <typename object_type>

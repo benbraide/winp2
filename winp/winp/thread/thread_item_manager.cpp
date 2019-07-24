@@ -36,6 +36,12 @@ const RECT &winp::thread::item_manager::get_update_rect() const{
 	return update_rect_;
 }
 
+const winp::thread::item_manager::mouse_info &winp::thread::item_manager::get_mouse_state() const{
+	if (!is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return mouse_;
+}
+
 winp::ui::object *winp::thread::item_manager::find_deepest_mouse_target(ui::object &target, const POINT &mouse_position){
 	if (dynamic_cast<ui::window_surface *>(&target) != nullptr)
 		return nullptr;
@@ -156,6 +162,10 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return erase_background_(target, target, msg);
 	case WM_PAINT:
 		return paint_(target, target, msg, true);
+	case WM_DRAWITEM:
+		return draw_item_(target, msg);
+	case WM_MEASUREITEM:
+		return measure_item_(target, msg);
 	case WM_STYLECHANGING:
 		return style_changing_(target, msg);
 	case WM_WINDOWPOSCHANGING:
@@ -421,6 +431,61 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 	}
 
 	return result;
+}
+
+LRESULT winp::thread::item_manager::draw_item_(item &target, MSG &msg){
+	auto window_target = dynamic_cast<ui::window_surface *>(&target);
+	if (window_target == nullptr)
+		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
+
+	auto draw_info = reinterpret_cast<DRAWITEMSTRUCT *>(msg.lParam);
+	if (draw_info->CtlType == ODT_MENU){//Menu item
+		menu::item *target_item = nullptr;
+		if (auto menu = (((draw_info->itemID == 0u) ? menus_.end() : menus_.find(reinterpret_cast<HMENU>(draw_info->hwndItem)))); menu != menus_.end())
+			target_item = menu->second->find_item_(draw_info->itemID, nullptr, false);
+		else//Try associated data
+			target_item = reinterpret_cast<menu::item *>(draw_info->itemData);
+
+		if (target_item == nullptr)
+			return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
+
+		if (target_item->events_manager_.get_bound_count<events::draw_item>() == 0u)//Trigger ancestor's event
+			return trigger_event_with_target_<events::draw_item>(*target_item->get_first_ancestor_of_<menu::object>(nullptr), *target_item, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
+
+		return trigger_event_<events::draw_item>(*target_item, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
+	}
+
+	if (draw_info->CtlType == ODT_BUTTON){
+		if (auto draw_target = find_window_(draw_info->hwndItem, false); draw_target != nullptr)
+			return trigger_event_<events::draw_item>(*draw_target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
+	}
+
+	return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
+}
+
+LRESULT winp::thread::item_manager::measure_item_(item &target, MSG &msg){
+	auto window_target = dynamic_cast<ui::window_surface *>(&target);
+	if (window_target == nullptr)
+		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
+
+	auto measure_info = reinterpret_cast<MEASUREITEMSTRUCT *>(msg.lParam);
+	if (measure_info->CtlType == ODT_MENU){
+		auto target_item = reinterpret_cast<menu::item *>(measure_info->itemData);
+		if (target_item == nullptr)
+			return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
+
+		if (target_item->events_manager_.get_bound_count<events::measure_item>() == 0u)//Trigger ancestor's event
+			return trigger_event_with_target_<events::measure_item>(*target_item->get_first_ancestor_of_<menu::object>(nullptr), *target_item, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
+
+		return trigger_event_<events::measure_item>(*target_item, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
+	}
+
+	if (measure_info->CtlType == ODT_BUTTON){
+		return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
+	}
+
+	return trigger_event_<events::unhandled>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 }
 
 LRESULT winp::thread::item_manager::position_change_(item &target, MSG &msg, bool changing){
@@ -929,7 +994,9 @@ LRESULT winp::thread::item_manager::menu_init_(item &target, MSG &msg){
 
 	menu->is_modifying_ = true;
 	trigger_event_<events::modify_context_menu>(*popup_target, *menu, msg, nullptr);
+
 	menu->is_modifying_ = false;
+	menu->frontend_handle_ = window_target->handle_;
 
 	return trigger_event_<events::menu_init>(*menu, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 }
@@ -953,6 +1020,7 @@ LRESULT winp::thread::item_manager::menu_uninit_(item &target, MSG &msg){
 		wrapped_menus_.erase(it);
 	}
 
+	menu->second->frontend_handle_ = nullptr;
 	if (auto popup_menu = dynamic_cast<menu::popup *>(menu->second); popup_menu != nullptr)
 		black_listed_modified_menus_.push_back(popup_menu);
 

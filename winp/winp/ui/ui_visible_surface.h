@@ -5,6 +5,8 @@
 namespace winp::ui{
 	class visible_surface : public surface{
 	public:
+		visible_surface();
+
 		virtual ~visible_surface();
 
 		virtual utility::error_code redraw(const std::function<void(visible_surface, utility::error_code)> &callback = nullptr) const;

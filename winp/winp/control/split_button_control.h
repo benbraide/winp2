@@ -18,7 +18,7 @@ namespace winp::control{
 
 		virtual LRESULT dispatch_notification_(MSG &msg) const override;
 
-		virtual SIZE compute_additional_size_() const override;
+		virtual SIZE compute_additional_size_(const SIZE &computed_size) const override;
 	};
 
 	class default_split_button : public split_button{

@@ -22,7 +22,7 @@ namespace winp::control{
 	protected:
 		virtual DWORD get_persistent_styles_(bool is_extended) const override;
 
-		virtual SIZE compute_additional_size_() const override;
+		virtual SIZE compute_additional_size_(const SIZE &computed_size) const override;
 
 		virtual utility::error_code set_checked_state_(bool is_checked);
 
@@ -56,7 +56,7 @@ namespace winp::control{
 	protected:
 		virtual DWORD get_persistent_styles_(bool is_extended) const override;
 
-		virtual SIZE compute_additional_size_() const override;
+		virtual SIZE compute_additional_size_(const SIZE &computed_size) const override;
 
 		virtual utility::error_code set_checked_state_(checked_state_type state);
 

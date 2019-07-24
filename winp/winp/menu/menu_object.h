@@ -10,7 +10,6 @@ namespace winp::ui{
 namespace winp::menu{
 	class link_item;
 	class popup;
-	class appended_popup;
 
 	class object : public tree, public ui::surface{
 	public:
@@ -26,6 +25,10 @@ namespace winp::menu{
 		friend class thread::item_manager;
 		friend class menu::item;
 		friend class popup;
+
+		virtual HTHEME get_theme_() const override;
+
+		virtual std::pair<HDC, HWND> get_device_context_() const override;
 
 		virtual utility::error_code create_() override;
 
@@ -44,6 +47,7 @@ namespace winp::menu{
 		virtual utility::error_code destroy_handle_() = 0;
 
 		HMENU handle_ = nullptr;
+		HWND frontend_handle_ = nullptr;
 	};
 
 	class popup : public object{
@@ -60,7 +64,7 @@ namespace winp::menu{
 
 	protected:
 		friend class thread::item_manager;
-		friend class appended_popup;
+		friend class menu::item;
 		friend class object;
 		friend class tree;
 
@@ -112,11 +116,13 @@ namespace winp::menu{
 
 	class system_popup : public wrapped_popup{
 	public:
-		explicit system_popup(ui::window_surface &owner);
-
 		virtual ~system_popup();
 
 	protected:
+		friend class ui::window_surface;
+
+		explicit system_popup(ui::window_surface &owner);
+
 		virtual HMENU create_handle_() override;
 
 		virtual tree *get_top_() const override;

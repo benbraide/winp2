@@ -92,6 +92,8 @@ namespace winp::thread{
 			);
 		}
 
+		const mouse_info &get_mouse_state() const;
+
 		static ui::object *find_deepest_mouse_target(ui::object &target, const POINT &mouse_position);
 
 	private:
@@ -141,6 +143,10 @@ namespace winp::thread{
 		LRESULT erase_background_(item &context, item &target, MSG &msg);
 
 		LRESULT paint_(item &context, item &target, MSG &msg, bool check_interception);
+
+		LRESULT draw_item_(item &target, MSG &msg);
+
+		LRESULT measure_item_(item &target, MSG &msg);
 
 		LRESULT position_change_(item &target, MSG &msg, bool changing);
 

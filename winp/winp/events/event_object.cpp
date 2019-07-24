@@ -86,6 +86,10 @@ bool winp::events::object::is_thread_context() const{
 	return target_.get_thread().is_thread_context();
 }
 
+bool winp::events::object::set_result_untyped_(const std::any &result){
+	return false;
+}
+
 winp::events::object_with_message::~object_with_message() = default;
 
 void winp::events::object_with_message::do_default(){

@@ -1,3 +1,5 @@
+#include "../utility/animation_timing.h"
+
 #include "control_test.h"
 
 void winp::test::control::run(int cmd_show){
@@ -54,6 +56,19 @@ void winp::test::control::run(int cmd_show){
 					tool.set_target(btn);
 					tool.set_text(L"Object Tool");
 				});
+
+				btn.insert_hook<ui::animation_hook>(std::chrono::seconds(2))->set_easing<SIZE>(utility::animation_timing::bounce::ease_out);
+				btn.events().bind([&](winp::events::interval &e){
+					if (e.needs_duration())
+						return std::chrono::seconds(3);
+
+					if (btn.get_text() == L"Push Button")
+						btn.set_text(L"Push Button gly");
+					else
+						btn.set_text(L"Push Button");
+
+					return std::chrono::seconds(0);
+				});
 			});
 
 			page.add_object([&](winp::control::push_button &btn){
@@ -81,7 +96,7 @@ void winp::test::control::run(int cmd_show){
 			});
 
 			std::thread([&]{
-				std::this_thread::sleep_for(std::chrono::seconds(3));
+				std::this_thread::sleep_for(std::chrono::seconds(2));
 				tab.set_active_page(page);
 			}).detach();
 		});

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <any>
 #include <bitset>
 
 #include "../utility/windows.h"
@@ -46,13 +47,7 @@ namespace winp::events{
 		void set_result(const result_type &result){
 			if (!is_thread_context())
 				throw utility::error_code::outside_thread_context;
-
-			if ((states_ & state_doing_default) == 0u)
-				states_ |= state_result_set;
-			else
-				states_ |= state_default_result_set;
-
-			set_result_(result);
+			dispatch_set_result_<result_type>(result, std::is_scalar<result_type>());
 		}
 
 		template <typename result_type>
@@ -101,15 +96,33 @@ namespace winp::events{
 		friend class thread::item;
 		template <class> friend class manager;
 
+		template <typename value_type>
+		void dispatch_set_result_(const value_type &value, std::true_type){
+			if ((states_ & state_doing_default) == 0u)
+				states_ |= state_result_set;
+			else
+				states_ |= state_default_result_set;
+
+			set_result_(value);
+		}
+
+		template <typename value_type>
+		void dispatch_set_result_(const value_type &value, std::false_type){
+			if (set_result_untyped_(value)){
+				if ((states_ & state_doing_default) == 0u)
+					states_ |= state_result_set;
+				else
+					states_ |= state_default_result_set;
+			}
+		}
+
 		template <typename result_type>
 		void set_result_(const result_type &result){
-			if (!set_result_(typeid(result_type), &result))
+			if (!set_result_untyped_(result))
 				result_ = (LRESULT)result;
 		}
 
-		virtual bool set_result_(const std::type_info &type, const void *result){
-			return false;
-		}
+		virtual bool set_result_untyped_(const std::any &result);
 
 		thread::item &target_;
 		thread::item &context_;

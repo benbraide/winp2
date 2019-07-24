@@ -28,7 +28,12 @@ namespace winp::menu{
 		virtual void traverse_all_items(const std::function<void(menu::item &)> &callback, bool block) const;
 
 	protected:
+		friend class menu::item;
 		friend class popup;
+
+		virtual void added_event_handler_(event_manager_type &manager, event_manager_type::key_type key, unsigned __int64 id, thread::item *owner) const override;
+
+		virtual void removed_event_handler_(event_manager_type &manager, event_manager_type::key_type key, unsigned __int64 id) const override;
 
 		virtual void child_inserted_(ui::object &child) override;
 

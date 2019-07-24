@@ -6,6 +6,6 @@
 #include "test/control_test.h"
 
 int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR cmd_line, int cmd_show){
-	winp::test::control::run(cmd_show);
+	winp::test::menu::run(cmd_show);
 	return 0;
 }

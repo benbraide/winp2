@@ -8,6 +8,14 @@ winp::menu::tree::tree(){
 		if (e.is_changing() && e.get_action() == events::children_change::action_type::insert && dynamic_cast<menu::item *>(&e.get_value()) == nullptr && dynamic_cast<menu::tree *>(&e.get_value()) == nullptr)
 			e.prevent_default();//Menu Item or Tree required
 	});
+
+	add_event_handler_([this](events::measure_item &e){
+
+	});
+
+	add_event_handler_([this](events::draw_item &e){
+
+	});
 }
 
 winp::menu::tree::~tree() = default;
@@ -59,6 +67,26 @@ void winp::menu::tree::traverse_all_items(const std::function<void(menu::item &)
 		callback(value);
 		return true;
 	}, block);
+}
+
+void winp::menu::tree::added_event_handler_(event_manager_type &manager, event_manager_type::key_type key, unsigned __int64 id, thread::item *owner) const{
+	ui::tree::added_event_handler_(manager, key, id, owner);
+	if (&manager == &events_manager_ && event_manager_type::is_equal_key<events::draw_item>(key) && events_manager_.get_bound_count<events::draw_item>() == 1u){
+		traverse_items_([this](menu::item &item){
+			item.update_types_();
+			return true;
+		});
+	}
+}
+
+void winp::menu::tree::removed_event_handler_(event_manager_type &manager, event_manager_type::key_type key, unsigned __int64 id) const{
+	ui::tree::removed_event_handler_(manager, key, id);
+	if (&manager == &events_manager_ && event_manager_type::is_equal_key<events::draw_item>(key) && events_manager_.get_bound_count<events::draw_item>() == 0u){
+		traverse_items_([this](menu::item &item){
+			item.update_types_();
+			return true;
+		});
+	}
 }
 
 void winp::menu::tree::child_inserted_(ui::object &child){
@@ -148,7 +176,7 @@ UINT winp::menu::tree::get_states_(std::size_t index) const{
 }
 
 UINT winp::menu::tree::get_types_(std::size_t index) const{
-	return 0u;
+	return ((events_manager_.get_bound_count<events::draw_item>() == 0u) ? 0u : MFT_OWNERDRAW);
 }
 
 UINT winp::menu::tree::generate_id_(menu::item &target, std::size_t max_tries) const{

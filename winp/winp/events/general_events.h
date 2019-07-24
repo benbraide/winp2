@@ -271,9 +271,9 @@ namespace winp::events{
 
 		using object_with_message::set_result;
 
-		void set_result(const D2D1::ColorF &result);
-
 	protected:
+		virtual bool set_result_untyped_(const std::any &result) override;
+
 		virtual bool should_call_default_() const override;
 
 		virtual LRESULT get_called_default_value_() override;
@@ -304,6 +304,8 @@ namespace winp::events{
 		virtual HDC get_device() const;
 
 		virtual const RECT &get_clip() const;
+
+		virtual HTHEME get_theme() const;
 
 		virtual void draw_line(const m_opt_point_type &start, const m_opt_point_type &stop, const m_opt_paint_type &paint, float stroke_width = 1.0f, ID2D1StrokeStyle *stroke_style = nullptr);
 
@@ -337,6 +339,10 @@ namespace winp::events{
 
 		virtual void fill_mesh(ID2D1Mesh *mesh, const m_opt_paint_type &paint);
 
+		virtual void draw_themed_background(int part_id, int state_id, const RECT &region);
+
+		virtual void draw_themed_text(int part_id, int state_id, const std::wstring &text, DWORD format_flags, const RECT &region);
+
 	protected:
 		virtual utility::error_code begin_() = 0;
 
@@ -350,9 +356,13 @@ namespace winp::events{
 
 		virtual ID2D1Brush *get_brush_(const m_opt_paint_type &paint);
 
+		virtual HTHEME get_theme_() const;
+
 		ID2D1DCRenderTarget *render_target_ = nullptr;
 		ID2D1SolidColorBrush *color_brush_ = nullptr;
+
 		PAINTSTRUCT info_{};
+		mutable HTHEME theme_ = nullptr;
 	};
 
 	class erase_background : public draw{
@@ -391,13 +401,13 @@ namespace winp::events{
 		bool began_paint_ = false;
 	};
 
-	class owner_draw : public draw{
+	class draw_item : public draw{
 	public:
 		template <typename... args_types>
-		explicit owner_draw(args_types &&... args)
+		explicit draw_item(args_types &&... args)
 			: draw(std::forward<args_types>(args)...){}
 
-		virtual ~owner_draw();
+		virtual ~draw_item();
 
 	protected:
 		virtual bool should_call_default_() const override;
@@ -412,6 +422,26 @@ namespace winp::events{
 		template <typename... args_types>
 		explicit measure_item(args_types &&... args)
 			: object_with_message(std::forward<args_types>(args)...){}
+
+		virtual ~measure_item();
+
+		virtual HTHEME get_theme() const;
+
+		virtual SIZE measure_text(const std::wstring &text, IDWriteTextFormat *format, D2D1_DRAW_TEXT_OPTIONS options = D2D1_DRAW_TEXT_OPTIONS_NONE, DWRITE_MEASURING_MODE measuring_mode = DWRITE_MEASURING_MODE_NATURAL);
+
+		virtual SIZE measure_text(const std::wstring &text, HFONT font, DWORD format_flags);
+
+		virtual SIZE measure_themed_text(int part_id, int state_id, const std::wstring &text, DWORD format_flags);
+
+	protected:
+		virtual bool set_result_untyped_(const std::any &result) override;
+
+		virtual HTHEME get_theme_() const;
+
+		virtual void cache_device_context_();
+
+		mutable HTHEME theme_ = nullptr;
+		std::pair<HDC, HWND> device_context_ = std::make_pair<HDC, HWND>(nullptr, nullptr);
 	};
 
 	class enable : public object_with_message{
@@ -427,24 +457,26 @@ namespace winp::events{
 	public:
 		template <typename... args_types>
 		explicit timer(bool needs_duration, args_types &&... args)
-			: object(std::forward<args_types>(args)...), needs_duration_(needs_duration){}
+			: object(std::forward<args_types>(args)...), needs_duration_(needs_duration){
+			if (!needs_duration_)
+				states_ |= state_unbind_on_exit;
+		}
 
 		virtual bool needs_duration() const;
 
 	protected:
+		virtual bool set_result_untyped_(const std::any &result) override;
+
 		bool needs_duration_;
 	};
 
-	class interval : public object{
+	class interval : public timer{
 	public:
 		template <typename... args_types>
-		explicit interval(bool needs_duration, args_types &&... args)
-			: object(std::forward<args_types>(args)...), needs_duration_(needs_duration){}
-
-		virtual bool needs_duration() const;
-
-	protected:
-		bool needs_duration_;
+		explicit interval(args_types &&... args)
+			: timer(std::forward<args_types>(args)...){
+			states_ &= ~state_unbind_on_exit;
+		}
 	};
 
 	class animation : public object{

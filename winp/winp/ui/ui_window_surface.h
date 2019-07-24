@@ -53,6 +53,8 @@ namespace winp::ui{
 
 		virtual const std::wstring &get_class_name(const std::function<void(const std::wstring &)> &callback = nullptr) const;
 
+		virtual const wchar_t *get_theme_id(const std::function<void(const wchar_t *)> &callback = nullptr) const;
+
 		virtual void traverse_child_windows(const std::function<bool(window_surface &)> &callback, bool block) const;
 
 		virtual void traverse_all_child_windows(const std::function<void(window_surface &)> &callback, bool block) const;
@@ -66,6 +68,10 @@ namespace winp::ui{
 		virtual utility::error_code destroy_() override;
 
 		virtual bool is_created_() const override;
+
+		virtual HTHEME get_theme_() const override;
+
+		virtual std::pair<HDC, HWND> get_device_context_() const override;
 
 		virtual utility::error_code redraw_() const override;
 
@@ -130,6 +136,8 @@ namespace winp::ui{
 		virtual const std::wstring &get_class_name_() const;
 
 		virtual const wchar_t *get_window_text_() const;
+
+		virtual const wchar_t *get_theme_id_() const;
 
 		virtual HINSTANCE get_instance_() const;
 

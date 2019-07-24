@@ -47,6 +47,14 @@ winp::ui::object *winp::menu::object::get_target(const std::function<void(ui::ob
 	}, (callback != nullptr), nullptr);
 }
 
+HTHEME winp::menu::object::get_theme_() const{
+	return OpenThemeData(frontend_handle_, L"MENU");
+}
+
+std::pair<HDC, HWND> winp::menu::object::get_device_context_() const{
+	return std::make_pair(GetDC(frontend_handle_), frontend_handle_);
+}
+
 winp::utility::error_code winp::menu::object::create_(){
 	if (handle_ != nullptr)
 		return utility::error_code::nil;
@@ -152,13 +160,15 @@ winp::menu::tree *winp::menu::popup::get_top_() const{
 }
 
 winp::ui::object *winp::menu::popup::get_target_() const{
-	if (target_ == nullptr || owner_ != nullptr)
-		return owner_;
+	if (target_ != nullptr || owner_ == nullptr)
+		return target_;
 
-	if (auto menu_target = dynamic_cast<object *>(target_); menu_target != nullptr)
-		return menu_target->get_target_();
+	if (auto item_target = dynamic_cast<menu::item *>(owner_); item_target != nullptr){
+		if (auto menu_ancestor = item_target->get_first_ancestor_of_<object>(nullptr); menu_ancestor != nullptr)
+			return menu_ancestor->get_target_();
+	}
 
-	return target_;
+	return nullptr;
 }
 
 HMENU winp::menu::popup::create_handle_(){
@@ -249,12 +259,12 @@ void winp::menu::wrapped_popup::wrap_(){
 		sizeof(MENUITEMINFOW)
 	};
 
-	menu::item *item;
-
 	is_wrapping_ = true;
 	wrapped_objects_.reserve(count);
 
+	menu::item *item;
 	auto is_system = is_system_();
+
 	for (auto index = 0; index < count; ++index){
 		if (GetMenuItemInfoW(handle_, index, TRUE, &info) == FALSE)
 			continue;
@@ -272,28 +282,30 @@ void winp::menu::wrapped_popup::wrap_(){
 		objects_[item].reset(item);
 		wrapped_objects_.push_back(item);
 
+		update_info.dwItemData = reinterpret_cast<ULONG_PTR>(item);
 		if (is_system){
-			if ((item->local_id_ = info.wID) == 0u && (item->local_id_ = generate_id_(*item, info.wID)) == 0u){//Update data
+			if ((item->local_id_ = info.wID) == 0u && (item->local_id_ = generate_id_(*item)) == 0u){//Update data
 				update_info.fMask = MIIM_DATA;
-				update_info.dwItemData = reinterpret_cast<ULONG_PTR>(item);
 				SetMenuItemInfoW(handle_, index, TRUE, &update_info);
 			}
 			else if (item->local_id_ != info.wID){//Update Id
-				update_info.fMask = MIIM_ID;
+				update_info.fMask = (MIIM_ID | MIIM_DATA);
 				update_info.wID = item->local_id_;
 				SetMenuItemInfoW(handle_, index, TRUE, &update_info);
 			}
 		}
-		else if ((item->local_id_ = generate_id_(*item, info.wID)) == 0u){//Update data
+		else if ((item->local_id_ = generate_id_(*item)) == 0u){//Update data
 			update_info.fMask = MIIM_DATA;
-			update_info.dwItemData = reinterpret_cast<ULONG_PTR>(item);
 			SetMenuItemInfoW(handle_, index, TRUE, &update_info);
 		}
 		else if (item->local_id_ != info.wID){//Update Id
-			update_info.fMask = MIIM_ID;
+			update_info.fMask = (MIIM_ID | MIIM_DATA);
 			update_info.wID = item->local_id_;
 			SetMenuItemInfoW(handle_, index, TRUE, &update_info);
 		}
+
+		if (auto found_item = ((item->local_id_ == 0u) ? nullptr : find_item_(item->local_id_, item, false)); found_item != nullptr)
+			found_item->local_id_ = 0u;
 	}
 
 	is_wrapping_ = false;
@@ -336,8 +348,17 @@ bool winp::menu::system_popup::is_sub_() const{
 }
 
 winp::menu::bar::bar(ui::window_surface &owner){
-	if (&owner.get_thread() == &thread_)
-		owner_ = &owner;
+	if (&owner.get_thread() == &thread_){
+		(owner_ = &owner)->events().bind([this](events::create &e){
+			if (handle_ == nullptr || e.is_creating())
+				return;
+
+			if (auto owner_handle = owner_->get_handle(); owner_handle != nullptr){
+				SetMenu(owner_handle, handle_);
+				DrawMenuBar(owner_handle);
+			}
+		}, this);
+	}
 }
 
 winp::menu::bar::~bar(){
@@ -377,17 +398,15 @@ HMENU winp::menu::bar::create_handle_(){
 	if (owner_ == nullptr)
 		return nullptr;
 
-	owner_->auto_create();
-	auto owner_handle = owner_->get_handle();
-	if (owner_handle == nullptr)
-		return nullptr;
-
 	auto value = CreateMenu();
 	if (value == nullptr)
 		return nullptr;
 
-	SetMenu(owner_handle, value);
-	DrawMenuBar(owner_handle);
+	frontend_handle_ = owner_->get_handle();
+	if (frontend_handle_ != nullptr){
+		SetMenu(frontend_handle_, value);
+		DrawMenuBar(frontend_handle_);
+	}
 
 	return value;
 }

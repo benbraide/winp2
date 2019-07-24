@@ -2,6 +2,8 @@
 
 #include "ui_visible_surface.h"
 
+winp::ui::visible_surface::visible_surface() = default;
+
 winp::ui::visible_surface::~visible_surface() = default;
 
 winp::utility::error_code winp::ui::visible_surface::redraw(const std::function<void(visible_surface, utility::error_code)> &callback) const{

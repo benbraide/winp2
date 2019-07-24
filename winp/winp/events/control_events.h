@@ -11,18 +11,18 @@ namespace winp::events{
 			: base_type(std::forward<args_types>(args)...), ref_(ref){}
 
 	protected:
-		virtual bool set_result_(const std::type_info &type, const void *result) override{
-			if (type == typeid(std::wstring)){
-				ref_ = *static_cast<const std::wstring *>(result);
-				return true;
-			}
-			
-			if (type == typeid(const wchar_t *) || type == typeid(wchar_t *)){
-				ref_ = static_cast<const wchar_t *>(result);
+		virtual bool set_result_untyped_(const std::any &result) override{
+			if (auto value = std::any_cast<std::wstring>(&result); value != nullptr){
+				ref_ = *value;
 				return true;
 			}
 
-			return base_type::set_result_(type, result);
+			if (auto value = std::any_cast<const wchar_t *>(&result); value != nullptr){
+				ref_ = *value;
+				return true;
+			}
+
+			return base_type::set_result_untyped_(result);
 		}
 
 		std::wstring &ref_;

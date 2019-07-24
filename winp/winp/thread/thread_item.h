@@ -44,6 +44,10 @@ namespace winp::thread{
 
 		virtual unsigned __int64 get_id(const std::function<void(unsigned __int64)> &callback = nullptr) const;
 
+		virtual HTHEME get_theme(const std::function<void(HTHEME)> &callback = nullptr) const;
+
+		virtual std::pair<HDC, HWND> get_device_context(const std::function<void(const std::pair<HDC, HWND> &)> &callback = nullptr) const;
+
 		virtual bool is_thread_context() const;
 
 		virtual void execute_task_inside_thread_context(const std::function<void()> &task) const;
@@ -116,6 +120,10 @@ namespace winp::thread{
 		virtual void after_destruct_();
 
 		virtual bool is_destructed_() const;
+
+		virtual HTHEME get_theme_() const;
+
+		virtual std::pair<HDC, HWND> get_device_context_() const;
 
 		virtual bool event_is_supported_(event_manager_type::key_type key) const;
 
@@ -296,6 +304,20 @@ namespace winp::thread{
 		}
 
 	protected:
+		template <typename handler_type>
+		unsigned __int64 synchronized_item_add_event_handler_(const handler_type &handler){
+			if (auto item_self = dynamic_cast<item *>(this); item_self != nullptr)
+				return item_self->add_event_handler_(handler);
+			return 0u;
+		}
+
+		template <typename handler_type>
+		unsigned __int64 synchronized_item_add_event_handler_(item &target, const handler_type &handler){
+			if (auto item_self = dynamic_cast<item *>(this); item_self != nullptr)
+				return item_self->add_event_handler_(target, handler);
+			return 0u;
+		}
+
 		virtual void synchronized_item_trigger_event_(events::object &e) const;
 
 		template <typename event_type, typename... args_types>

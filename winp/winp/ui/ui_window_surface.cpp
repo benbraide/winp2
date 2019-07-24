@@ -122,6 +122,12 @@ const std::wstring &winp::ui::window_surface::get_class_name(const std::function
 	}, (callback != nullptr), &app::object::get_class_name());
 }
 
+const wchar_t *winp::ui::window_surface::get_theme_id(const std::function<void(const wchar_t *)> &callback) const{
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, get_theme_id_());
+	}, (callback != nullptr), nullptr);
+}
+
 void winp::ui::window_surface::traverse_child_windows(const std::function<bool(window_surface &)> &callback, bool block) const{
 	execute_or_post_task_inside_thread_context([&]{
 		traverse_child_windows_(*this, callback);
@@ -199,11 +205,6 @@ winp::utility::error_code winp::ui::window_surface::create_(){
 	}
 
 	system_menu_.create();
-	if (menu_bar_.is_created_()){
-		SetMenu(handle_, menu_bar_.handle_);
-		DrawMenuBar(handle_);
-	}
-
 	return utility::error_code::nil;
 }
 
@@ -220,6 +221,14 @@ winp::utility::error_code winp::ui::window_surface::destroy_(){
 
 bool winp::ui::window_surface::is_created_() const{
 	return (handle_ != nullptr);
+}
+
+HTHEME winp::ui::window_surface::get_theme_() const{
+	return OpenThemeData(handle_, get_theme_id_());
+}
+
+std::pair<HDC, HWND> winp::ui::window_surface::get_device_context_() const{
+	return std::make_pair(GetDC(handle_), handle_);
 }
 
 winp::utility::error_code winp::ui::window_surface::redraw_() const{
@@ -463,6 +472,10 @@ const std::wstring &winp::ui::window_surface::get_class_name_() const{
 
 const wchar_t *winp::ui::window_surface::get_window_text_() const{
 	return L"";
+}
+
+const wchar_t *winp::ui::window_surface::get_theme_id_() const{
+	return L"WINDOW";
 }
 
 HINSTANCE winp::ui::window_surface::get_instance_() const{

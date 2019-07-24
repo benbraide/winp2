@@ -39,9 +39,19 @@ winp::thread::queue &winp::thread::item::get_thread_queue(){
 }
 
 unsigned __int64 winp::thread::item::get_id(const std::function<void(unsigned __int64)> &callback) const{
+	return id_;
+}
+
+HTHEME winp::thread::item::get_theme(const std::function<void(HTHEME)> &callback) const{
 	return compute_or_post_task_inside_thread_context([=]{
-		return pass_return_value_to_callback(callback, id_);
-	}, (callback != nullptr), 0u);
+		return pass_return_value_to_callback(callback, get_theme_());
+	}, (callback != nullptr), nullptr);
+}
+
+std::pair<HDC, HWND> winp::thread::item::get_device_context(const std::function<void(const std::pair<HDC, HWND> &)> &callback) const{
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, get_device_context_());
+	}, (callback != nullptr), std::make_pair<HDC, HWND>(nullptr, nullptr));
 }
 
 bool winp::thread::item::is_thread_context() const{
@@ -99,6 +109,14 @@ bool winp::thread::item::is_destructed_() const{
 	return (id_ == 0u);
 }
 
+HTHEME winp::thread::item::get_theme_() const{
+	return nullptr;
+}
+
+std::pair<HDC, HWND> winp::thread::item::get_device_context_() const{
+	return std::make_pair<HDC, HWND>(nullptr, nullptr);
+}
+
 bool winp::thread::item::event_is_supported_(event_manager_type::key_type key) const{
 	return true;
 }
@@ -154,12 +172,14 @@ void winp::thread::item::added_event_handler_(event_manager_type &manager, event
 		return;
 
 	thread_.add_timer_(std::chrono::milliseconds(result_info.second), [=]{
-		if (key == event_manager_type::get_key<events::timer>()){
-			trigger_single_event_<events::timer>(id, false);
+		std::pair<unsigned int, LRESULT> result_info{};
+		if (key == event_manager_type::get_key<events::timer>())
+			result_info = trigger_single_event_<events::timer>(id, false);
+		else//Interval
+			result_info = trigger_single_event_<events::interval>(id, false);
+
+		if ((result_info.first & events::object::state_unbind_on_exit) != 0u)
 			thread_.remove_timer_(id);
-		}
-		else
-			trigger_single_event_<events::interval>(id, false);
 	}, id);
 }
 

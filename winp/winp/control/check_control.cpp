@@ -59,7 +59,7 @@ DWORD winp::control::check::get_persistent_styles_(bool is_extended) const{
 	return (push_button::get_persistent_styles_(is_extended) | (is_extended ? 0u : (is_radio_() ? BS_RADIOBUTTON : BS_CHECKBOX)));
 }
 
-SIZE winp::control::check::compute_additional_size_() const{
+SIZE winp::control::check::compute_additional_size_(const SIZE &computed_size) const{
 	return SIZE{ (GetSystemMetrics(SM_CXMENUCHECK) + GetSystemMetrics(SM_CXEDGE)), 0 };
 }
 
@@ -128,7 +128,7 @@ DWORD winp::control::three_state_check::get_persistent_styles_(bool is_extended)
 	return (push_button::get_persistent_styles_(is_extended) | (is_extended ? 0u : BS_3STATE));
 }
 
-SIZE winp::control::three_state_check::compute_additional_size_() const{
+SIZE winp::control::three_state_check::compute_additional_size_(const SIZE &computed_size) const{
 	return SIZE{ (GetSystemMetrics(SM_CXMENUCHECK) + GetSystemMetrics(SM_CXEDGE)), 0 };
 }
 

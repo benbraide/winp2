@@ -29,7 +29,7 @@ LRESULT winp::control::split_button::dispatch_notification_(MSG &msg) const{
 	return push_button::dispatch_notification_(msg);
 }
 
-SIZE winp::control::split_button::compute_additional_size_() const{
+SIZE winp::control::split_button::compute_additional_size_(const SIZE &computed_size) const{
 	return SIZE{ 20, 0 };
 }
 

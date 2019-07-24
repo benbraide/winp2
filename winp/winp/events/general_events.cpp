@@ -181,8 +181,18 @@ LRESULT winp::events::background_brush::get_called_default_value_(){
 	return 0;
 }
 
-void winp::events::background_color::set_result(const D2D1::ColorF &result){
-	set_result(ui::visible_surface::convert_colorf_to_colorref(result));
+bool winp::events::background_color::set_result_untyped_(const std::any &result){
+	if (auto value = std::any_cast<D2D1_COLOR_F>(&result); value != nullptr){
+		result_ = ui::visible_surface::convert_colorf_to_colorref(*value);
+		return true;
+	}
+
+	if (auto value = std::any_cast<D2D1::ColorF>(&result); value != nullptr){
+		result_ = ui::visible_surface::convert_colorf_to_colorref(*value);
+		return true;
+	}
+
+	return object_with_message::set_result_untyped_(result);
 }
 
 bool winp::events::background_color::should_call_default_() const{
@@ -197,6 +207,10 @@ LRESULT winp::events::background_color::get_called_default_value_(){
 
 winp::events::draw::~draw(){
 	end();
+	if (theme_ != nullptr){
+		CloseThemeData(theme_);
+		theme_ = nullptr;
+	}
 }
 
 winp::utility::error_code winp::events::draw::begin(){
@@ -235,37 +249,29 @@ winp::utility::error_code winp::events::draw::begin(){
 		OffsetRect(&info_.rcPaint, -context_dimension.left, -context_dimension.top);
 	}
 
-	if (ui::tree *tree_context = dynamic_cast<ui::tree *>(&context_); tree_context != nullptr){
-		auto is_window_context = (dynamic_cast<ui::window_surface *>(&context_) != nullptr);
+	auto visible_context = dynamic_cast<ui::visible_surface *>(&context_);
+	if (auto tree_context = ((visible_context == nullptr) ? nullptr : dynamic_cast<ui::tree *>(visible_context)); tree_context != nullptr){
+		tree_context->traverse_all_children_of<ui::non_window_surface>([&](ui::non_window_surface &child){
+			auto child_handle = child.get_handle();
+			RECT child_handle_dimension{};
+			auto &child_position = child.get_current_position_();
 
-		tree_context->traverse_all_children_of<ui::visible_surface>([&](ui::visible_surface &child){
-			if ((is_window_context && (dynamic_cast<ui::window_surface *>(&child) != nullptr)) || !child.is_visible())
-				return;
+			GetRgnBox(child_handle, &child_handle_dimension);
+			OffsetRgn(child_handle, (child_position.x - child_handle_dimension.left), (child_position.y - child_handle_dimension.top));//Move to 'child position'
 
-			if (auto non_window_child = dynamic_cast<ui::non_window_surface *>(&child); non_window_child != nullptr){
-				auto child_handle = non_window_child->get_handle();
-
-				RECT child_handle_dimension{};
-				auto &child_position = non_window_child->get_current_position_();
-
-				GetRgnBox(child_handle, &child_handle_dimension);
-				OffsetRgn(child_handle, (child_position.x - child_handle_dimension.left), (child_position.y - child_handle_dimension.top));//Move to 'child position'
-
-				ExtSelectClipRgn(info_.hdc, child_handle, RGN_DIFF);//Exclude child region and select
-				OffsetRgn(child_handle, -child_position.x, -child_position.y);//Move to (0, 0)
-			}
-			else{//Use dimension
-				auto current_dimension = child.get_current_dimension_();
-				if (IsRectEmpty(&current_dimension) == FALSE)
-					ExcludeClipRect(info_.hdc, current_dimension.left, current_dimension.top, current_dimension.right, current_dimension.bottom);
-			}
+			ExtSelectClipRgn(info_.hdc, child_handle, RGN_DIFF);//Exclude child region and select
+			OffsetRgn(child_handle, -child_position.x, -child_position.y);//Move to (0, 0)
 		}, true);
 	}
 
-	RECT window_client_rect{};
-	GetClientRect(message_info_.hwnd, &window_client_rect);
+	if (message_info_.hwnd != nullptr && visible_context != nullptr){
+		RECT window_client_rect{};
+		GetClientRect(message_info_.hwnd, &window_client_rect);
+		render_target_->BindDC(info_.hdc, &window_client_rect);
+	}
+	else
+		render_target_->BindDC(info_.hdc, &info_.rcPaint);
 
-	render_target_->BindDC(info_.hdc, &window_client_rect);
 	render_target_->SetTransform(D2D1::IdentityMatrix());
 	thread.begin_draw_();
 
@@ -312,6 +318,12 @@ const RECT &winp::events::draw::get_clip() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
 	return info_.rcPaint;
+}
+
+HTHEME winp::events::draw::get_theme() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return get_theme_();
 }
 
 void winp::events::draw::draw_line(const m_opt_point_type &start, const m_opt_point_type &stop, const m_opt_paint_type &paint, float stroke_width, ID2D1StrokeStyle *stroke_style){
@@ -482,6 +494,22 @@ void winp::events::draw::fill_mesh(ID2D1Mesh *mesh, const m_opt_paint_type &pain
 		render_target_->FillMesh(mesh, brush);
 }
 
+void winp::events::draw::draw_themed_background(int part_id, int state_id, const RECT &region){
+	if (begin() != utility::error_code::nil)
+		return;//Failed to initialize
+
+	if (auto theme = get_theme_(); theme != nullptr)
+		DrawThemeBackground(theme, info_.hdc, part_id, state_id, &region, nullptr);
+}
+
+void winp::events::draw::draw_themed_text(int part_id, int state_id, const std::wstring &text, DWORD format_flags, const RECT &region){
+	if (begin() != utility::error_code::nil)
+		return;//Failed to initialize
+
+	if (auto theme = get_theme_(); theme != nullptr)
+		DrawThemeText(theme, info_.hdc, part_id, state_id, text.data(), static_cast<int>(text.size()), format_flags, 0u, &region);
+}
+
 D2D1_POINT_2F winp::events::draw::get_dip_point_(const m_opt_point_type &point){
 	if (std::holds_alternative<D2D1_POINT_2F>(point))
 		return std::get<D2D1_POINT_2F>(point);
@@ -525,6 +553,12 @@ ID2D1Brush *winp::events::draw::get_brush_(const m_opt_paint_type &paint){
 		color_brush_->SetColor(std::holds_alternative<D2D_COLOR_F>(paint) ? std::get<D2D_COLOR_F>(paint) : ui::visible_surface::convert_colorref_to_colorf(std::get<COLORREF>(paint), 255));
 
 	return color_brush_;
+}
+
+HTHEME winp::events::draw::get_theme_() const{
+	if (theme_ == nullptr)
+		theme_ = target_.get_theme();
+	return theme_;
 }
 
 winp::events::erase_background::~erase_background(){
@@ -597,15 +631,15 @@ void winp::events::paint::end_(){
 		ReleaseDC(message_info_.hwnd, info_.hdc);
 }
 
-winp::events::owner_draw::~owner_draw(){
+winp::events::draw_item::~draw_item(){
 	end();
 }
 
-bool winp::events::owner_draw::should_call_default_() const{
+bool winp::events::draw_item::should_call_default_() const{
 	return false;
 }
 
-winp::utility::error_code winp::events::owner_draw::begin_(){
+winp::utility::error_code winp::events::draw_item::begin_(){
 	if (message_info_.message == WM_DRAWITEM){
 		auto info = reinterpret_cast<DRAWITEMSTRUCT *>(message_info_.lParam);
 		info_.hdc = info->hDC;
@@ -615,7 +649,91 @@ winp::utility::error_code winp::events::owner_draw::begin_(){
 	return utility::error_code::nil;
 }
 
-void winp::events::owner_draw::end_(){}
+void winp::events::draw_item::end_(){}
+
+winp::events::measure_item::~measure_item(){
+	if (device_context_.first != nullptr){
+		ReleaseDC(device_context_.second, device_context_.first);
+		device_context_ = std::make_pair<HDC, HWND>(nullptr, nullptr);
+	}
+
+	if (theme_ != nullptr){
+		CloseThemeData(theme_);
+		theme_ = nullptr;
+	}
+}
+
+HTHEME winp::events::measure_item::get_theme() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return get_theme_();
+}
+
+SIZE winp::events::measure_item::measure_text(const std::wstring &text, IDWriteTextFormat *format, D2D1_DRAW_TEXT_OPTIONS options, DWRITE_MEASURING_MODE measuring_mode){
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return SIZE{};
+}
+
+SIZE winp::events::measure_item::measure_text(const std::wstring &text, HFONT font, DWORD format_flags){
+	static const auto symbol_list = L"AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz";
+
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+
+	cache_device_context_();
+	if (device_context_.first == nullptr)
+		return SIZE{};
+
+	SaveDC(device_context_.first);
+	SelectObject(device_context_.first, font);
+
+	SIZE size{}, symbols_size{};
+	GetTextExtentPoint32W(device_context_.first, symbol_list, static_cast<int>(std::wcslen(symbol_list)), &symbols_size);
+
+	if (!text.empty())
+		GetTextExtentPoint32W(device_context_.first, text.data(), static_cast<int>(text.size()), &size);
+
+	RestoreDC(device_context_.first, -1);
+	return SIZE{ size.cx, symbols_size.cy };
+}
+
+SIZE winp::events::measure_item::measure_themed_text(int part_id, int state_id, const std::wstring &text, DWORD format_flags){
+	auto theme = get_theme();
+	if (theme == nullptr)
+		return SIZE{};
+
+	cache_device_context_();
+	if (device_context_.first == nullptr)
+		return SIZE{};
+
+	RECT region{};
+	GetThemeTextExtent(theme, device_context_.first, part_id, state_id, text.data(), static_cast<int>(text.size()), format_flags, nullptr, &region);
+
+	return SIZE{ (region.right - region.left), (region.bottom - region.top) };
+}
+
+bool winp::events::measure_item::set_result_untyped_(const std::any &result){
+	if (auto value = std::any_cast<SIZE>(&result); value != nullptr){
+		reinterpret_cast<MEASUREITEMSTRUCT *>(message_info_.lParam)->itemWidth = value->cx;
+		reinterpret_cast<MEASUREITEMSTRUCT *>(message_info_.lParam)->itemHeight = value->cy;
+
+		return true;
+	}
+
+	return object_with_message::set_result_untyped_(result);
+}
+
+HTHEME winp::events::measure_item::get_theme_() const{
+	if (theme_ == nullptr)
+		theme_ = target_.get_theme();
+	return theme_;
+}
+
+void winp::events::measure_item::cache_device_context_(){
+	if (device_context_.first == nullptr)
+		device_context_ = target_.get_device_context();
+}
 
 bool winp::events::enable::is_enabled() const{
 	if (!target_.get_thread().is_thread_context())
@@ -629,10 +747,23 @@ bool winp::events::timer::needs_duration() const{
 	return needs_duration_;
 }
 
-bool winp::events::interval::needs_duration() const{
-	if (!target_.get_thread().is_thread_context())
-		throw utility::error_code::outside_thread_context;
-	return needs_duration_;
+bool winp::events::timer::set_result_untyped_(const std::any &result){
+	if (auto value = std::any_cast<std::chrono::nanoseconds>(&result); value != nullptr)
+		result_ = (value->count() / 1000000);
+	else if (auto value = std::any_cast<std::chrono::microseconds>(&result); value != nullptr)
+		result_ = (value->count() / 1000);
+	else if (auto value = std::any_cast<std::chrono::milliseconds>(&result); value != nullptr)
+		result_ = value->count();
+	else if (auto value = std::any_cast<std::chrono::seconds>(&result); value != nullptr)
+		result_ = (value->count() * 1000);
+	else if (auto value = std::any_cast<std::chrono::minutes>(&result); value != nullptr)
+		result_ = (value->count() * 1000 * 60);
+	else if (auto value = std::any_cast<std::chrono::hours>(&result); value != nullptr)
+		result_ = (value->count() * 1000 * 60 * 60);
+	else
+		return object::set_result_untyped_(result);
+
+	return true;
 }
 
 winp::events::animation::key_type winp::events::animation::get_type() const{

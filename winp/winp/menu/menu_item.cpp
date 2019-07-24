@@ -2,12 +2,23 @@
 
 #include "menu_object.h"
 
-winp::menu::item::item() = default;
+winp::menu::item::item(){
+	add_event_handler_([this](events::measure_item &e){
+		if (auto tree_parent = dynamic_cast<menu::tree *>(parent_); tree_parent != nullptr)
+			tree_parent->trigger_event_handler_(e);
+	});
+
+	add_event_handler_([this](events::draw_item &e){
+		if (auto tree_parent = dynamic_cast<menu::tree *>(parent_); tree_parent != nullptr)
+			tree_parent->trigger_event_handler_(e);
+	});
+}
 
 winp::menu::item::item(tree &parent)
 	: item(parent, static_cast<std::size_t>(-1)){}
 
-winp::menu::item::item(tree &parent, std::size_t index){
+winp::menu::item::item(tree &parent, std::size_t index)
+	: item(){
 	set_parent(&parent, index);
 }
 
@@ -118,6 +129,30 @@ winp::utility::error_code winp::menu::item::select(const std::function<void(item
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
+HTHEME winp::menu::item::get_theme_() const{
+	if (auto menu_parent = get_first_ancestor_of_<menu::object>(nullptr); menu_parent != nullptr)
+		return menu_parent->get_theme_();
+	return nullptr;
+}
+
+std::pair<HDC, HWND> winp::menu::item::get_device_context_() const{
+	if (auto menu_parent = get_first_ancestor_of_<menu::object>(nullptr); menu_parent != nullptr)
+		return menu_parent->get_device_context_();
+	return std::make_pair<HDC, HWND>(nullptr, nullptr);
+}
+
+void winp::menu::item::added_event_handler_(event_manager_type &manager, event_manager_type::key_type key, unsigned __int64 id, thread::item *owner) const{
+	ui::object::added_event_handler_(manager, key, id, owner);
+	if (&manager == &events_manager_ && event_manager_type::is_equal_key<events::draw_item>(key) && events_manager_.get_bound_count<events::draw_item>() == 1u)
+		const_cast<menu::item *>(this)->update_types_();
+}
+
+void winp::menu::item::removed_event_handler_(event_manager_type &manager, event_manager_type::key_type key, unsigned __int64 id) const{
+	ui::object::removed_event_handler_(manager, key, id);
+	if (&manager == &events_manager_ && event_manager_type::is_equal_key<events::draw_item>(key) && events_manager_.get_bound_count<events::draw_item>() == 0u)
+		const_cast<menu::item *>(this)->update_types_();
+}
+
 winp::utility::error_code winp::menu::item::create_(){
 	if (handle_ != nullptr)
 		return utility::error_code::nil;
@@ -170,7 +205,11 @@ winp::utility::error_code winp::menu::item::set_parent_value_(ui::tree *value, b
 	}
 	
 	if (handle_ != nullptr){//Remove item from menu
-		RemoveMenu(handle_, get_insertion_index_(), MF_BYPOSITION);
+		if (local_id_ == 0u)
+			RemoveMenu(handle_, get_insertion_index_(), MF_BYPOSITION);
+		else//Use ID
+			RemoveMenu(handle_, local_id_, MF_BYCOMMAND);
+
 		handle_ = nullptr;
 	}
 
@@ -182,7 +221,11 @@ winp::utility::error_code winp::menu::item::set_index_value_(std::size_t value, 
 		return ui::object::set_index_value_(value, true);
 
 	if (handle_ != nullptr){
-		RemoveMenu(handle_, get_insertion_index_(), MF_BYPOSITION);
+		if (local_id_ == 0u)
+			RemoveMenu(handle_, get_insertion_index_(), MF_BYPOSITION);
+		else//Use ID
+			RemoveMenu(handle_, local_id_, MF_BYCOMMAND);
+
 		if (auto object_parent = dynamic_cast<menu::object *>(parent_); object_parent == nullptr || !object_parent->is_created())
 			handle_ = nullptr;
 		else//Recreate
@@ -375,9 +418,14 @@ winp::utility::error_code winp::menu::item::update_types_(){
 }
 
 UINT winp::menu::item::get_types_() const{
+	UINT additional_types = 0u;
+	if (events_manager_.get_bound_count<events::draw_item>() != 0u)
+		additional_types |= MFT_OWNERDRAW;
+
 	if (auto parent = dynamic_cast<tree *>(parent_); parent != nullptr)
-		return (types_ | parent->get_types(get_index_()));
-	return types_;
+		return (types_ | additional_types | parent->get_types(get_index_()));
+
+	return (types_ | additional_types);
 }
 
 winp::utility::error_code winp::menu::item::set_enabled_state_(bool is_enabled){

@@ -61,6 +61,14 @@ namespace winp::menu{
 		friend class system_popup;
 		friend class thread::item_manager;
 
+		virtual HTHEME get_theme_() const override;
+
+		virtual std::pair<HDC, HWND> get_device_context_() const override;
+
+		virtual void added_event_handler_(event_manager_type &manager, event_manager_type::key_type key, unsigned __int64 id, thread::item *owner) const override;
+
+		virtual void removed_event_handler_(event_manager_type &manager, event_manager_type::key_type key, unsigned __int64 id) const override;
+
 		virtual utility::error_code create_() override;
 
 		virtual utility::error_code destroy_() override;
