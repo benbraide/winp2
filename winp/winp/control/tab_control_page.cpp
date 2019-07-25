@@ -1,4 +1,5 @@
 #include "../app/app_object.h"
+#include "../ui/ui_size_and_position_hooks.h"
 
 #include "tab_control.h"
 

@@ -1,5 +1,6 @@
 #include "../app/app_object.h"
 
+#include "../ui/ui_io_hooks.h"
 #include "../ui/ui_non_window_surface.h"
 #include "../control/control_object.h"
 
@@ -402,7 +403,7 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 		}
 		
 		MSG paint_msg{ msg.hwnd, WM_ERASEBKGND, ((msg.message == WM_PRINTCLIENT) ? msg.wParam : reinterpret_cast<WPARAM>(paint_device_)) };
-		erase_background_(context, target, paint_msg);
+		trigger_event_with_target_<events::erase_background>(context, target, paint_msg, nullptr);
 	}
 	else if (msg.hwnd != nullptr){
 		if (msg.message == WM_PAINT){

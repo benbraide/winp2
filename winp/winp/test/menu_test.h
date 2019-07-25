@@ -9,6 +9,8 @@
 #include "../menu/menu_link_item.h"
 #include "../menu/menu_separator.h"
 
+#include "../ui/ui_io_hooks.h"
+
 namespace winp::test{
 	struct menu{
 		static void run(int cmd_show = 0);

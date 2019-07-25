@@ -6,6 +6,9 @@
 #include "../window/window_object.h"
 #include "../non_window/rectangular_non_window.h"
 
+#include "../ui/ui_io_hooks.h"
+#include "../ui/ui_general_hooks.h"
+
 #include "../menu/menu_action_item.h"
 #include "../menu/menu_link_item.h"
 #include "../menu/menu_separator.h"

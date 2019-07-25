@@ -1,4 +1,5 @@
 #include "../app/app_object.h"
+#include "../ui/ui_io_hooks.h"
 
 #include "ui_window_surface.h"
 

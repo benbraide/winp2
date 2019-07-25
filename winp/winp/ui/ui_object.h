@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ui_hook.h"
+#include "ui_general_hooks.h"
 
 namespace winp::ui{
 	class tree;

@@ -8,6 +8,8 @@
 #include "../non_window/elliptical_non_window.h"
 #include "../non_window/custom_non_window.h"
 
+#include "../ui/ui_io_hooks.h"
+
 namespace winp::test{
 	struct non_window{
 		static void run(int cmd_show = 0);

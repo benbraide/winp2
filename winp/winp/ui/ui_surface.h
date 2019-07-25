@@ -11,6 +11,12 @@ namespace winp::grid{
 namespace winp::ui{
 	class tree;
 
+	class placement_hook;
+	class parent_fill_hook;
+	class children_contain_hook;
+	class sibling_placement_hook;
+	class drag_hook;
+
 	class surface : public thread::synchronized_item{
 	public:
 		using grid_type = grid::object;

@@ -1,6 +1,8 @@
 #include "../app/app_object.h"
 
 #include "../grid/grid_object.h"
+#include "../ui/ui_io_hooks.h"
+#include "../ui/ui_size_and_position_hooks.h"
 
 #include "ui_window_surface.h"
 

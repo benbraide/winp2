@@ -1,4 +1,5 @@
 #include "../utility/animation_timing.h"
+#include "../ui/ui_io_hooks.h"
 
 #include "control_test.h"
 
