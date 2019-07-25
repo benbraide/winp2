@@ -2,12 +2,12 @@
 
 #include <unordered_map>
 
-#include "../non_window/custom_non_window.h"
+#include "../ui/ui_non_window_surface.h"
 
 namespace winp::grid{
 	class row;
 
-	class column : public non_window::custom{
+	class column : public ui::non_window_surface{
 	public:
 		column();
 

@@ -87,6 +87,11 @@ bool winp::events::object::is_thread_context() const{
 }
 
 bool winp::events::object::set_result_untyped_(const std::any &result){
+	if (auto value = std::any_cast<bool>(&result); value != nullptr){
+		result_ = (*value ? 1 : 0);
+		return true;
+	}
+
 	return false;
 }
 

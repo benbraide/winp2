@@ -84,7 +84,7 @@ void winp::test::control::run(int cmd_show){
 				});
 			});
 
-			page.add_object([&](winp::non_window::rectangle &nwo){
+			page.add_object([&](winp::non_window::object &nwo){
 				nwo.set_background_color(D2D1::ColorF::Red);
 				nwo.set_position(30, 70);
 				nwo.set_size(200, 140);

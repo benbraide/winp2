@@ -108,15 +108,7 @@ namespace winp::ui{
 		template <typename hook_type, typename... args_types>
 		hook_type *insert_hook(args_types &&... args){
 			return compute_task_inside_thread_context([&]{
-				auto key = event_manager_type::template get_key<hook_type>();
-				if (auto it = hooks_.find(key); it != hooks_.end())
-					return dynamic_cast<hook_type *>(it->second.get());//Duplicate
-
-				auto hook = std::make_shared<hook_type>(*this, std::forward<args_types>(args)...);
-				if (hook != nullptr)
-					hooks_[key] = hook;
-
-				return hook.get();
+				return insert_hook_<hook_type>(std::forward<args_types>(args)...);
 			});
 		}
 
@@ -124,6 +116,13 @@ namespace winp::ui{
 		void remove_hook(){
 			execute_task_inside_thread_context([&]{
 				remove_hook_<hook_type>();
+			});
+		}
+
+		template <typename hook_type>
+		void remove_similar_hooks(){
+			execute_task_inside_thread_context([&]{
+				remove_similar_hooks_<hook_type>();
 			});
 		}
 
@@ -223,10 +222,38 @@ namespace winp::ui{
 			});
 		}
 
+		template <typename hook_type, typename... args_types>
+		hook_type *insert_hook_(args_types &&... args){
+			auto hook = std::make_shared<hook_type>(*this, std::forward<args_types>(args)...);
+			if (hook == nullptr || !static_cast<ui::hook *>(hook.get())->setup_())
+				return nullptr;
+
+			hooks_[event_manager_type::template get_key<hook_type>()] = hook;
+			return hook.get();
+		}
+
 		template <typename hook_type>
 		void remove_hook_(){
 			if (!hooks_.empty())
 				hooks_.erase(event_manager_type::template get_key<hook_type>());
+		}
+
+		template <typename hook_type>
+		void remove_similar_hooks_(){
+			if (hooks_.empty())
+				return;
+
+			std::size_t index = 0u;
+			std::list<std::size_t> index_list;
+
+			for (auto &info : hooks_){
+				if (dynamic_cast<hook_type *>(info.second.get()) != nullptr)
+					index_list.push_front(index);
+				++index;
+			}
+
+			for (auto index : index_list)
+				hooks_.erase(std::next(hooks_.begin(), index));
 		}
 
 		template <typename hook_type>

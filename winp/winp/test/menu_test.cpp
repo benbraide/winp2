@@ -50,7 +50,7 @@ void winp::test::menu::run(int cmd_show){
 	ws.create();
 	ws.show(cmd_show);
 
-	ws.add_object([](non_window::rectangle &nwo){
+	ws.add_object([](non_window::object &nwo){
 		nwo.insert_hook<ui::io_hook>();
 		nwo.set_position(30, 30);
 		nwo.set_size(200, 100);

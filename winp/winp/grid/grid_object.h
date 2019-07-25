@@ -3,7 +3,7 @@
 #include "grid_row.h"
 
 namespace winp::grid{
-	class object : public non_window::custom{
+	class object : public ui::non_window_surface{
 	public:
 		object();
 

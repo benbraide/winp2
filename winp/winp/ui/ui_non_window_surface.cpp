@@ -1,18 +1,31 @@
 #include "../app/app_object.h"
 
+#include "ui_non_window_hooks.h"
 #include "ui_window_surface.h"
 
-winp::ui::non_window_surface::non_window_surface() = default;
+winp::ui::non_window_surface::non_window_surface(){
+	insert_hook_<rectangular_non_window_hook>();
+	add_event_handler_([this](events::destroy_non_window_handle &e){
+		return ((handle_ != nullptr && DeleteObject(handle_) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+	});
+}
 
 winp::ui::non_window_surface::non_window_surface(tree &parent)
 	: non_window_surface(parent, static_cast<std::size_t>(-1)){}
 
-winp::ui::non_window_surface::non_window_surface(tree &parent, std::size_t index){
+winp::ui::non_window_surface::non_window_surface(tree &parent, std::size_t index)
+	: non_window_surface(){
 	set_parent(&parent, index);
 }
 
 winp::ui::non_window_surface::~non_window_surface(){
 	destruct_();
+}
+
+winp::utility::error_code winp::ui::non_window_surface::update_handle(const std::function<void(non_window_surface &, utility::error_code)> &callback){
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, *this, update_handle_());
+	}, (callback != nullptr), utility::error_code::nil);
 }
 
 HRGN winp::ui::non_window_surface::get_handle(const std::function<void(HRGN)> &callback) const{
@@ -170,16 +183,16 @@ HRGN winp::ui::non_window_surface::get_handle_() const{
 }
 
 HRGN winp::ui::non_window_surface::create_handle_() const{
-	auto result = trigger_event_<events::create_non_window_handle>();
-	return (((result.first & events::object::state_default_prevented) == 0u) ? reinterpret_cast<HRGN>(result.second) : nullptr);
+	auto result_info = trigger_event_<events::create_non_window_handle>(nullptr, get_current_size_());
+	return (((result_info.first & events::object::state_default_prevented) == 0u) ? reinterpret_cast<HRGN>(result_info.second) : nullptr);
 }
 
 winp::utility::error_code winp::ui::non_window_surface::update_handle_(){
-	auto result = trigger_event_<events::update_non_window_handle>(handle_);
-	if ((result.first & events::object::state_default_prevented) != 0u)
+	auto result_info = trigger_event_<events::create_non_window_handle>(handle_, get_current_size_());
+	if ((result_info.first & events::object::state_default_prevented) != 0u)
 		return utility::error_code::action_prevented;
 
-	if (auto value = reinterpret_cast<HRGN>(result.second); value != nullptr){
+	if (auto value = reinterpret_cast<HRGN>(result_info.second); value != nullptr && value != handle_){
 		destroy_handle_();
 		handle_ = value;
 	}
@@ -188,12 +201,9 @@ winp::utility::error_code winp::ui::non_window_surface::update_handle_(){
 }
 
 winp::utility::error_code winp::ui::non_window_surface::destroy_handle_(){
-	if (events_manager_.get_bound_count<events::destroy_non_window_handle>() == 0u)
-		return ((DeleteObject(handle_) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
-
-	auto result = trigger_event_<events::destroy_non_window_handle>(handle_);
-	if ((result.first & events::object::state_default_prevented) != 0u)
+	auto result_info = trigger_event_<events::destroy_non_window_handle>(handle_);
+	if ((result_info.first & events::object::state_default_prevented) != 0u)
 		return utility::error_code::action_prevented;
 
-	return utility::error_code::nil;
+	return static_cast<utility::error_code>(result_info.second);
 }

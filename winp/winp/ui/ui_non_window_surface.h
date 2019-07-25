@@ -14,6 +14,8 @@ namespace winp::ui{
 
 		virtual ~non_window_surface();
 
+		virtual utility::error_code update_handle(const std::function<void(non_window_surface &, utility::error_code)> &callback = nullptr);
+
 		virtual HRGN get_handle(const std::function<void(HRGN)> &callback = nullptr) const;
 
 	protected:

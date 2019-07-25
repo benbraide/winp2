@@ -2,31 +2,12 @@
 
 #include "grid_row.h"
 
-winp::grid::column::column(){
-	add_event_handler_([this](events::create_non_window_handle &e) -> HRGN{
-		if ((e.get_states() & events::object::state_result_set) == 0u){
-			auto &current_size = get_current_size_();
-			return CreateRectRgn(0, 0, current_size.cx, current_size.cy);
-		}
-
-		return nullptr;
-	});
-
-	add_event_handler_([this](events::update_non_window_handle &e) -> HRGN{
-		if ((e.get_states() & events::object::state_result_set) == 0u){
-			auto &current_size = get_current_size_();
-			return ((SetRectRgn(e.get_handle(), 0, 0, current_size.cx, current_size.cy) == FALSE) ? nullptr : e.get_handle());
-		}
-
-		return nullptr;
-	});
-}
+winp::grid::column::column() = default;
 
 winp::grid::column::column(ui::tree &parent)
 	: column(parent, static_cast<std::size_t>(-1)){}
 
-winp::grid::column::column(ui::tree &parent, std::size_t index)
-	: column(){
+winp::grid::column::column(ui::tree &parent, std::size_t index){
 	set_parent(&parent, index);
 }
 
@@ -76,7 +57,7 @@ winp::grid::fixed_column::fixed_column(ui::tree &parent, std::size_t index){
 winp::grid::fixed_column::~fixed_column() = default;
 
 winp::utility::error_code winp::grid::fixed_column::update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags){
-	auto error_code = custom::update_dimension_(previous_dimension, x, y, width, height, flags);
+	auto error_code = non_window_surface::update_dimension_(previous_dimension, x, y, width, height, flags);
 	if (!is_updating_)
 		refresh_();
 

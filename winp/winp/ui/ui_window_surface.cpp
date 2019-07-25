@@ -7,7 +7,7 @@ winp::ui::window_surface::window_surface()
 	: system_menu_(*this), menu_bar_(*this){
 	styles_ = (WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
 	background_color_ = convert_colorref_to_colorf(GetSysColor(COLOR_WINDOW), 255);
-	insert_hook<io_hook>();
+	insert_hook_<io_hook>();
 
 	add_event_handler_([this](events::get_context_menu_position &e){
 		auto position = get_context_menu_position_();

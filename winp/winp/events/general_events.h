@@ -64,20 +64,16 @@ namespace winp::events{
 	class create_non_window_handle : public object{
 	public:
 		template <typename... args_types>
-		explicit create_non_window_handle(args_types &&... args)
-			: object(std::forward<args_types>(args)...){}
-	};
-
-	class update_non_window_handle : public object{
-	public:
-		template <typename... args_types>
-		explicit update_non_window_handle(HRGN handle, args_types &&... args)
-			: object(std::forward<args_types>(args)...), handle_(handle){}
+		explicit create_non_window_handle(HRGN handle, const SIZE &current_size, args_types &&... args)
+			: object(std::forward<args_types>(args)...), handle_(handle), current_size_(current_size){}
 
 		virtual HRGN get_handle() const;
 
+		virtual const SIZE &get_current_size() const;
+
 	protected:
 		HRGN handle_;
+		SIZE current_size_;
 	};
 
 	class destroy_non_window_handle : public object{
