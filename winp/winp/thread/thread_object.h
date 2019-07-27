@@ -165,6 +165,7 @@ namespace winp::thread{
 		friend class app::object;
 		friend class events::object;
 		friend class events::draw;
+		friend class events::non_client_paint;
 
 		explicit object();
 

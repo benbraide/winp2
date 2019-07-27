@@ -149,34 +149,16 @@ winp::utility::error_code winp::ui::window_surface::create_(){
 	if (is_destructed_())
 		return utility::error_code::object_destructed;
 
-	auto position = position_;
-	auto window_ancestor = get_first_ancestor_of_<window_surface>([&](tree &ancestor){
-		if (auto surface_ancestor = dynamic_cast<surface *>(&ancestor); surface_ancestor != nullptr){
-			auto ancestor_position = surface_ancestor->get_position();
-			auto ancestor_client_offset = surface_ancestor->get_client_offset();
-
-			position.x += (ancestor_position.x + ancestor_client_offset.x);
-			position.y += (ancestor_position.y + ancestor_client_offset.y);
-		}
-
-		return true;
-	});
-
-	if (window_ancestor != nullptr){
-		window_ancestor->auto_create();
-		if (!window_ancestor->is_created())
+	auto window_ancestor_and_offset = get_first_ancestor_and_relative_offset_<ui::window_surface>();
+	if (window_ancestor_and_offset.first != nullptr){
+		window_ancestor_and_offset.first->auto_create();
+		if (!window_ancestor_and_offset.first->is_created())
 			return utility::error_code::parent_not_created;
 	}
 
-	auto ancestor_handle = ((window_ancestor == nullptr) ? nullptr : window_ancestor->handle_);
+	auto ancestor_handle = ((window_ancestor_and_offset.first == nullptr) ? nullptr : window_ancestor_and_offset.first->handle_);
 	if (parent_ != nullptr && ancestor_handle == nullptr)
 		return utility::error_code::parent_not_created;
-
-	if (window_ancestor != nullptr){
-		auto ancestor_client_start_offset = window_ancestor->get_client_start_offset();
-		position.x += ancestor_client_start_offset.x;
-		position.y += ancestor_client_start_offset.y;
-	}
 
 	handle_ = thread_.get_item_manager().create_window(
 		*this,
@@ -184,8 +166,8 @@ winp::utility::error_code winp::ui::window_surface::create_(){
 		get_class_name_().data(),
 		get_window_text_(),
 		get_styles_(false),
-		position.x,
-		position.y,
+		(window_ancestor_and_offset.second.x + position_.x),
+		(window_ancestor_and_offset.second.y + position_.y),
 		size_.cx,
 		size_.cy,
 		ancestor_handle,

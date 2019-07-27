@@ -122,6 +122,13 @@ namespace winp::ui{
 			}, (callback != nullptr), POINT{});
 		}
 
+		template <typename ancestor_type>
+		std::pair<ancestor_type *, POINT> get_first_ancestor_and_relative_offset(const std::function<void(const std::pair<ancestor_type *, POINT> &)> &callback = nullptr) const{
+			return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+				return synchronized_item_pass_return_value_to_callback(callback, get_first_ancestor_and_relative_offset_<ancestor_type>());
+			}, (callback != nullptr), std::make_pair<ancestor_type *, POINT>(nullptr, POINT{}));
+		}
+
 		virtual POINT convert_position_from_absolute_value(const POINT &value, const std::function<void(const POINT &)> &callback = nullptr) const;
 
 		virtual POINT convert_position_from_absolute_value(int x, int y, const std::function<void(const POINT &)> &callback = nullptr) const;
@@ -206,29 +213,38 @@ namespace winp::ui{
 
 		template <typename ancestor_type>
 		POINT convert_position_relative_to_ancestor_(int x, int y) const{
-			auto object_self = dynamic_cast<const object *>(this);
-			if (object_self == nullptr)
-				return POINT{ x, y };
+			auto result = get_first_ancestor_and_relative_offset_<ancestor_type>();
+			return POINT{ (x + result.second.x), (y + result.second.y) };
+		}
 
-			auto ancestor = object_self->get_first_ancestor_of_<ancestor_type>([&](tree &ancestor){
+		template <typename ancestor_type>
+		std::pair<ancestor_type *, POINT> get_first_ancestor_and_relative_offset_() const{
+			auto result = std::make_pair<ancestor_type *, POINT>(nullptr, POINT{});
+			auto object_self = dynamic_cast<const object *>(this);
+
+			if (object_self == nullptr)
+				return result;
+
+			result.first = object_self->get_first_ancestor_of_<ancestor_type>([&](tree &ancestor){
 				if (auto surface_ancestor = dynamic_cast<surface *>(&ancestor); surface_ancestor != nullptr){
 					auto &ancestor_position = surface_ancestor->get_current_position_();
+					auto ancestor_client_offset = surface_ancestor->get_client_offset();
 					auto ancestor_client_start_offset = surface_ancestor->get_client_start_offset();
 
-					x += (ancestor_position.x + ancestor_client_start_offset.x);
-					y += (ancestor_position.y + ancestor_client_start_offset.y);
+					result.second.x += (ancestor_position.x + ancestor_client_offset.x + ancestor_client_start_offset.x);
+					result.second.y += (ancestor_position.y + ancestor_client_offset.y + ancestor_client_start_offset.y);
 				}
 
 				return true;
 			});
 
-			if (auto surface_ancestor = dynamic_cast<surface *>(ancestor); surface_ancestor != nullptr){
+			if (auto surface_ancestor = dynamic_cast<surface *>(result.first); surface_ancestor != nullptr){
 				auto ancestor_client_start_offset = surface_ancestor->get_client_start_offset_();
-				x += ancestor_client_start_offset.x;
-				y += ancestor_client_start_offset.y;
+				result.second.x += ancestor_client_start_offset.x;
+				result.second.y += ancestor_client_start_offset.y;
 			}
 
-			return POINT{ x, y };
+			return result;
 		}
 
 		virtual POINT convert_position_from_absolute_value_(int x, int y) const;

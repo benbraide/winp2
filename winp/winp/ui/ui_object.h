@@ -224,6 +224,10 @@ namespace winp::ui{
 
 		template <typename hook_type, typename... args_types>
 		hook_type *insert_hook_(args_types &&... args){
+			auto it = hooks_.find(event_manager_type::template get_key<hook_type>());
+			if (it != hooks_.end())
+				return dynamic_cast<hook_type *>(it->second.get());
+
 			auto hook = std::make_shared<hook_type>(*this, std::forward<args_types>(args)...);
 			if (hook == nullptr || !static_cast<ui::hook *>(hook.get())->setup_())
 				return nullptr;

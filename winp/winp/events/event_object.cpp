@@ -139,5 +139,8 @@ void winp::events::object_with_message::call_default_(){
 }
 
 LRESULT winp::events::object_with_message::get_called_default_value_(){
+	if (default_callback_ == nullptr)
+		return 0;
+
 	return CallWindowProcW(default_callback_, message_info_.hwnd, message_info_.message, message_info_.wParam, message_info_.lParam);
 }

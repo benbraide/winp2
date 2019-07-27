@@ -163,6 +163,8 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 		return erase_background_(target, target, msg);
 	case WM_PAINT:
 		return paint_(target, target, msg, true);
+	case WM_NCPAINT:
+		return trigger_event_<events::non_client_paint>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_DRAWITEM:
 		return draw_item_(target, msg);
 	case WM_MEASUREITEM:
@@ -402,7 +404,10 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 				return 0;//Outside update region
 		}
 		
-		MSG paint_msg{ msg.hwnd, WM_ERASEBKGND, ((msg.message == WM_PRINTCLIENT) ? msg.wParam : reinterpret_cast<WPARAM>(paint_device_)) };
+		MSG paint_msg{ msg.hwnd, WM_NCPAINT };
+		trigger_event_with_target_<events::non_client_paint>(context, target, paint_msg, nullptr);
+
+		paint_msg = MSG{ msg.hwnd, WM_ERASEBKGND, ((msg.message == WM_PRINTCLIENT) ? msg.wParam : reinterpret_cast<WPARAM>(paint_device_)) };
 		trigger_event_with_target_<events::erase_background>(context, target, paint_msg, nullptr);
 	}
 	else if (msg.hwnd != nullptr){

@@ -15,7 +15,7 @@ void winp::test::non_window::run(int cmd_show){
 			e.draw_lines(POINT{ 0, 10 }, POINT{ size.cx, 10 }, POINT{ 0, 10 }, (size.cy / 10), D2D1::ColorF::White);
 		});
 
-		rect.insert_hook<ui::drag_hook>();
+		rect.insert_hook<ui::non_window_non_client_hook>()->set_caption(L"Test Title");
 		rect.set_position(30, 30);
 		rect.set_size(200, 100);
 		rect.set_background_color(D2D1::ColorF::Red);

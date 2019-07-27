@@ -34,6 +34,22 @@ HRGN winp::ui::non_window_surface::get_handle(const std::function<void(HRGN)> &c
 	}, (callback != nullptr), nullptr);
 }
 
+HRGN winp::ui::non_window_surface::get_outer_handle(const std::function<void(HRGN)> &callback) const{
+	return compute_or_post_task_inside_thread_context([=]{
+		return pass_return_value_to_callback(callback, get_outer_handle_());
+	}, (callback != nullptr), nullptr);
+}
+
+HTHEME winp::ui::non_window_surface::get_theme_() const{
+	auto window_ancestor = get_first_ancestor_of_<window_surface>(nullptr);
+	return ((window_ancestor == nullptr) ? nullptr : window_ancestor->get_theme());
+}
+
+std::pair<HDC, HWND> winp::ui::non_window_surface::get_device_context_() const{
+	auto window_ancestor = get_first_ancestor_of_<window_surface>(nullptr);
+	return ((window_ancestor == nullptr) ? std::make_pair<HDC, HWND>(nullptr, nullptr) : window_ancestor->get_device_context());
+}
+
 winp::utility::error_code winp::ui::non_window_surface::create_(){
 	if (is_created_())
 		return utility::error_code::nil;
@@ -47,12 +63,33 @@ winp::utility::error_code winp::ui::non_window_surface::create_(){
 	if ((handle_ = create_handle_()) == nullptr)
 		return utility::error_code::action_could_not_be_completed;
 
+	auto hk = find_hook_<ui::non_window_non_client_hook>();
+	if (hk != nullptr){//Create non-client handle
+		auto result_info = trigger_event_<events::create_non_window_non_client_handle>(nullptr, get_current_size_());
+		if ((result_info.first & events::object::state_default_prevented) != 0u){
+			destroy_handle_();
+			handle_ = nullptr;
+			return utility::error_code::action_prevented;
+		}
+
+		if ((hk->handle_ = reinterpret_cast<HRGN>(result_info.second)) == nullptr){
+			destroy_handle_();
+			handle_ = nullptr;
+			return utility::error_code::action_could_not_be_completed;
+		}
+	}
+
 	if (thread_.send_message(*this, WM_NCCREATE) != FALSE){
 		RECT dimension{};
 
 		GetRgnBox(handle_, &dimension);
 		OffsetRgn(handle_, -dimension.left, -dimension.top);
 
+		if (hk != nullptr){
+			GetRgnBox(hk->handle_, &dimension);
+			OffsetRgn(hk->handle_, -dimension.left, -dimension.top);
+		}
+		
 		size_ = SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
 		thread_.send_message(*this, WM_CREATE);
 
@@ -62,7 +99,7 @@ winp::utility::error_code winp::ui::non_window_surface::create_(){
 		return utility::error_code::nil;
 	}
 
-	DeleteObject(handle_);
+	destroy_handle_();
 	handle_ = nullptr;
 
 	return utility::error_code::action_prevented;
@@ -84,6 +121,35 @@ winp::utility::error_code winp::ui::non_window_surface::destroy_(){
 
 bool winp::ui::non_window_surface::is_created_() const{
 	return (handle_ != nullptr);
+}
+
+SIZE winp::ui::non_window_surface::get_client_size_() const{
+	if (auto hk = find_hook_<ui::non_window_non_client_hook>(); hk != nullptr){
+		return SIZE{
+			(size_.cx - (hk->padding_.left + hk->padding_.right)),
+			(size_.cy - (hk->padding_.top + hk->padding_.bottom))
+		};
+	}
+
+	return visible_surface::get_client_size_();
+}
+
+SIZE winp::ui::non_window_surface::get_current_client_size_() const{
+	if (auto hk = find_hook_<ui::non_window_non_client_hook>(); hk != nullptr){
+		auto &size = get_current_size_();
+		return SIZE{
+			(size.cx - (hk->padding_.left + hk->padding_.right)),
+			(size.cy - (hk->padding_.top + hk->padding_.bottom))
+		};
+	}
+
+	return visible_surface::get_current_client_size_();
+}
+
+POINT winp::ui::non_window_surface::get_client_offset_() const{
+	if (auto hk = find_hook_<ui::non_window_non_client_hook>(); hk != nullptr)
+		return POINT{ hk->padding_.left, hk->padding_.top };
+	return visible_surface::get_client_offset_();
 }
 
 winp::utility::error_code winp::ui::non_window_surface::update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags){
@@ -182,19 +248,52 @@ HRGN winp::ui::non_window_surface::get_handle_() const{
 	return handle_;
 }
 
+HRGN winp::ui::non_window_surface::get_outer_handle_() const{
+	auto hk = find_hook_<ui::non_window_non_client_hook>();
+	return ((hk == nullptr) ? handle_ : hk->handle_);
+}
+
 HRGN winp::ui::non_window_surface::create_handle_() const{
-	auto result_info = trigger_event_<events::create_non_window_handle>(nullptr, get_current_size_());
+	auto result_info = trigger_event_<events::create_non_window_handle>(nullptr, get_current_client_size_());
 	return (((result_info.first & events::object::state_default_prevented) == 0u) ? reinterpret_cast<HRGN>(result_info.second) : nullptr);
 }
 
 winp::utility::error_code winp::ui::non_window_surface::update_handle_(){
-	auto result_info = trigger_event_<events::create_non_window_handle>(handle_, get_current_size_());
+	if (!is_created_())
+		return utility::error_code::nil;
+
+	auto result_info = trigger_event_<events::create_non_window_handle>(handle_, get_current_client_size_());
 	if ((result_info.first & events::object::state_default_prevented) != 0u)
 		return utility::error_code::action_prevented;
 
-	if (auto value = reinterpret_cast<HRGN>(result_info.second); value != nullptr && value != handle_){
+	auto value = reinterpret_cast<HRGN>(result_info.second);
+	if (value == nullptr)
+		return utility::error_code::action_could_not_be_completed;
+
+	auto hk = find_hook_<ui::non_window_non_client_hook>();
+	if (hk != nullptr){//Create non-client handle
+		auto result_info = trigger_event_<events::create_non_window_non_client_handle>(nullptr, get_current_size_());
+		if ((result_info.first & events::object::state_default_prevented) != 0u)
+			return utility::error_code::action_prevented;
+
+		if (result_info.second == 0)
+			return utility::error_code::action_could_not_be_completed;
+
+		hk->handle_ = reinterpret_cast<HRGN>(result_info.second);
+	}
+
+	if (value != handle_){//Update
 		destroy_handle_();
 		handle_ = value;
+	}
+
+	RECT dimension{};
+	GetRgnBox(handle_, &dimension);
+	OffsetRgn(handle_, -dimension.left, -dimension.top);
+
+	if (hk != nullptr){
+		GetRgnBox(hk->handle_, &dimension);
+		OffsetRgn(hk->handle_, -dimension.left, -dimension.top);
 	}
 
 	return utility::error_code::nil;
@@ -204,6 +303,11 @@ winp::utility::error_code winp::ui::non_window_surface::destroy_handle_(){
 	auto result_info = trigger_event_<events::destroy_non_window_handle>(handle_);
 	if ((result_info.first & events::object::state_default_prevented) != 0u)
 		return utility::error_code::action_prevented;
+
+	if (auto hk = find_hook_<ui::non_window_non_client_hook>(); hk != nullptr){
+		trigger_event_<events::destroy_non_window_handle>(hk->handle_);
+		hk->handle_ = nullptr;
+	}
 
 	return static_cast<utility::error_code>(result_info.second);
 }

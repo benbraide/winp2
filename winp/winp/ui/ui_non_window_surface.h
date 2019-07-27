@@ -18,15 +18,27 @@ namespace winp::ui{
 
 		virtual HRGN get_handle(const std::function<void(HRGN)> &callback = nullptr) const;
 
+		virtual HRGN get_outer_handle(const std::function<void(HRGN)> &callback = nullptr) const;
+
 	protected:
 		friend class surface;
 		friend class thread::item_manager;
+
+		virtual HTHEME get_theme_() const override;
+
+		virtual std::pair<HDC, HWND> get_device_context_() const override;
 
 		virtual utility::error_code create_() override;
 
 		virtual utility::error_code destroy_() override;
 
 		virtual bool is_created_() const override;
+
+		virtual SIZE get_client_size_() const override;
+
+		virtual SIZE get_current_client_size_() const override;
+
+		virtual POINT get_client_offset_() const override;
 
 		virtual utility::error_code update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags) override;
 
@@ -43,6 +55,8 @@ namespace winp::ui{
 		virtual bool is_visible_() const override;
 
 		virtual HRGN get_handle_() const;
+
+		virtual HRGN get_outer_handle_() const;
 
 		virtual HRGN create_handle_() const;
 

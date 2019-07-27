@@ -76,6 +76,13 @@ namespace winp::events{
 		SIZE current_size_;
 	};
 
+	class create_non_window_non_client_handle : public create_non_window_handle{
+	public:
+		template <typename... args_types>
+		explicit create_non_window_non_client_handle(args_types &&... args)
+			: create_non_window_handle(std::forward<args_types>(args)...){}
+	};
+
 	class destroy_non_window_handle : public object{
 	public:
 		template <typename... args_types>
@@ -395,6 +402,29 @@ namespace winp::events{
 		virtual void end_() override;
 
 		bool began_paint_ = false;
+	};
+
+	class non_client_paint : public draw{
+	public:
+		template <typename... args_types>
+		explicit non_client_paint(args_types &&... args)
+			: draw(std::forward<args_types>(args)...){}
+
+		virtual ~non_client_paint();
+
+		virtual utility::error_code begin() override;
+
+	protected:
+		virtual bool should_call_default_() const override;
+
+		virtual LRESULT get_called_default_value_() override;
+
+		virtual utility::error_code begin_() override;
+
+		virtual void end_() override;
+
+		HWND dc_owner_ = nullptr;
+		RECT viewport_{};
 	};
 
 	class draw_item : public draw{
