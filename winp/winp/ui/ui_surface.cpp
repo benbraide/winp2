@@ -439,20 +439,23 @@ winp::utility::error_code winp::ui::surface::set_absolute_position_(int x, int y
 }
 
 POINT winp::ui::surface::get_absolute_position_() const{
-	auto &current_position = get_current_position_();
-	auto object_self = dynamic_cast<const object *>(this);
+	auto &position = get_position_();
+	if (auto object_self = dynamic_cast<const object *>(this); object_self != nullptr){
+		auto surface_parent = dynamic_cast<surface *>(object_self->get_parent());
+		return ((surface_parent == nullptr) ? position : surface_parent->convert_position_to_absolute_value_(position.x, position.y));
+	}
 
-	if (object_self == nullptr)//Position is absolute
-		return current_position;
+	return position;
+}
 
-	auto surface_parent = dynamic_cast<surface *>(object_self->get_parent());
-	if (surface_parent == nullptr)//Position is absolute
-		return current_position;
+POINT winp::ui::surface::get_current_absolute_position_() const{
+	auto &position = get_current_position_();
+	if (auto object_self = dynamic_cast<const object *>(this); object_self != nullptr){
+		auto surface_parent = dynamic_cast<surface *>(object_self->get_parent());
+		return ((surface_parent == nullptr) ? position : surface_parent->convert_position_to_absolute_value_(position.x, position.y));
+	}
 
-	auto parent_absolute_position = surface_parent->get_absolute_position_();
-	auto parent_client_offset = surface_parent->get_client_offset_();
-
-	return POINT{ (parent_absolute_position.x + parent_client_offset.x + current_position.x), (parent_absolute_position.y + parent_client_offset.y + current_position.y) };
+	return position;
 }
 
 winp::utility::error_code winp::ui::surface::set_dimension_(int x, int y, int width, int height, UINT flags, bool allow_animation){
@@ -727,38 +730,33 @@ RECT winp::ui::surface::get_absolute_dimension_() const{
 	return RECT{ absolute_position.x, absolute_position.y, (absolute_position.x + size_.cx), (absolute_position.y + size_.cy) };
 }
 
+RECT winp::ui::surface::get_current_absolute_dimension_() const{
+	auto absolute_position = get_current_absolute_position_();
+	return RECT{ absolute_position.x, absolute_position.y, (absolute_position.x + size_.cx), (absolute_position.y + size_.cy) };
+}
+
 POINT winp::ui::surface::convert_position_from_absolute_value_(int x, int y) const{
-	auto &current_position = get_current_position_();
-	auto object_self = dynamic_cast<const object *>(this);
+	auto position = get_current_absolute_position_();
 
-	if (object_self == nullptr)//Position is absolute
-		return POINT{ (x - current_position.x), (y - current_position.y) };
+	auto client_offset = get_client_offset_();
+	auto client_start_offset = get_client_start_offset_();
 
-	auto surface_parent = dynamic_cast<surface *>(object_self->get_parent());
-	if (surface_parent == nullptr)//Position is absolute
-		return POINT{ (x - current_position.x), (y - current_position.y) };
-
-	auto absolute_position = get_absolute_position_();
-	auto client_offset = surface_parent->get_client_start_offset_();
-
-	return POINT{ (x - (absolute_position.x + client_offset.x)), (y - (absolute_position.y + client_offset.y)) };
+	return POINT{
+		(x - (position.x + client_offset.x + client_start_offset.x)),
+		(y - (position.y + client_offset.y + client_start_offset.y))
+	};
 }
 
 POINT winp::ui::surface::convert_position_to_absolute_value_(int x, int y) const{
-	auto &current_position = get_current_position_();
-	auto object_self = dynamic_cast<const object *>(this);
+	auto position = get_current_absolute_position_();
 
-	if (object_self == nullptr)//Position is absolute
-		return POINT{ (x + current_position.x), (y + current_position.y) };
+	auto client_offset = get_client_offset_();
+	auto client_start_offset = get_client_start_offset_();
 
-	auto surface_parent = dynamic_cast<surface *>(object_self->get_parent());
-	if (surface_parent == nullptr)//Position is absolute
-		return POINT{ (x + current_position.x), (y + current_position.y) };
-
-	auto absolute_position = get_absolute_position_();
-	auto client_offset = surface_parent->get_client_offset_();
-
-	return POINT{ (x + absolute_position.x + client_offset.x), (y + absolute_position.y + client_offset.y) };
+	return POINT{
+		(x + (position.x + client_offset.x + client_start_offset.x)),
+		(y + (position.y + client_offset.y + client_start_offset.y))
+	};
 }
 
 RECT winp::ui::surface::convert_dimension_from_absolute_value_(const RECT &value) const{

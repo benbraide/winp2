@@ -15,7 +15,9 @@ namespace winp::ui{
 	class parent_fill_hook;
 	class children_contain_hook;
 	class sibling_placement_hook;
+
 	class drag_hook;
+	class non_client_drag_hook;
 
 	class surface : public thread::synchronized_item{
 	public:
@@ -164,10 +166,12 @@ namespace winp::ui{
 	protected:
 		friend class ui::placement_hook;
 		friend class ui::parent_fill_hook;
-		friend class ui::sibling_placement_hook;
 
+		friend class ui::sibling_placement_hook;
 		friend class ui::children_contain_hook;
+
 		friend class ui::drag_hook;
+		friend class non_client_drag_hook;
 
 		friend class thread::item_manager;
 
@@ -199,6 +203,8 @@ namespace winp::ui{
 
 		virtual POINT get_absolute_position_() const;
 
+		virtual POINT get_current_absolute_position_() const;
+
 		virtual utility::error_code set_dimension_(int x, int y, int width, int height, UINT flags, bool allow_animation);
 
 		virtual utility::error_code animate_dimension_(object &object_self, animation_hook &hk, const RECT &previous_dimension, int x, int y, int width, int height, UINT flags);
@@ -210,6 +216,8 @@ namespace winp::ui{
 		virtual RECT get_current_dimension_() const;
 
 		virtual RECT get_absolute_dimension_() const;
+
+		virtual RECT get_current_absolute_dimension_() const;
 
 		template <typename ancestor_type>
 		POINT convert_position_relative_to_ancestor_(int x, int y) const{

@@ -266,13 +266,12 @@ POINT winp::ui::window_surface::get_client_offset_() const{
 }
 
 POINT winp::ui::window_surface::get_absolute_position_() const{
-	if (handle_ == nullptr)
-		return visible_surface::get_absolute_position_();
-
-	RECT dimension{};
-	GetWindowRect(handle_, &dimension);
-
+	auto dimension = get_absolute_dimension_();
 	return POINT{ dimension.left, dimension.top };
+}
+
+POINT winp::ui::window_surface::get_current_absolute_position_() const{
+	return get_absolute_position_();
 }
 
 winp::utility::error_code winp::ui::window_surface::update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags){
@@ -305,6 +304,10 @@ RECT winp::ui::window_surface::get_absolute_dimension_() const{
 	GetWindowRect(handle_, &dimension);
 
 	return dimension;
+}
+
+RECT winp::ui::window_surface::get_current_absolute_dimension_() const{
+	return get_absolute_dimension_();
 }
 
 POINT winp::ui::window_surface::convert_position_from_absolute_value_(int x, int y) const{

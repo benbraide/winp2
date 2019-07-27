@@ -40,6 +40,8 @@ namespace winp::ui{
 
 		virtual POINT get_client_offset_() const override;
 
+		virtual UINT absolute_hit_test_(int x, int y) const override;
+
 		virtual utility::error_code update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags) override;
 
 		virtual utility::error_code redraw_() const override;

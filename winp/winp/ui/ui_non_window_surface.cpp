@@ -152,6 +152,61 @@ POINT winp::ui::non_window_surface::get_client_offset_() const{
 	return visible_surface::get_client_offset_();
 }
 
+UINT winp::ui::non_window_surface::absolute_hit_test_(int x, int y) const{
+	auto hk = find_hook_<ui::non_window_non_client_hook>();
+	if (hk == nullptr)
+		return visible_surface::absolute_hit_test_(x, y);
+
+	auto client_size = get_current_client_size_();
+	auto client_dimension = convert_dimension_to_absolute_value_(RECT{ 0, 0, client_size.cx, client_size.cy });
+
+	POINT position{ x, y };
+	if (PtInRect(&client_dimension, position) != FALSE)
+		return HTCLIENT;
+
+	RECT dimension{
+		(client_dimension.left - hk->padding_.left),
+		(client_dimension.top - hk->padding_.top),
+		(client_dimension.right + hk->padding_.right),
+		client_dimension.top
+	};
+
+	if (PtInRect(&dimension, position) != FALSE)
+		return HTCAPTION;
+
+	dimension = RECT{
+		(client_dimension.left - hk->padding_.left),
+		(client_dimension.top + hk->padding_.top),
+		client_dimension.left,
+		(client_dimension.bottom - hk->padding_.bottom)
+	};
+
+	if (PtInRect(&dimension, position) != FALSE)
+		return HTLEFT;
+
+	dimension = RECT{
+		client_dimension.right,
+		(client_dimension.top + hk->padding_.top),
+		(client_dimension.right + hk->padding_.right),
+		(client_dimension.bottom - hk->padding_.bottom)
+	};
+
+	if (PtInRect(&dimension, position) != FALSE)
+		return HTRIGHT;
+
+	dimension = RECT{
+		(client_dimension.left - hk->padding_.left),
+		client_dimension.bottom,
+		(client_dimension.right + hk->padding_.right),
+		(client_dimension.bottom + hk->padding_.bottom)
+	};
+
+	if (PtInRect(&dimension, position) != FALSE)
+		return HTBOTTOM;
+
+	return HTNOWHERE;
+}
+
 winp::utility::error_code winp::ui::non_window_surface::update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags){
 	if ((flags & (SWP_NOMOVE | SWP_NOSIZE)) == (SWP_NOMOVE | SWP_NOSIZE))
 		return utility::error_code::nil;
