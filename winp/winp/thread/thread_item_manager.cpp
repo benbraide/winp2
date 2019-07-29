@@ -121,8 +121,8 @@ winp::ui::window_surface *winp::thread::item_manager::find_window_(HWND handle, 
 }
 
 bool winp::thread::item_manager::is_dialog_message_(MSG &msg) const{
-	if (mouse_.clicked != nullptr)
-		return mouse_.clicked->is_dialog_message_(msg);
+	if (mouse_.pressed != nullptr)
+		return mouse_.pressed->is_dialog_message_(msg);
 	return (focused_object_ != nullptr && focused_object_->is_dialog_message_(msg));
 }
 
@@ -609,7 +609,7 @@ LRESULT winp::thread::item_manager::mouse_move_(item &target, MSG &msg, DWORD po
 	}
 
 	POINT mouse_position{ GET_X_LPARAM(position), GET_Y_LPARAM(position) };
-	for (auto mouse_target = mouse_.target; mouse_target != nullptr && (mouse_.target = mouse_target) != &target; mouse_target = mouse_target->get_parent_()){
+	for (auto mouse_target = mouse_.target; mouse_target != nullptr && mouse_target != mouse_.pressed && (mouse_.target = mouse_target) != &target; mouse_target = mouse_target->get_parent_()){
 		auto visible_ancestor = dynamic_cast<ui::visible_surface *>(mouse_target);
 		if (visible_ancestor == nullptr || !visible_ancestor->is_visible() || !mouse_target->has_hook_<ui::io_hook>())
 			continue;
@@ -635,7 +635,7 @@ LRESULT winp::thread::item_manager::mouse_move_(item &target, MSG &msg, DWORD po
 	}
 
 	ui::object *deepest_target = nullptr;
-	if (msg.message == WM_MOUSEMOVE){//Find deepest mouse target
+	if (mouse_.pressed != mouse_.target && msg.message == WM_MOUSEMOVE){//Find deepest mouse target
 		auto mouse_target = ((mouse_.target == nullptr) ? window_target : mouse_.target);
 		auto tree_mouse_target = dynamic_cast<ui::tree *>(mouse_target);
 
@@ -645,6 +645,8 @@ LRESULT winp::thread::item_manager::mouse_move_(item &target, MSG &msg, DWORD po
 			});
 		}
 	}
+	else if (mouse_.pressed == mouse_.target)
+		deepest_target = mouse_.pressed;
 
 	if (deepest_target == nullptr)
 		deepest_target = ((mouse_.target == nullptr || window_target->is_ancestor_(*dynamic_cast<ui::tree *>(mouse_.target))) ? window_target : mouse_.target);
@@ -668,7 +670,7 @@ LRESULT winp::thread::item_manager::mouse_move_(item &target, MSG &msg, DWORD po
 			bubbled_to_target = true;
 		}
 		else//Ignore result
-			result_info = trigger_event_with_target_<events::mouse_move>(*mouse_target, *mouse_.target, events::mouse::button_type_nil, (msg.message == WM_NCMOUSEMOVE), msg, nullptr);
+			result_info = trigger_event_with_target_<events::mouse_move>(*mouse_target, *mouse_.target, events::mouse::button_type_nil, (visible_ancestor->absolute_hit_test_(mouse_position.x, mouse_position.y) != HTCLIENT), msg, nullptr);
 
 		if ((result_info.first & events::object::state_propagation_stopped) != 0u)
 			break;//Propagation stopped
@@ -681,7 +683,7 @@ LRESULT winp::thread::item_manager::mouse_move_(item &target, MSG &msg, DWORD po
 		}
 	}
 
-	if (msg.message == WM_MOUSEMOVE && mouse_.dragging == nullptr && mouse_.button_down != events::mouse::button_type_nil){//Check fro drag begin
+	if (msg.message == WM_MOUSEMOVE && mouse_.dragging == nullptr && mouse_.button_down != events::mouse::button_type_nil){//Check for drag begin
 		SIZE mouse_delta{
 			std::abs(mouse_position.x - mouse_.down_position.x),
 			std::abs(mouse_position.y - mouse_.down_position.y)
@@ -724,16 +726,19 @@ LRESULT winp::thread::item_manager::mouse_down_(item &target, MSG &msg, DWORD po
 			mouse_.down_position = POINT{ GET_X_LPARAM(position), GET_Y_LPARAM(position) };
 
 		mouse_.button_down |= button;
-		mouse_.clicked = mouse_.target;
+		mouse_.pressed = mouse_.target;
 	});
 }
 
 LRESULT winp::thread::item_manager::mouse_up_(item &target, MSG &msg, DWORD position, unsigned int button, bool is_non_client){
 	return mouse_button_<ui::window_surface, events::mouse_up>(target, msg, position, button, is_non_client, thread_, [&]{
 		mouse_.button_down &= ~button;
-		if (mouse_.button_down == events::mouse::button_type_nil && mouse_.dragging != nullptr){
-			trigger_event_<events::mouse_drag_end>(*mouse_.dragging, events::mouse::button_type_nil, false, msg, nullptr);
-			mouse_.dragging = nullptr;
+		if (mouse_.button_down == events::mouse::button_type_nil){
+			mouse_.pressed = nullptr;
+			if (mouse_.dragging != nullptr){
+				trigger_event_<events::mouse_drag_end>(*mouse_.dragging, events::mouse::button_type_nil, false, msg, nullptr);
+				mouse_.dragging = nullptr;
+			}
 		}
 	});
 }
@@ -751,7 +756,7 @@ LRESULT winp::thread::item_manager::key_(item &target, MSG &msg){
 	if (!mouse_.full_feature_enabled)
 		return ((window_target == nullptr) ? 0 : trigger_key_event_<ui::window_surface>(target, target, true, msg, thread_).second);
 
-	auto key_target = ((mouse_.clicked == nullptr) ? window_target : mouse_.clicked);
+	auto key_target = ((mouse_.pressed == nullptr) ? window_target : mouse_.pressed);
 	if (key_target == nullptr)
 		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
 
@@ -781,8 +786,8 @@ LRESULT winp::thread::item_manager::set_focus_(item &target, MSG &msg){
 		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
 
 	focused_object_ = window_target;
-	if (mouse_.full_feature_enabled && mouse_.clicked != nullptr && mouse_.clicked != focused_object_ && !mouse_.clicked->is_ancestor_(*window_target))
-		mouse_.clicked = nullptr;
+	if (mouse_.full_feature_enabled && mouse_.pressed != nullptr && mouse_.pressed != focused_object_ && !mouse_.pressed->is_ancestor_(*window_target))
+		mouse_.pressed = nullptr;
 
 	return trigger_event_<events::set_focus>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 }
@@ -793,13 +798,13 @@ LRESULT winp::thread::item_manager::kill_focus_(item &target, MSG &msg){
 		return trigger_event_<events::unhandled>(target, msg, nullptr).second;
 
 	focused_object_ = nullptr;
-	if (mouse_.full_feature_enabled && mouse_.clicked != nullptr && mouse_.clicked != window_target){
+	if (mouse_.full_feature_enabled && mouse_.pressed != nullptr && mouse_.pressed != window_target){
 		auto lost_focus_window = find_window_(reinterpret_cast<HWND>(msg.wParam), false);
-		if (lost_focus_window == nullptr || !mouse_.clicked->is_ancestor_(*lost_focus_window))
-			mouse_.clicked = nullptr;
+		if (lost_focus_window == nullptr || !mouse_.pressed->is_ancestor_(*lost_focus_window))
+			mouse_.pressed = nullptr;
 	}
 	else
-		mouse_.clicked = nullptr;
+		mouse_.pressed = nullptr;
 
 	return trigger_event_<events::kill_focus>(target, msg, thread_.get_class_entry_(window_target->get_class_name())).second;
 }

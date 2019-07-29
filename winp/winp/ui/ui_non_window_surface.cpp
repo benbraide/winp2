@@ -123,82 +123,97 @@ bool winp::ui::non_window_surface::is_created_() const{
 	return (handle_ != nullptr);
 }
 
-SIZE winp::ui::non_window_surface::get_client_size_() const{
-	if (auto hk = find_hook_<ui::non_window_non_client_hook>(); hk != nullptr){
-		return SIZE{
-			(size_.cx - (hk->padding_.left + hk->padding_.right)),
-			(size_.cy - (hk->padding_.top + hk->padding_.bottom))
-		};
-	}
-
-	return visible_surface::get_client_size_();
-}
-
 SIZE winp::ui::non_window_surface::get_current_client_size_() const{
-	if (auto hk = find_hook_<ui::non_window_non_client_hook>(); hk != nullptr){
-		auto &size = get_current_size_();
-		return SIZE{
-			(size.cx - (hk->padding_.left + hk->padding_.right)),
-			(size.cy - (hk->padding_.top + hk->padding_.bottom))
-		};
-	}
+	if (handle_ == nullptr)
+		return visible_surface::get_current_client_size_();
 
-	return visible_surface::get_current_client_size_();
+	RECT dimension{};
+	GetRgnBox(handle_, &dimension);
+
+	return SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
 }
 
-POINT winp::ui::non_window_surface::get_client_offset_() const{
-	if (auto hk = find_hook_<ui::non_window_non_client_hook>(); hk != nullptr)
-		return POINT{ hk->padding_.left, hk->padding_.top };
-	return visible_surface::get_client_offset_();
+RECT winp::ui::non_window_surface::get_client_padding_() const{
+	auto hk = find_hook_<ui::non_window_non_client_hook>();
+	return ((hk == nullptr) ? RECT{} : hk->padding_);
+}
+
+UINT winp::ui::non_window_surface::hit_test_(int x, int y) const{
+	if (handle_ == nullptr)
+		return visible_surface::hit_test_(x, y);
+
+	RECT dimension{};
+	GetRgnBox(handle_, &dimension);
+	OffsetRgn(handle_, -dimension.left, -dimension.top);//Move to (0, 0)
+
+	return ((PtInRegion(handle_, x, y) == FALSE) ? HTNOWHERE : HTCLIENT);
 }
 
 UINT winp::ui::non_window_surface::absolute_hit_test_(int x, int y) const{
+	if (handle_ == nullptr)
+		return visible_surface::absolute_hit_test_(x, y);
+
 	auto hk = find_hook_<ui::non_window_non_client_hook>();
 	if (hk == nullptr)
 		return visible_surface::absolute_hit_test_(x, y);
 
-	auto client_size = get_current_client_size_();
-	auto client_dimension = convert_dimension_to_absolute_value_(RECT{ 0, 0, client_size.cx, client_size.cy });
+	auto absolute_position = get_absolute_position_();
+	auto start_offset = get_client_start_offset_();
 
-	POINT position{ x, y };
-	if (PtInRect(&client_dimension, position) != FALSE)
+	RECT dimension{};
+	if (hk->handle_ != nullptr){
+		GetRgnBox(hk->handle_, &dimension);
+		OffsetRgn(hk->handle_, (absolute_position.x - dimension.left), (absolute_position.y - dimension.top));//Move to 'absolute_position'
+
+		if (PtInRegion(hk->handle_, x, y) == FALSE)
+			return HTNOWHERE;
+	}
+
+	GetRgnBox(handle_, &dimension);
+	OffsetRgn(handle_, ((absolute_position.x + hk->padding_.left + hk->padding_.right + start_offset.x) - dimension.left), ((absolute_position.y + hk->padding_.top + hk->padding_.bottom + start_offset.y) - dimension.top));//Move to 'absolute_position'
+
+	if (PtInRegion(handle_, x, y) != FALSE)
 		return HTCLIENT;
 
-	RECT dimension{
-		(client_dimension.left - hk->padding_.left),
-		(client_dimension.top - hk->padding_.top),
-		(client_dimension.right + hk->padding_.right),
-		client_dimension.top
+	auto &size = get_current_size_();
+	RECT absolute_dimension{ absolute_position.x, absolute_position.y, (absolute_position.x + size.cx), (absolute_position.y + size.cy) };
+	POINT position{ x, y };
+	
+	dimension = RECT{
+		absolute_dimension.left,
+		absolute_dimension.top,
+		(absolute_dimension.right + hk->padding_.left + hk->padding_.right),
+		(absolute_dimension.top + hk->padding_.top)
 	};
 
 	if (PtInRect(&dimension, position) != FALSE)
 		return HTCAPTION;
 
 	dimension = RECT{
-		(client_dimension.left - hk->padding_.left),
-		(client_dimension.top + hk->padding_.top),
-		client_dimension.left,
-		(client_dimension.bottom - hk->padding_.bottom)
+		absolute_dimension.left,
+		(absolute_dimension.top + hk->padding_.top),
+		(absolute_dimension.left + hk->padding_.left),
+		(absolute_dimension.bottom - hk->padding_.bottom)
 	};
 
 	if (PtInRect(&dimension, position) != FALSE)
 		return HTLEFT;
 
 	dimension = RECT{
-		client_dimension.right,
-		(client_dimension.top + hk->padding_.top),
-		(client_dimension.right + hk->padding_.right),
-		(client_dimension.bottom - hk->padding_.bottom)
+		(absolute_dimension.right - hk->padding_.right),
+		(absolute_dimension.top + hk->padding_.top),
+		absolute_dimension.right,
+		(absolute_dimension.bottom - hk->padding_.bottom)
 	};
 
 	if (PtInRect(&dimension, position) != FALSE)
 		return HTRIGHT;
 
 	dimension = RECT{
-		(client_dimension.left - hk->padding_.left),
-		client_dimension.bottom,
-		(client_dimension.right + hk->padding_.right),
-		(client_dimension.bottom + hk->padding_.bottom)
+		absolute_dimension.left,
+		(absolute_dimension.bottom - hk->padding_.bottom),
+		(absolute_dimension.right + hk->padding_.left + hk->padding_.right),
+		absolute_dimension.bottom
 	};
 
 	if (PtInRect(&dimension, position) != FALSE)

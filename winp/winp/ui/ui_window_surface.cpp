@@ -238,40 +238,38 @@ bool winp::ui::window_surface::is_visible_() const{
 	return ((handle_ == nullptr) ? has_styles_(WS_VISIBLE, false, true) : (IsWindowVisible(handle_) != FALSE));
 }
 
-SIZE winp::ui::window_surface::get_client_size_() const{
+SIZE winp::ui::window_surface::get_current_client_size_() const{
 	if (handle_ == nullptr)
-		return get_size_();
+		return visible_surface::get_current_client_size_();
 
 	RECT dimension{};
 	GetClientRect(handle_, &dimension);
 
 	return SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
-}
-
-SIZE winp::ui::window_surface::get_current_client_size_() const{
 	return get_client_size_();
 }
 
-POINT winp::ui::window_surface::get_client_offset_() const{
+RECT winp::ui::window_surface::get_client_padding_() const{
 	if (handle_ == nullptr)
-		return visible_surface::get_client_offset_();
+		return visible_surface::get_client_padding_();
 
 	RECT dimension{};
 	GetWindowRect(handle_, &dimension);
 
-	POINT offset{};
-	ClientToScreen(handle_, &offset);
+	RECT client_dimension{};
+	MapWindowPoints(handle_, HWND_DESKTOP, reinterpret_cast<POINT *>(&client_dimension), 2);
 
-	return POINT{ (offset.x - dimension.left), (offset.y - dimension.top) };
-}
-
-POINT winp::ui::window_surface::get_absolute_position_() const{
-	auto dimension = get_absolute_dimension_();
-	return POINT{ dimension.left, dimension.top };
+	return RECT{
+		(client_dimension.left - dimension.left),
+		(client_dimension.top - dimension.top),
+		(dimension.right - client_dimension.right),
+		(dimension.bottom - client_dimension.bottom)
+	};
 }
 
 POINT winp::ui::window_surface::get_current_absolute_position_() const{
-	return get_absolute_position_();
+	auto dimension = get_current_absolute_dimension_();
+	return POINT{ dimension.left, dimension.top };
 }
 
 winp::utility::error_code winp::ui::window_surface::update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags){
@@ -296,7 +294,7 @@ winp::utility::error_code winp::ui::window_surface::update_dimension_(const RECT
 	return error_code;
 }
 
-RECT winp::ui::window_surface::get_absolute_dimension_() const{
+RECT winp::ui::window_surface::get_current_absolute_dimension_() const{
 	if (handle_ == nullptr)
 		return visible_surface::get_absolute_dimension_();
 
@@ -304,10 +302,6 @@ RECT winp::ui::window_surface::get_absolute_dimension_() const{
 	GetWindowRect(handle_, &dimension);
 
 	return dimension;
-}
-
-RECT winp::ui::window_surface::get_current_absolute_dimension_() const{
-	return get_absolute_dimension_();
 }
 
 POINT winp::ui::window_surface::convert_position_from_absolute_value_(int x, int y) const{

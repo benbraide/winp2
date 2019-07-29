@@ -61,7 +61,7 @@ namespace winp::thread{
 			ui::object *target;
 			ui::object *dragging;
 			ui::object *tracking_leave;
-			ui::object *clicked;
+			ui::object *pressed;
 
 			POINT last_position;
 			POINT down_position;

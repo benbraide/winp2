@@ -124,6 +124,12 @@ POINT winp::ui::surface::get_client_start_offset(const std::function<void(const 
 	}, (callback != nullptr), POINT{});
 }
 
+RECT winp::ui::surface::get_client_padding(const std::function<void(const RECT &)> &callback) const{
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return synchronized_item_pass_return_value_to_callback(callback, get_client_padding_());
+	}, (callback != nullptr), RECT{});
+}
+
 winp::utility::error_code winp::ui::surface::set_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback){
 	return set_position(value.x, value.y, callback);
 }
@@ -385,19 +391,28 @@ const SIZE &winp::ui::surface::get_current_size_() const{
 }
 
 SIZE winp::ui::surface::get_client_size_() const{
-	return get_size_();
+	auto &size = get_size_();
+	auto padding = get_client_padding_();
+	return SIZE{ (size.cx - (padding.left + padding.right)), (size.cy - (padding.top + padding.bottom)) };
 }
 
 SIZE winp::ui::surface::get_current_client_size_() const{
-	return get_current_size_();
+	auto &size = get_current_size_();
+	auto padding = get_client_padding_();
+	return SIZE{ (size.cx - (padding.left + padding.right)), (size.cy - (padding.top + padding.bottom)) };
 }
 
 POINT winp::ui::surface::get_client_offset_() const{
-	return POINT{};
+	auto padding = get_client_padding_();
+	return POINT{ padding.left, padding.top };
 }
 
 POINT winp::ui::surface::get_client_start_offset_() const{
 	return POINT{};
+}
+
+RECT winp::ui::surface::get_client_padding_() const{
+	return RECT{};
 }
 
 winp::utility::error_code winp::ui::surface::set_position_(int x, int y, bool allow_animation){

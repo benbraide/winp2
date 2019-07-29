@@ -83,19 +83,13 @@ namespace winp::ui{
 
 		virtual bool is_visible_() const override;
 
-		virtual SIZE get_client_size_() const override;
-
 		virtual SIZE get_current_client_size_() const override;
 
-		virtual POINT get_client_offset_() const override;
-
-		virtual POINT get_absolute_position_() const override;
+		virtual RECT get_client_padding_() const;
 
 		virtual POINT get_current_absolute_position_() const override;
 
 		virtual utility::error_code update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags) override;
-
-		virtual RECT get_absolute_dimension_() const override;
 
 		virtual RECT get_current_absolute_dimension_() const override;
 

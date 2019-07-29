@@ -34,11 +34,11 @@ namespace winp::ui{
 
 		virtual bool is_created_() const override;
 
-		virtual SIZE get_client_size_() const override;
-
 		virtual SIZE get_current_client_size_() const override;
 
-		virtual POINT get_client_offset_() const override;
+		virtual RECT get_client_padding_() const;
+
+		virtual UINT hit_test_(int x, int y) const override;
 
 		virtual UINT absolute_hit_test_(int x, int y) const override;
 

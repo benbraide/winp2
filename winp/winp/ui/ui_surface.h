@@ -66,6 +66,8 @@ namespace winp::ui{
 
 		virtual POINT get_client_start_offset(const std::function<void(const POINT &)> &callback = nullptr) const;
 
+		virtual RECT get_client_padding(const std::function<void(const RECT &)> &callback = nullptr) const;
+
 		virtual utility::error_code set_position(const POINT &value, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
 
 		virtual utility::error_code set_position(int x, int y, const std::function<void(surface &, utility::error_code)> &callback = nullptr);
@@ -192,6 +194,8 @@ namespace winp::ui{
 		virtual POINT get_client_offset_() const;
 
 		virtual POINT get_client_start_offset_() const;
+
+		virtual RECT get_client_padding_() const;
 
 		virtual utility::error_code set_position_(int x, int y, bool allow_animation);
 
