@@ -4,6 +4,7 @@
 #include "../menu/menu_separator.h"
 
 #include "ui_io_hooks.h"
+#include "ui_non_window_surface.h"
 #include "ui_window_surface.h"
 
 winp::ui::io_hook::io_hook(object &target)
@@ -37,17 +38,169 @@ winp::ui::non_client_drag_hook::non_client_drag_hook(object &target)
 		target_.insert_hook<no_drag_position_updated_hook>();
 
 		target_.events().bind([this](events::mouse_drag_begin &e){
-			return (typed_target_->absolute_hit_test_(e.get_position().x, e.get_position().y) == HTCAPTION);
+			auto &position = e.get_down_position();
+			if (should_drag_ = (static_cast<surface *>(typed_target_)->absolute_hit_test_(position.x, position.y) == HTCAPTION)){
+				e.stop_propagation();
+				return true;
+			}
+
+			return false;
 		}, this);
 
 		target_.events().bind([this](events::mouse_drag &e){
+			if (!should_drag_)
+				return;
+
+			e.stop_propagation();
 			auto offset = e.get_offset();
+
 			typed_target_->set_position_((typed_target_->position_.x + offset.x), (typed_target_->position_.y + offset.y), false);
 		}, this);
 	}
 }
 
 winp::ui::non_client_drag_hook::~non_client_drag_hook() = default;
+
+winp::ui::edge_drag_hook::edge_drag_hook(object &target)
+	: base_type(target){
+	if (typed_target_ != nullptr){
+		target_.insert_hook<io_hook>();
+		target_.insert_hook<no_drag_position_updated_hook>();
+
+		target_.events().bind([this](events::mouse_drag_begin &e){
+			auto &position = e.get_down_position();
+			switch (static_cast<surface *>(typed_target_)->absolute_hit_test_(position.x, position.y)){
+			case HTTOPLEFT:
+				edge_ = events::mouse_edge_drag::edge_type::top_left;
+				break;
+			case HTTOP:
+				edge_ = events::mouse_edge_drag::edge_type::top;
+				break;
+			case HTTOPRIGHT:
+				edge_ = events::mouse_edge_drag::edge_type::top_right;
+				break;
+			case HTRIGHT:
+				edge_ = events::mouse_edge_drag::edge_type::right;
+				break;
+			case HTBOTTOMRIGHT:
+				edge_ = events::mouse_edge_drag::edge_type::bottom_right;
+				break;
+			case HTBOTTOM:
+				edge_ = events::mouse_edge_drag::edge_type::bottom;
+				break;
+			case HTBOTTOMLEFT:
+				edge_ = events::mouse_edge_drag::edge_type::bottom_left;
+				break;
+			case HTLEFT:
+				edge_ = events::mouse_edge_drag::edge_type::left;
+				break;
+			default:
+				edge_ = events::mouse_edge_drag::edge_type::nil;
+				break;
+			}
+
+			if (edge_ != events::mouse_edge_drag::edge_type::nil){
+				e.stop_propagation();
+				return true;
+			}
+
+			return false;
+		}, this);
+
+		target_.events().bind([this](events::mouse_drag &e){
+			if (edge_ == events::mouse_edge_drag::edge_type::nil)
+				return;
+
+			e.stop_propagation();
+			MSG msg{ nullptr, WINP_WM_MOUSEDRAG };
+
+			trigger_event_<events::mouse_edge_drag>(edge_, e.get_last_position(), e.get_button(), false, msg, nullptr);
+		}, this);
+	}
+}
+
+winp::ui::edge_drag_hook::~edge_drag_hook() = default;
+
+winp::ui::drag_resize_hook::drag_resize_hook(object &target)
+	: base_type(target){
+	if (typed_target_ != nullptr){
+		target_.insert_hook<edge_drag_hook>();
+
+		target_.events().bind([this](events::mouse_edge_drag &e){
+			auto offset = e.get_offset();
+			switch (e.get_edge()){
+			case events::mouse_edge_drag::edge_type::top_left:
+				typed_target_->redraw();
+
+				typed_target_->position_.x += offset.x;
+				typed_target_->position_.y += offset.y;
+
+				typed_target_->size_.cx -= offset.x;
+				typed_target_->size_.cy -= offset.y;
+
+				typed_target_->update_handle();
+				typed_target_->redraw();
+
+				break;
+			case events::mouse_edge_drag::edge_type::top:
+				typed_target_->redraw();
+
+				typed_target_->position_.y += offset.y;
+				typed_target_->size_.cy -= offset.y;
+
+				typed_target_->update_handle();
+				typed_target_->redraw();
+
+				break;
+			case events::mouse_edge_drag::edge_type::top_right:
+				typed_target_->redraw();
+				typed_target_->position_.y += offset.y;
+
+				typed_target_->size_.cx += offset.x;
+				typed_target_->size_.cy -= offset.y;
+
+				typed_target_->update_handle();
+				typed_target_->redraw();
+
+				break;
+			case events::mouse_edge_drag::edge_type::right:
+				typed_target_->offset_width(offset.x);
+				break;
+			case events::mouse_edge_drag::edge_type::bottom_right:
+				typed_target_->offset_size(SIZE{ offset.x, offset.y });
+				break;
+			case events::mouse_edge_drag::edge_type::bottom:
+				typed_target_->offset_height(offset.y);
+				break;
+			case events::mouse_edge_drag::edge_type::bottom_left:
+				typed_target_->redraw();
+				typed_target_->position_.x += offset.x;
+
+				typed_target_->size_.cx -= offset.x;
+				typed_target_->size_.cy += offset.y;
+
+				typed_target_->update_handle();
+				typed_target_->redraw();
+
+				break;
+			case events::mouse_edge_drag::edge_type::left:
+				typed_target_->redraw();
+
+				typed_target_->position_.x += offset.x;
+				typed_target_->size_.cx -= offset.x;
+
+				typed_target_->update_handle();
+				typed_target_->redraw();
+
+				break;
+			default:
+				break;
+			}
+		}, this);
+	}
+}
+
+winp::ui::drag_resize_hook::~drag_resize_hook() = default;
 
 winp::ui::no_drag_position_updated_hook::no_drag_position_updated_hook(object &target)
 	: base_type(target){
@@ -138,7 +291,7 @@ void winp::ui::mouse_hover_hook::bind_timer_(){
 			return delay_.count();
 
 		if (!is_hovered_)
-			target_.trigger_event_<events::mouse_hover>(is_hovered_ = true);
+			trigger_event_<events::mouse_hover>(is_hovered_ = true);
 
 		return 0ll;
 	}, this);
@@ -147,7 +300,7 @@ void winp::ui::mouse_hover_hook::bind_timer_(){
 void winp::ui::mouse_hover_hook::remove_hover_(){
 	++state_;
 	if (is_hovered_)
-		target_.trigger_event_<events::mouse_hover>(is_hovered_ = false);
+		trigger_event_<events::mouse_hover>(is_hovered_ = false);
 }
 
 winp::ui::auto_hide_cursor_hook::auto_hide_cursor_hook(object &target, const std::chrono::milliseconds &delay)

@@ -59,10 +59,28 @@ SIZE winp::events::mouse_wheel::get_delta() const{
 	return SIZE{ static_cast<int>(static_cast<short>(HIWORD(message_info_.wParam)) / WHEEL_DELTA), 0 };
 }
 
+const POINT &winp::events::mouse_drag_begin::get_down_position() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return down_position_;
+}
+
+const POINT &winp::events::mouse_drag::get_last_position() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return last_position_;
+}
+
 POINT winp::events::mouse_drag::get_offset() const{
 	if (!target_.get_thread().is_thread_context())
 		throw utility::error_code::outside_thread_context;
-	return POINT{ (position_.x - mouse_down_position_.x), (position_.y - mouse_down_position_.y) };
+	return POINT{ (position_.x - last_position_.x), (position_.y - last_position_.y) };
+}
+
+winp::events::mouse_edge_drag::edge_type winp::events::mouse_edge_drag::get_edge() const{
+	if (!target_.get_thread().is_thread_context())
+		throw utility::error_code::outside_thread_context;
+	return edge_;
 }
 
 unsigned short winp::events::key::get_virtual_code() const{

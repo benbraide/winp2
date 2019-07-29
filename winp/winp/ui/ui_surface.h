@@ -18,6 +18,8 @@ namespace winp::ui{
 
 	class drag_hook;
 	class non_client_drag_hook;
+	class edge_drag_hook;
+	class drag_resize_hook;
 
 	class surface : public thread::synchronized_item{
 	public:
@@ -173,7 +175,9 @@ namespace winp::ui{
 		friend class ui::children_contain_hook;
 
 		friend class ui::drag_hook;
-		friend class non_client_drag_hook;
+		friend class ui::non_client_drag_hook;
+		friend class ui::edge_drag_hook;
+		friend class ui::drag_resize_hook;
 
 		friend class thread::item_manager;
 

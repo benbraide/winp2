@@ -119,9 +119,7 @@ winp::ui::non_window_non_client_hook::non_window_non_client_hook(object &target)
 		if (device_info.first != nullptr)
 			ReleaseDC(device_info.second, device_info.first);
 
-		typed_target_->insert_hook<non_client_drag_hook>();
 		typed_target_->insert_hook<rectangular_non_window_non_client_hook>();
-
 		target_.events().bind([this](events::create_non_window_handle &e){
 			auto &current_size = e.get_current_size();
 			return CreateEllipticRgn(0, 0, current_size.cx, current_size.cy);

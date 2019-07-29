@@ -123,16 +123,6 @@ bool winp::ui::non_window_surface::is_created_() const{
 	return (handle_ != nullptr);
 }
 
-SIZE winp::ui::non_window_surface::get_current_client_size_() const{
-	if (handle_ == nullptr)
-		return visible_surface::get_current_client_size_();
-
-	RECT dimension{};
-	GetRgnBox(handle_, &dimension);
-
-	return SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
-}
-
 RECT winp::ui::non_window_surface::get_client_padding_() const{
 	auto hk = find_hook_<ui::non_window_non_client_hook>();
 	return ((hk == nullptr) ? RECT{} : hk->padding_);
@@ -170,7 +160,7 @@ UINT winp::ui::non_window_surface::absolute_hit_test_(int x, int y) const{
 	}
 
 	GetRgnBox(handle_, &dimension);
-	OffsetRgn(handle_, ((absolute_position.x + hk->padding_.left + hk->padding_.right + start_offset.x) - dimension.left), ((absolute_position.y + hk->padding_.top + hk->padding_.bottom + start_offset.y) - dimension.top));//Move to 'absolute_position'
+	OffsetRgn(handle_, ((absolute_position.x + hk->padding_.left + start_offset.x) - dimension.left), ((absolute_position.y + hk->padding_.top + start_offset.y) - dimension.top));//Move to 'absolute_position'
 
 	if (PtInRegion(handle_, x, y) != FALSE)
 		return HTCLIENT;
@@ -178,30 +168,40 @@ UINT winp::ui::non_window_surface::absolute_hit_test_(int x, int y) const{
 	auto &size = get_current_size_();
 	RECT absolute_dimension{ absolute_position.x, absolute_position.y, (absolute_position.x + size.cx), (absolute_position.y + size.cy) };
 	POINT position{ x, y };
-	
+
 	dimension = RECT{
 		absolute_dimension.left,
 		absolute_dimension.top,
-		(absolute_dimension.right + hk->padding_.left + hk->padding_.right),
-		(absolute_dimension.top + hk->padding_.top)
+		(absolute_dimension.left + hk->padding_.left),
+		(absolute_dimension.top + hk->padding_.bottom)
 	};
 
 	if (PtInRect(&dimension, position) != FALSE)
-		return HTCAPTION;
+		return HTTOPLEFT;
 
 	dimension = RECT{
-		absolute_dimension.left,
-		(absolute_dimension.top + hk->padding_.top),
 		(absolute_dimension.left + hk->padding_.left),
-		(absolute_dimension.bottom - hk->padding_.bottom)
+		absolute_dimension.top,
+		(absolute_dimension.right - hk->padding_.right),
+		(absolute_dimension.top + hk->padding_.bottom)
 	};
 
 	if (PtInRect(&dimension, position) != FALSE)
-		return HTLEFT;
+		return HTTOP;
 
 	dimension = RECT{
 		(absolute_dimension.right - hk->padding_.right),
-		(absolute_dimension.top + hk->padding_.top),
+		absolute_dimension.top,
+		absolute_dimension.right,
+		(absolute_dimension.top + hk->padding_.bottom)
+	};
+
+	if (PtInRect(&dimension, position) != FALSE)
+		return HTTOPRIGHT;
+
+	dimension = RECT{
+		(absolute_dimension.right - hk->padding_.right),
+		(absolute_dimension.top + hk->padding_.bottom),
 		absolute_dimension.right,
 		(absolute_dimension.bottom - hk->padding_.bottom)
 	};
@@ -210,14 +210,54 @@ UINT winp::ui::non_window_surface::absolute_hit_test_(int x, int y) const{
 		return HTRIGHT;
 
 	dimension = RECT{
-		absolute_dimension.left,
+		(absolute_dimension.right - hk->padding_.right),
 		(absolute_dimension.bottom - hk->padding_.bottom),
-		(absolute_dimension.right + hk->padding_.left + hk->padding_.right),
+		absolute_dimension.right,
+		absolute_dimension.bottom
+	};
+
+	if (PtInRect(&dimension, position) != FALSE)
+		return HTBOTTOMRIGHT;
+
+	dimension = RECT{
+		(absolute_dimension.left + hk->padding_.left),
+		(absolute_dimension.bottom - hk->padding_.bottom),
+		(absolute_dimension.right - hk->padding_.right),
 		absolute_dimension.bottom
 	};
 
 	if (PtInRect(&dimension, position) != FALSE)
 		return HTBOTTOM;
+
+	dimension = RECT{
+		absolute_dimension.left,
+		(absolute_dimension.bottom - hk->padding_.bottom),
+		(absolute_dimension.left + hk->padding_.left),
+		absolute_dimension.bottom
+	};
+
+	if (PtInRect(&dimension, position) != FALSE)
+		return HTBOTTOMLEFT;
+
+	dimension = RECT{
+		absolute_dimension.left,
+		(absolute_dimension.top + hk->padding_.bottom),
+		(absolute_dimension.left + hk->padding_.left),
+		(absolute_dimension.bottom - hk->padding_.bottom),
+	};
+
+	if (PtInRect(&dimension, position) != FALSE)
+		return HTLEFT;
+
+	dimension = RECT{
+		(absolute_dimension.left + hk->padding_.left),
+		(absolute_dimension.top + hk->padding_.bottom),
+		(absolute_dimension.right - hk->padding_.right),
+		(absolute_dimension.top + hk->padding_.top)
+	};
+
+	if (PtInRect(&dimension, position) != FALSE)
+		return HTCAPTION;
 
 	return HTNOWHERE;
 }

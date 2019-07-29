@@ -16,6 +16,9 @@ void winp::test::non_window::run(int cmd_show){
 		});
 
 		rect.insert_hook<ui::non_window_non_client_hook>()->set_caption(L"Test Title");
+		rect.insert_hook<ui::non_client_drag_hook>();
+		rect.insert_hook<ui::drag_resize_hook>();
+
 		rect.set_position(30, 30);
 		rect.set_size(200, 100);
 		rect.set_background_color(D2D1::ColorF::Red);

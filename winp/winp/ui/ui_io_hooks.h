@@ -4,6 +4,7 @@
 
 namespace winp::ui{
 	class visible_surface;
+	class non_window_surface;
 	class window_surface;
 
 	class io_hook : public typed_hook<visible_surface>{
@@ -24,13 +25,37 @@ namespace winp::ui{
 		virtual ~drag_hook();
 	};
 
-	class non_client_drag_hook : public typed_hook<visible_surface>{
+	class non_client_drag_hook : public typed_hook<non_window_surface>{
 	public:
-		using base_type = typed_hook<visible_surface>;
+		using base_type = typed_hook<non_window_surface>;
 
 		explicit non_client_drag_hook(object &target);
 
 		virtual ~non_client_drag_hook();
+
+	protected:
+		bool should_drag_ = false;
+	};
+
+	class edge_drag_hook : public typed_hook<non_window_surface>{
+	public:
+		using base_type = typed_hook<non_window_surface>;
+
+		explicit edge_drag_hook(object &target);
+
+		virtual ~edge_drag_hook();
+
+	protected:
+		events::mouse_edge_drag::edge_type edge_ = events::mouse_edge_drag::edge_type::nil;
+	};
+
+	class drag_resize_hook : public typed_hook<non_window_surface>{
+	public:
+		using base_type = typed_hook<non_window_surface>;
+
+		explicit drag_resize_hook(object &target);
+
+		virtual ~drag_resize_hook();
 	};
 
 	class no_drag_position_updated_hook : public typed_hook<visible_surface>{

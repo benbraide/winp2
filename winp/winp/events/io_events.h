@@ -122,20 +122,52 @@ namespace winp::events{
 	class mouse_drag_begin : public mouse{
 	public:
 		template <typename... args_types>
-		explicit mouse_drag_begin(args_types &&... args)
-			: mouse(std::forward<args_types>(args)...){}
+		explicit mouse_drag_begin(const POINT &down_position, args_types &&... args)
+			: mouse(std::forward<args_types>(args)...), down_position_(down_position){}
+
+		virtual const POINT &get_down_position() const;
+
+	protected:
+		POINT down_position_;
 	};
 
 	class mouse_drag : public mouse{
 	public:
 		template <typename... args_types>
-		explicit mouse_drag(const POINT &mouse_down_position, args_types &&... args)
-			: mouse(std::forward<args_types>(args)...), mouse_down_position_(mouse_down_position){}
+		explicit mouse_drag(const POINT &last_position, args_types &&... args)
+			: mouse(std::forward<args_types>(args)...), last_position_(last_position){}
+
+		virtual const POINT &get_last_position() const;
 
 		virtual POINT get_offset() const;
 
 	protected:
-		POINT mouse_down_position_;
+		POINT last_position_;
+	};
+
+	class mouse_edge_drag : public mouse_drag{
+	public:
+		enum class edge_type{
+			nil,
+			top_left,
+			top,
+			top_right,
+			right,
+			bottom_right,
+			bottom,
+			bottom_left,
+			left,
+		};
+
+		template <typename... args_types>
+		explicit mouse_edge_drag(edge_type edge, args_types &&... args)
+			: mouse_drag(std::forward<args_types>(args)...), edge_(edge){}
+
+		virtual edge_type get_edge() const;
+
+	protected:
+
+		edge_type edge_;
 	};
 
 	class mouse_drag_end : public mouse{

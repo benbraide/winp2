@@ -57,11 +57,12 @@ winp::ui::object *winp::thread::item_manager::find_deepest_mouse_target(ui::obje
 
 	if (auto tree_target = dynamic_cast<ui::tree *>(&target); tree_target != nullptr){
 		ui::object *deepest_child_target = nullptr;
-		tree_target->traverse_children_([&](ui::object &child){
-			if ((deepest_child_target = find_deepest_mouse_target(child, mouse_position)) != nullptr)
-				return false;
-			return true;
-		});
+		auto &children = tree_target->get_children();
+
+		for (auto it = children.rbegin(); it != children.rend(); ++it){
+			if ((deepest_child_target = find_deepest_mouse_target(**it, mouse_position)) != nullptr)
+				break;
+		}
 
 		if (deepest_child_target != nullptr)
 			deepest_target = deepest_child_target;
@@ -637,12 +638,14 @@ LRESULT winp::thread::item_manager::mouse_move_(item &target, MSG &msg, DWORD po
 	ui::object *deepest_target = nullptr;
 	if (mouse_.pressed != mouse_.target && msg.message == WM_MOUSEMOVE){//Find deepest mouse target
 		auto mouse_target = ((mouse_.target == nullptr) ? window_target : mouse_.target);
-		auto tree_mouse_target = dynamic_cast<ui::tree *>(mouse_target);
+		auto tree_ancestor = mouse_target->get_first_ancestor_of_<ui::tree>(nullptr);
 
-		if (tree_mouse_target != nullptr || (tree_mouse_target = mouse_target->get_first_ancestor_of_<ui::tree>(nullptr)) != nullptr){
-			tree_mouse_target->traverse_children_([&](ui::object &child){
-				return ((deepest_target = find_deepest_mouse_target(child, mouse_position)) == nullptr);
-			});
+		if (tree_ancestor != nullptr || (tree_ancestor = dynamic_cast<ui::tree *>(mouse_target)) != nullptr){
+			auto &children = tree_ancestor->get_children();
+			for (auto it = children.rbegin(); it != children.rend(); ++it){
+				if ((deepest_target = find_deepest_mouse_target(**it, mouse_position)) != nullptr)
+					break;
+			}
 		}
 	}
 	else if (mouse_.pressed == mouse_.target)
@@ -650,6 +653,16 @@ LRESULT winp::thread::item_manager::mouse_move_(item &target, MSG &msg, DWORD po
 
 	if (deepest_target == nullptr)
 		deepest_target = ((mouse_.target == nullptr || window_target->is_ancestor_(*dynamic_cast<ui::tree *>(mouse_.target))) ? window_target : mouse_.target);
+
+	if (auto tree_mouse_target = dynamic_cast<ui::tree *>(mouse_.target); tree_mouse_target != nullptr && deepest_target != mouse_.target && !deepest_target->is_ancestor_(*tree_mouse_target)){
+		if (mouse_.dragging == tree_mouse_target){//End drag
+			trigger_event_<events::mouse_drag_end>(*mouse_.dragging, events::mouse::button_type_nil, false, msg, nullptr);
+			mouse_.dragging = nullptr;
+		}
+
+		trigger_event_<events::mouse_leave>(*tree_mouse_target, events::mouse::button_type_nil, true, msg, nullptr);
+		mouse_.target = mouse_.target->get_first_ancestor_of_<ui::tree>(nullptr);
+	}
 
 	for (auto mouse_target = deepest_target; mouse_target != nullptr && mouse_target != mouse_.target; mouse_target = mouse_target->get_parent_()){
 		if (dynamic_cast<ui::visible_surface *>(mouse_target) != nullptr && mouse_target->has_hook_<ui::io_hook>())
@@ -695,7 +708,7 @@ LRESULT winp::thread::item_manager::mouse_move_(item &target, MSG &msg, DWORD po
 				if (visible_ancestor == nullptr || !visible_ancestor->is_visible() || !mouse_target->has_hook_<ui::io_hook>())
 					continue;
 
-				result_info = trigger_event_with_target_<events::mouse_drag_begin>(*mouse_target, *mouse_.target, mouse_.button_down, false, msg, nullptr);
+				result_info = trigger_event_with_target_<events::mouse_drag_begin>(*mouse_target, *mouse_.target, mouse_.down_position, mouse_.button_down, false, msg, nullptr);
 				if ((result_info.first & events::object::state_default_prevented) == 0u && result_info.second != FALSE){
 					mouse_.dragging = mouse_target;
 					break;
@@ -717,16 +730,38 @@ LRESULT winp::thread::item_manager::mouse_move_(item &target, MSG &msg, DWORD po
 		trigger_event_<events::mouse_drag>(*mouse_.dragging, mouse_.last_position, mouse_.button_down, false, msg, nullptr);
 
 	mouse_.last_position = mouse_position;
+	if (auto non_window_mouse_target = dynamic_cast<ui::non_window_surface *>(mouse_.target); non_window_mouse_target != nullptr && non_window_mouse_target->has_hook_<ui::edge_drag_hook>()){
+		UINT hit_target;
+		if (mouse_.pressed == nullptr || mouse_.dragging != nullptr)
+			hit_target = non_window_mouse_target->absolute_hit_test_(mouse_position.x, mouse_position.y);
+		else//Use down position
+			hit_target = non_window_mouse_target->absolute_hit_test_(mouse_.down_position.x, mouse_.down_position.y);
+
+		if (hit_target != HTCLIENT){
+			MSG cursor_msg{ nullptr, 0, 0, MAKEWORD(hit_target, 0) };
+			SetCursor(get_default_cursor_(cursor_msg));
+		}
+	}
+
 	return (bubbled_to_target ? result : CallWindowProcW(thread_.get_class_entry_(window_target->get_class_name()), msg.hwnd, msg.message, msg.wParam, msg.lParam));
 }
 
 LRESULT winp::thread::item_manager::mouse_down_(item &target, MSG &msg, DWORD position, unsigned int button, bool is_non_client){
 	return mouse_button_<ui::window_surface, events::mouse_down>(target, msg, position, button, is_non_client, thread_, [&]{
+		POINT mouse_position{ GET_X_LPARAM(position), GET_Y_LPARAM(position) };
 		if (mouse_.button_down == events::mouse::button_type_nil)
-			mouse_.down_position = POINT{ GET_X_LPARAM(position), GET_Y_LPARAM(position) };
+			mouse_.down_position = mouse_position;
 
 		mouse_.button_down |= button;
 		mouse_.pressed = mouse_.target;
+
+		if (auto non_window_mouse_target = dynamic_cast<ui::non_window_surface *>(mouse_.target); non_window_mouse_target != nullptr && non_window_mouse_target->has_hook_<ui::edge_drag_hook>()){
+			auto hit_target = non_window_mouse_target->absolute_hit_test_(mouse_position.x, mouse_position.y);
+			if (hit_target != HTCLIENT){
+				MSG cursor_msg{ nullptr, 0, 0, MAKEWORD(hit_target, 0) };
+				SetCursor(get_default_cursor_(cursor_msg));
+			}
+		}
 	});
 }
 
@@ -738,6 +773,15 @@ LRESULT winp::thread::item_manager::mouse_up_(item &target, MSG &msg, DWORD posi
 			if (mouse_.dragging != nullptr){
 				trigger_event_<events::mouse_drag_end>(*mouse_.dragging, events::mouse::button_type_nil, false, msg, nullptr);
 				mouse_.dragging = nullptr;
+			}
+		}
+
+		POINT mouse_position{ GET_X_LPARAM(position), GET_Y_LPARAM(position) };
+		if (auto non_window_mouse_target = dynamic_cast<ui::non_window_surface *>(mouse_.target); non_window_mouse_target != nullptr && non_window_mouse_target->has_hook_<ui::edge_drag_hook>()){
+			auto hit_target = non_window_mouse_target->absolute_hit_test_(mouse_position.x, mouse_position.y);
+			if (hit_target != HTCLIENT){
+				MSG cursor_msg{ nullptr, 0, 0, MAKEWORD(hit_target, 0) };
+				SetCursor(get_default_cursor_(cursor_msg));
 			}
 		}
 	});
