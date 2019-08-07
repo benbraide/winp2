@@ -366,6 +366,8 @@ namespace winp::events{
 
 		PAINTSTRUCT info_{};
 		mutable HTHEME theme_ = nullptr;
+
+		bool began_draw_ = false;
 	};
 
 	class erase_background : public draw{
@@ -412,8 +414,6 @@ namespace winp::events{
 
 		virtual ~non_client_paint();
 
-		virtual utility::error_code begin() override;
-
 	protected:
 		virtual bool should_call_default_() const override;
 
@@ -423,8 +423,8 @@ namespace winp::events{
 
 		virtual void end_() override;
 
-		HWND dc_owner_ = nullptr;
-		RECT viewport_{};
+		//HWND dc_owner_ = nullptr;
+		//RECT viewport_{};
 	};
 
 	class draw_item : public draw{

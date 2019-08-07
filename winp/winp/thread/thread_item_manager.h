@@ -76,7 +76,9 @@ namespace winp::thread{
 
 		bool is_thread_context() const;
 
-		const RECT &get_update_rect() const;
+		HRGN get_update_rgn() const;
+
+		RECT get_update_rect() const;
 
 		template <typename... args_types>
 		HWND create_window(ui::window_surface &owner, args_types &&... args){
@@ -142,7 +144,7 @@ namespace winp::thread{
 
 		LRESULT erase_background_(item &context, item &target, MSG &msg);
 
-		LRESULT paint_(item &context, item &target, MSG &msg, bool check_interception);
+		LRESULT paint_(item &context, item &target, MSG &msg);
 
 		LRESULT draw_item_(item &target, MSG &msg);
 
@@ -292,7 +294,7 @@ namespace winp::thread{
 		mouse_info mouse_{};
 
 		HDC paint_device_ = nullptr;
-		RECT update_rect_{};
+		HRGN update_rgn_ = nullptr;
 
 		ui::object *focused_object_ = nullptr;
 		std::unordered_map<unsigned __int64, std::function<void()>> timers_;

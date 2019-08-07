@@ -6,15 +6,21 @@ winp::ui::visible_surface::visible_surface() = default;
 
 winp::ui::visible_surface::~visible_surface() = default;
 
-winp::utility::error_code winp::ui::visible_surface::redraw(const std::function<void(visible_surface, utility::error_code)> &callback) const{
+winp::utility::error_code winp::ui::visible_surface::redraw(bool non_client, const std::function<void(visible_surface, utility::error_code)> &callback) const{
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
-		return thread::item::pass_return_value_to_callback(callback, *this, redraw_());
+		return thread::item::pass_return_value_to_callback(callback, *this, redraw_(non_client));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::visible_surface::redraw(const RECT &region, const std::function<void(visible_surface, utility::error_code)> &callback) const{
 	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
 		return thread::item::pass_return_value_to_callback(callback, *this, redraw_(region));
+	}, (callback != nullptr), utility::error_code::nil);
+}
+
+winp::utility::error_code winp::ui::visible_surface::redraw(HRGN rgn, const std::function<void(visible_surface, utility::error_code)> &callback) const{
+	return synchronized_item_compute_or_post_task_inside_thread_context([=]{
+		return thread::item::pass_return_value_to_callback(callback, *this, redraw_(rgn));
 	}, (callback != nullptr), utility::error_code::nil);
 }
 
@@ -110,11 +116,15 @@ bool winp::ui::visible_surface::compare_colors(const D2D1::ColorF &first, const 
 	return (convert_colorf_to_colorref(first) == convert_colorf_to_colorref(second));
 }
 
-winp::utility::error_code winp::ui::visible_surface::redraw_() const{
+winp::utility::error_code winp::ui::visible_surface::redraw_(bool non_client) const{
 	return utility::error_code::not_supported;
 }
 
 winp::utility::error_code winp::ui::visible_surface::redraw_(const RECT &region) const{
+	return utility::error_code::not_supported;
+}
+
+winp::utility::error_code winp::ui::visible_surface::redraw_(HRGN rgn) const{
 	return utility::error_code::not_supported;
 }
 
@@ -145,7 +155,7 @@ winp::utility::error_code winp::ui::visible_surface::set_background_brush_(ID2D1
 
 	background_brush_ = value;
 	synchronized_item_trigger_event_<events::background_brush_change>(value, false);
-	redraw_();
+	redraw_(false);
 
 	return utility::error_code::nil;
 }
@@ -261,7 +271,7 @@ winp::utility::error_code winp::ui::visible_surface::animate_background_color_(o
 }
 
 winp::utility::error_code winp::ui::visible_surface::update_background_color_(const D2D1_COLOR_F &value){
-	return redraw_();
+	return redraw_(false);
 }
 
 const D2D1_COLOR_F &winp::ui::visible_surface::get_background_color_() const{

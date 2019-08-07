@@ -73,9 +73,11 @@ namespace winp::ui{
 
 		virtual std::pair<HDC, HWND> get_device_context_() const override;
 
-		virtual utility::error_code redraw_() const override;
+		virtual utility::error_code redraw_(bool non_client) const override;
 
 		virtual utility::error_code redraw_(const RECT &region) const override;
+
+		virtual utility::error_code redraw_(HRGN rgn) const override;
 
 		virtual utility::error_code show_() override;
 

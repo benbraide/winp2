@@ -3,7 +3,7 @@
 #include <thread>
 #include <functional>
 
-#include "../utility/windows.h"
+#include "../utility/helper.h"
 #include "../utility/error_code.h"
 
 #include "../events/event_manager.h"

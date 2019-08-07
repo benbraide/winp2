@@ -17,6 +17,8 @@ winp::thread::item_manager::item_manager(object &thread, DWORD thread_id)
 
 	mouse_.drag_threshold.cx = GetSystemMetrics(SM_CXDRAG);
 	mouse_.drag_threshold.cy = GetSystemMetrics(SM_CYDRAG);
+
+	update_rgn_ = CreateRectRgn(0, 0, 1, 1);
 }
 
 const winp::thread::object &winp::thread::item_manager::get_thread() const{
@@ -31,10 +33,14 @@ bool winp::thread::item_manager::is_thread_context() const{
 	return thread_.is_thread_context();
 }
 
-const RECT &winp::thread::item_manager::get_update_rect() const{
+HRGN winp::thread::item_manager::get_update_rgn() const{
+	return update_rgn_;
+}
+
+RECT winp::thread::item_manager::get_update_rect() const{
 	if (!is_thread_context())
 		throw utility::error_code::outside_thread_context;
-	return update_rect_;
+	return utility::helper::get_rgn_dimension(update_rgn_);
 }
 
 const winp::thread::item_manager::mouse_info &winp::thread::item_manager::get_mouse_state() const{
@@ -163,7 +169,7 @@ LRESULT winp::thread::item_manager::dispatch_message_(item &target, MSG &msg){
 	case WM_ERASEBKGND:
 		return erase_background_(target, target, msg);
 	case WM_PAINT:
-		return paint_(target, target, msg, true);
+		return paint_(target, target, msg);
 	case WM_NCPAINT:
 		return trigger_event_<events::non_client_paint>(target, msg, ((window_target == nullptr) ? nullptr : thread_.get_class_entry_(window_target->get_class_name()))).second;
 	case WM_DRAWITEM:
@@ -373,13 +379,16 @@ LRESULT winp::thread::item_manager::erase_background_(item &context, item &targe
 	LRESULT result = 0;
 	auto window_context = dynamic_cast<ui::window_surface *>(&context);
 
+	RECT d{};
+	GetClipBox(reinterpret_cast<HDC>(msg.wParam), &d);
+
 	if (object_context->is_created() && (window_context != nullptr || visible_context->is_visible()))
 		return trigger_event_with_target_<events::erase_background>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_class_entry_(window_context->get_class_name()))).second;
 
 	return 0;
 }
 
-LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg, bool check_interception){
+LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg){
 	auto visible_context = dynamic_cast<ui::visible_surface *>(&context);
 	if (visible_context == nullptr)//Visible surface required
 		return 0;
@@ -388,51 +397,73 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 	if (object_context == nullptr)//Object required
 		return 0;
 
-	auto window_context = dynamic_cast<ui::window_surface *>(&context);
-	if (window_context == nullptr){
-		if (paint_device_ == nullptr || !visible_context->is_visible())
-			return 0;//Do nothing
-
-		if (check_interception){
-			auto update_rect = update_rect_;
-			auto context_dimension = visible_context->get_current_dimension_();
-			auto offset = visible_context->convert_position_relative_to_ancestor_<ui::window_surface>(0, 0);
-
-			OffsetRect(&context_dimension, offset.x, offset.y);//Move relative to offset
-			IntersectRect(&update_rect, &update_rect, &context_dimension);
-
-			if (IsRectEmpty(&update_rect) != FALSE)
-				return 0;//Outside update region
-		}
-		
-		MSG paint_msg{ msg.hwnd, WM_NCPAINT };
-		trigger_event_with_target_<events::non_client_paint>(context, target, paint_msg, nullptr);
-
-		paint_msg = MSG{ msg.hwnd, WM_ERASEBKGND, ((msg.message == WM_PRINTCLIENT) ? msg.wParam : reinterpret_cast<WPARAM>(paint_device_)) };
-		trigger_event_with_target_<events::erase_background>(context, target, paint_msg, nullptr);
-	}
-	else if (msg.hwnd != nullptr){
-		if (msg.message == WM_PAINT){
-			GetUpdateRect(msg.hwnd, &update_rect_, FALSE);
-			if ((paint_device_ = GetDC(msg.hwnd)) != nullptr)
-				IntersectClipRect(paint_device_, update_rect_.left, update_rect_.top, update_rect_.right, update_rect_.bottom);
-		}
-		else
-			GetClipBox(reinterpret_cast<HDC>(msg.wParam), &update_rect_);
-	}
+	auto is_window_context = false;
+	auto paint_device_store_id = -1;
 
 	LRESULT result = 0;
-	if (object_context->is_created())
-		result = trigger_event_with_target_<events::paint>(context, target, msg, ((window_context == nullptr) ? nullptr : thread_.get_class_entry_(window_context->get_class_name()))).second;
+	if (auto non_window_context = dynamic_cast<ui::non_window_surface *>(&context); non_window_context != nullptr){
+		if (paint_device_ == nullptr || non_window_context->handle_ == nullptr || !non_window_context->is_visible_())
+			return 0;//Do nothing
+
+		auto &position = non_window_context->get_current_position_();
+		auto offset = non_window_context->convert_position_relative_to_ancestor_<ui::window_surface>(0, 0);
+
+		auto outer_handle = non_window_context->get_outer_handle_();
+		if (outer_handle != nullptr){//Check non-client
+			utility::helper::move_rgn(outer_handle, (position.x + offset.x), (position.y + offset.y));
+
+			auto intersection = utility::helper::intersect_rgn(update_rgn_, outer_handle);
+			if (intersection == nullptr)
+				return 0;//Do nothing
+
+			if (utility::helper::rgn_is_empty(intersection)){
+				DeleteObject(intersection);
+				return 0;
+			}
+
+			if (outer_handle != non_window_context->handle_){
+				MSG paint_msg{ msg.hwnd, WM_NCPAINT, reinterpret_cast<WPARAM>(paint_device_) };
+				trigger_event_with_target_<events::non_client_paint>(context, target, paint_msg, nullptr);
+			}
+
+			DeleteObject(intersection);
+		}
+
+		MSG paint_msg{ msg.hwnd, WM_ERASEBKGND, reinterpret_cast<WPARAM>(paint_device_) };
+		trigger_event_with_target_<events::erase_background>(context, target, paint_msg, nullptr);
+
+		paint_msg.message = WM_PRINTCLIENT;
+		trigger_event_with_target_<events::paint>(context, target, paint_msg, nullptr);
+	}
+	else if (auto window_context = dynamic_cast<ui::window_surface *>(&context); window_context != nullptr){
+		if (msg.hwnd != nullptr){//Store update region
+			if (msg.message == WM_PAINT){
+				GetUpdateRgn(msg.hwnd, update_rgn_, FALSE);
+				auto d = utility::helper::get_rgn_dimension(update_rgn_);
+				if ((paint_device_ = GetDC(msg.hwnd)) != nullptr){
+					paint_device_store_id = SaveDC(paint_device_);
+					SelectClipRgn(paint_device_, update_rgn_);
+				}
+			}
+			else
+				GetClipRgn((paint_device_ = reinterpret_cast<HDC>(msg.wParam)), update_rgn_);
+		}
+
+		is_window_context = true;
+		result = trigger_event_with_target_<events::paint>(context, target, msg, thread_.get_class_entry_(window_context->get_class_name())).second;
+	}
+	else//Ignore
+		return 0;
 
 	if (auto tree_context = dynamic_cast<ui::tree *>(&context); tree_context != nullptr){
 		tree_context->traverse_children_of_<ui::non_window_surface>([&](ui::non_window_surface &child){
-			paint_(child, target, msg, (window_context != nullptr));
+			paint_(child, target, msg);
 			return true;
 		});
 	}
 
-	if (window_context != nullptr && paint_device_ != nullptr){
+	if (is_window_context && msg.message == WM_PAINT && paint_device_ != nullptr){
+		RestoreDC(paint_device_, paint_device_store_id);
 		ReleaseDC(msg.hwnd, paint_device_);
 		paint_device_ = nullptr;
 	}

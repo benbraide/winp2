@@ -24,6 +24,9 @@ namespace winp::ui{
 		friend class surface;
 		friend class thread::item_manager;
 
+		friend class events::draw;
+		friend class events::non_client_paint;
+
 		virtual HTHEME get_theme_() const override;
 
 		virtual std::pair<HDC, HWND> get_device_context_() const override;
@@ -42,9 +45,11 @@ namespace winp::ui{
 
 		virtual utility::error_code update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags) override;
 
-		virtual utility::error_code redraw_() const override;
+		virtual utility::error_code redraw_(bool non_client) const override;
 
 		virtual utility::error_code redraw_(const RECT &region) const override;
+
+		virtual utility::error_code redraw_(HRGN rgn) const override;
 
 		virtual utility::error_code set_visibility_(bool is_visible, bool redraw) override;
 
@@ -53,6 +58,10 @@ namespace winp::ui{
 		virtual utility::error_code hide_() override;
 
 		virtual bool is_visible_() const override;
+
+		virtual utility::error_code redraw_non_client_() const;
+
+		virtual utility::error_code redraw_client_(HRGN rgn) const;
 
 		virtual HRGN get_handle_() const;
 
@@ -63,6 +72,18 @@ namespace winp::ui{
 		virtual utility::error_code update_handle_();
 
 		virtual utility::error_code destroy_handle_();
+
+		virtual HRGN prepare_handle_() const;
+
+		virtual HRGN prepare_handle_(HRGN handle, const POINT &offset) const;
+
+		virtual bool intersect_ancestors_(HRGN handle) const;
+
+		virtual bool exclude_siblings_(HRGN handle) const;
+
+		virtual bool exclude_children_(HRGN handle) const;
+
+		virtual bool exclude_from_clip_(HDC device, const POINT &offset) const;
 
 		HRGN handle_ = nullptr;
 		bool visible_ = true;

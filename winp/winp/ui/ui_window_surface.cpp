@@ -214,9 +214,13 @@ std::pair<HDC, HWND> winp::ui::window_surface::get_device_context_() const{
 	return std::make_pair(GetDC(handle_), handle_);
 }
 
-winp::utility::error_code winp::ui::window_surface::redraw_() const{
+winp::utility::error_code winp::ui::window_surface::redraw_(bool non_client) const{
 	if (handle_ == nullptr)
 		return utility::error_code::object_not_created;
+
+	if (non_client)
+		return ((RedrawWindow(handle_, nullptr, nullptr, (RDW_ERASE | RDW_FRAME | RDW_INVALIDATE)) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+
 	return ((InvalidateRect(handle_, nullptr, TRUE) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
 }
 
@@ -224,6 +228,12 @@ winp::utility::error_code winp::ui::window_surface::redraw_(const RECT &region) 
 	if (handle_ == nullptr)
 		return utility::error_code::object_not_created;
 	return ((InvalidateRect(handle_, &region, TRUE) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+}
+
+winp::utility::error_code winp::ui::window_surface::redraw_(HRGN rgn) const{
+	if (handle_ == nullptr)
+		return utility::error_code::object_not_created;
+	return ((InvalidateRgn(handle_, rgn, TRUE) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::window_surface::show_(){

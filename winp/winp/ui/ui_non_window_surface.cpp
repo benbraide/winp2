@@ -80,21 +80,17 @@ winp::utility::error_code winp::ui::non_window_surface::create_(){
 	}
 
 	if (thread_.send_message(*this, WM_NCCREATE) != FALSE){
-		RECT dimension{};
-
-		GetRgnBox(handle_, &dimension);
-		OffsetRgn(handle_, -dimension.left, -dimension.top);
-
+		utility::helper::move_rgn(handle_, 0, 0);
 		if (hk != nullptr){
-			GetRgnBox(hk->handle_, &dimension);
-			OffsetRgn(hk->handle_, -dimension.left, -dimension.top);
+			utility::helper::move_rgn(hk->handle_, 0, 0);
+			size_ = utility::helper::get_rgn_size(hk->handle_);
 		}
+		else//No non-client area
+			size_ = utility::helper::get_rgn_size(handle_);
 		
-		size_ = SIZE{ (dimension.right - dimension.left), (dimension.bottom - dimension.top) };
 		thread_.send_message(*this, WM_CREATE);
-
 		if (visible_)
-			redraw_();
+			redraw_(true);
 
 		return utility::error_code::nil;
 	}
@@ -132,10 +128,7 @@ UINT winp::ui::non_window_surface::hit_test_(int x, int y) const{
 	if (handle_ == nullptr)
 		return visible_surface::hit_test_(x, y);
 
-	RECT dimension{};
-	GetRgnBox(handle_, &dimension);
-	OffsetRgn(handle_, -dimension.left, -dimension.top);//Move to (0, 0)
-
+	utility::helper::move_rgn(handle_, 0, 0);
 	return ((PtInRegion(handle_, x, y) == FALSE) ? HTNOWHERE : HTCLIENT);
 }
 
@@ -150,18 +143,13 @@ UINT winp::ui::non_window_surface::absolute_hit_test_(int x, int y) const{
 	auto absolute_position = get_absolute_position_();
 	auto start_offset = get_client_start_offset_();
 
-	RECT dimension{};
 	if (hk->handle_ != nullptr){
-		GetRgnBox(hk->handle_, &dimension);
-		OffsetRgn(hk->handle_, (absolute_position.x - dimension.left), (absolute_position.y - dimension.top));//Move to 'absolute_position'
-
+		utility::helper::move_rgn(hk->handle_, absolute_position);
 		if (PtInRegion(hk->handle_, x, y) == FALSE)
 			return HTNOWHERE;
 	}
 
-	GetRgnBox(handle_, &dimension);
-	OffsetRgn(handle_, ((absolute_position.x + hk->padding_.left + start_offset.x) - dimension.left), ((absolute_position.y + hk->padding_.top + start_offset.y) - dimension.top));//Move to 'absolute_position'
-
+	utility::helper::move_rgn(handle_, (absolute_position.x + hk->padding_.left + start_offset.x), (absolute_position.y + hk->padding_.top + start_offset.y));
 	if (PtInRegion(handle_, x, y) != FALSE)
 		return HTCLIENT;
 
@@ -169,7 +157,7 @@ UINT winp::ui::non_window_surface::absolute_hit_test_(int x, int y) const{
 	RECT absolute_dimension{ absolute_position.x, absolute_position.y, (absolute_position.x + size.cx), (absolute_position.y + size.cy) };
 	POINT position{ x, y };
 
-	dimension = RECT{
+	RECT dimension{
 		absolute_dimension.left,
 		absolute_dimension.top,
 		(absolute_dimension.left + hk->padding_.left),
@@ -264,63 +252,60 @@ UINT winp::ui::non_window_surface::absolute_hit_test_(int x, int y) const{
 
 winp::utility::error_code winp::ui::non_window_surface::update_dimension_(const RECT &previous_dimension, int x, int y, int width, int height, UINT flags){
 	if ((flags & (SWP_NOMOVE | SWP_NOSIZE)) == (SWP_NOMOVE | SWP_NOSIZE))
-		return utility::error_code::nil;
+		return visible_surface::update_dimension_(previous_dimension, x, y, width, height, flags);
+
+	auto offset_info = get_first_ancestor_and_relative_offset_<window_surface>();
+	if (offset_info.first == nullptr)
+		return visible_surface::update_dimension_(previous_dimension, x, y, width, height, flags);
+
+	auto ancestor_handle = offset_info.first->get_handle();
+	if (ancestor_handle == nullptr)
+		return visible_surface::update_dimension_(previous_dimension, x, y, width, height, flags);
+
+	auto handle = get_outer_handle_();
+	if (handle == nullptr)
+		return visible_surface::update_dimension_(previous_dimension, x, y, width, height, flags);
+
+	auto is_visible = (is_visible_() && offset_info.first->is_visible());
+	if (is_visible){
+		utility::helper::move_rgn(handle, (previous_dimension.left + offset_info.second.x), (previous_dimension.top + offset_info.second.y));//Move to 'previous offset'
+		InvalidateRgn(ancestor_handle, handle, TRUE);
+	}
 
 	if ((flags & SWP_NOSIZE) == 0u)
 		update_handle_();
 
-	auto visible_parent = dynamic_cast<visible_surface *>(parent_);
-	if (!is_visible_() || visible_parent == nullptr || !visible_parent->is_visible())
-		return utility::error_code::nil;
-
-	RECT current_dimension{};
-	if ((flags & SWP_NOMOVE) != 0u){
-		auto &current_position = get_current_position_();
-		current_dimension.left = current_position.x;
-		current_dimension.top = current_position.y;
+	if (is_visible && (handle = get_outer_handle_()) != nullptr){
+		utility::helper::move_rgn(handle, (x + offset_info.second.x), (y + offset_info.second.y));//Move to 'new offset'
+		InvalidateRgn(ancestor_handle, handle, TRUE);
 	}
-	else{//Position changed
-		current_dimension.left = x;
-		current_dimension.top = y;
-	}
-
-	if ((flags & SWP_NOSIZE) != 0u){
-		auto &current_size = get_current_size_();
-		current_dimension.right = (current_dimension.left + current_size.cx);
-		current_dimension.bottom = (current_dimension.top + current_size.cy);
-	}
-	else{//Size changed
-		current_dimension.right = (current_dimension.left + width);
-		current_dimension.bottom = (current_dimension.top + height);
-	}
-
-	visible_parent->redraw(previous_dimension);
-	visible_parent->redraw(current_dimension);
 
 	return visible_surface::update_dimension_(previous_dimension, x, y, width, height, flags);
 }
 
-winp::utility::error_code winp::ui::non_window_surface::redraw_() const{
-	auto &current_size = get_current_size_();
-	return redraw_(RECT{ 0, 0, current_size.cx, current_size.cy });
+winp::utility::error_code winp::ui::non_window_surface::redraw_(bool non_client) const{
+	if (!non_client)//Client area
+		return redraw_(handle_);
+
+	return (is_visible_() ? redraw_non_client_() : utility::error_code::nil);
 }
 
 winp::utility::error_code winp::ui::non_window_surface::redraw_(const RECT &region) const{
-	if (IsRectEmpty(&region) != FALSE || !is_visible_())
+	if (handle_ == nullptr || IsRectEmpty(&region) != FALSE || !is_visible_())
 		return utility::error_code::nil;
 
-	if (handle_ == nullptr)
-		return utility::error_code::object_not_created;
+	auto handle = CreateRectRgn(region.left, region.top, region.right, region.bottom);
+	if (handle == nullptr)
+		return utility::error_code::action_could_not_be_completed;
 
-	auto visible_parent = get_first_ancestor_of_<visible_surface>(nullptr);
-	if (visible_parent == nullptr || !dynamic_cast<tree *>(visible_parent)->is_created())
-		return utility::error_code::parent_not_created;
+	auto result = redraw_(handle);
+	DeleteObject(handle);
 
-	auto current_dimension = get_current_dimension_();
-	RECT update_region{ (region.left + current_dimension.left), (region.top + current_dimension.top), (region.right + current_dimension.left), (region.bottom + current_dimension.top) };
+	return result;
+}
 
-	IntersectRect(&update_region, &update_region, &current_dimension);
-	return ((IsRectEmpty(&update_region) == FALSE) ? visible_parent->redraw(update_region) : utility::error_code::nil);
+winp::utility::error_code winp::ui::non_window_surface::redraw_(HRGN rgn) const{
+	return ((handle_ == nullptr || !is_visible_()) ? utility::error_code::nil : redraw_client_(rgn));
 }
 
 winp::utility::error_code winp::ui::non_window_surface::set_visibility_(bool is_visible, bool redraw){
@@ -336,7 +321,7 @@ winp::utility::error_code winp::ui::non_window_surface::show_(){
 		return utility::error_code::nil;
 
 	visible_ = true;
-	return ((handle_ == nullptr) ? utility::error_code::nil : redraw_());
+	return ((handle_ == nullptr) ? utility::error_code::nil : redraw_(true));
 }
 
 winp::utility::error_code winp::ui::non_window_surface::hide_(){
@@ -344,14 +329,66 @@ winp::utility::error_code winp::ui::non_window_surface::hide_(){
 		return utility::error_code::nil;
 
 	visible_ = false;
-	if (auto visible_parent = dynamic_cast<visible_surface *>(parent_); visible_parent != nullptr)
-		return visible_parent->redraw(get_dimension_());
+	redraw_non_client_();
 
 	return utility::error_code::nil;
 }
 
 bool winp::ui::non_window_surface::is_visible_() const{
 	return visible_;
+}
+
+winp::utility::error_code winp::ui::non_window_surface::redraw_non_client_() const{
+	auto handle = get_outer_handle_();
+	if (handle == nullptr || handle == handle_)
+		return redraw_client_(handle_);
+
+	auto offset_info = get_first_ancestor_and_relative_offset_<window_surface>();
+	if (offset_info.first == nullptr)
+		return utility::error_code::nil;
+
+	auto ancestor_handle = offset_info.first->get_handle();
+	if (ancestor_handle == nullptr)
+		return utility::error_code::nil;
+
+	auto &position = get_current_position_();
+	utility::helper::move_rgn(handle, (position.x + offset_info.second.x), (position.y + offset_info.second.y));//Move to 'offset'
+
+	return ((InvalidateRgn(ancestor_handle, handle, TRUE) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+}
+
+winp::utility::error_code winp::ui::non_window_surface::redraw_client_(HRGN rgn) const{
+	if (rgn == nullptr)
+		return utility::error_code::nil;
+
+	auto offset_info = get_first_ancestor_and_relative_offset_<window_surface>();
+	if (offset_info.first == nullptr)
+		return utility::error_code::nil;
+
+	auto ancestor_handle = offset_info.first->get_handle();
+	if (ancestor_handle == nullptr)
+		return utility::error_code::nil;
+
+	HRGN handle;
+	if (rgn != handle_){
+		utility::helper::offset_rgn(rgn, get_client_start_offset_());
+		utility::helper::move_rgn(handle_, 0, 0);
+		handle = utility::helper::intersect_rgn(handle_, rgn);
+	}
+	else//Client handle
+		handle = rgn;
+
+	if (handle == nullptr)
+		return utility::error_code::action_could_not_be_completed;
+
+	auto &position = get_current_position_();
+	utility::helper::move_rgn(handle, (position.x + offset_info.second.x), (position.y + offset_info.second.y));//Move to 'offset'
+
+	auto result = ((InvalidateRgn(ancestor_handle, handle, TRUE) == FALSE) ? utility::error_code::action_could_not_be_completed : utility::error_code::nil);
+	if (handle != handle_)//Free handle
+		DeleteObject(handle);
+
+	return result;
 }
 
 HRGN winp::ui::non_window_surface::get_handle_() const{
@@ -397,14 +434,9 @@ winp::utility::error_code winp::ui::non_window_surface::update_handle_(){
 		handle_ = value;
 	}
 
-	RECT dimension{};
-	GetRgnBox(handle_, &dimension);
-	OffsetRgn(handle_, -dimension.left, -dimension.top);
-
-	if (hk != nullptr){
-		GetRgnBox(hk->handle_, &dimension);
-		OffsetRgn(hk->handle_, -dimension.left, -dimension.top);
-	}
+	utility::helper::move_rgn(handle_, 0, 0);
+	if (hk != nullptr)
+		utility::helper::move_rgn(hk->handle_, 0, 0);
 
 	return utility::error_code::nil;
 }
@@ -420,4 +452,129 @@ winp::utility::error_code winp::ui::non_window_surface::destroy_handle_(){
 	}
 
 	return static_cast<utility::error_code>(result_info.second);
+}
+
+HRGN winp::ui::non_window_surface::prepare_handle_() const{
+	auto &position = get_current_position_();
+	auto client_offset = get_client_offset_();
+	return prepare_handle_(handle_, POINT{ (position.x + client_offset.x), (position.y + client_offset.y) });
+}
+
+HRGN winp::ui::non_window_surface::prepare_handle_(HRGN handle, const POINT &offset) const{
+	if (handle == nullptr || (handle = utility::helper::copy_rgn(handle)) == nullptr)
+		return nullptr;
+
+	utility::helper::move_rgn(handle, offset);
+	exclude_siblings_(handle);
+
+	exclude_children_(handle);
+	intersect_ancestors_(handle);
+
+	return handle;
+}
+
+bool winp::ui::non_window_surface::intersect_ancestors_(HRGN handle) const{
+	auto offset = utility::helper::get_rgn_offset(handle);
+	traverse_ancestors_of_<visible_surface>([&](visible_surface &ancestor){
+		if (!ancestor.is_visible_()){
+			if (dynamic_cast<window_surface *>(&ancestor) != nullptr)
+				return false;
+
+			utility::helper::offset_rgn(handle, ancestor.get_current_position_());
+			return true;
+		}
+
+		auto client_start_offset = ancestor.get_client_start_offset_();
+		utility::helper::offset_rgn(handle, client_start_offset);
+
+		if (dynamic_cast<window_surface *>(&ancestor) != nullptr){
+			auto client_size = ancestor.get_current_client_size_();
+			utility::helper::intersect_rgn_alt(handle, RECT{ offset.x, offset.y, client_size.cx, client_size.cy });
+		}
+		else if (auto non_window_ancestor = dynamic_cast<non_window_surface *>(&ancestor); non_window_ancestor->handle_ != nullptr){//Non-window ancestor
+			utility::helper::move_rgn(non_window_ancestor->handle_, 0, 0);
+			utility::helper::intersect_rgn_alt(handle, non_window_ancestor->handle_);
+		}
+
+		if (dynamic_cast<window_surface *>(&ancestor) != nullptr)
+			return false;
+
+		utility::helper::offset_rgn(handle, ancestor.get_current_position_());
+		return true;
+	});
+
+	return true;
+	//return utility::helper::move_rgn(handle, offset);
+}
+
+bool winp::ui::non_window_surface::exclude_siblings_(HRGN handle) const{
+	traverse_siblings_of_<visible_surface>([&](visible_surface &sibling, bool is_before){
+		if (is_before || !sibling.is_visible_())
+			return true;
+
+		if (auto non_window_sibling = dynamic_cast<non_window_surface *>(&sibling); non_window_sibling != nullptr){
+			auto outer_handle = non_window_sibling->get_outer_handle_();
+			if (outer_handle == nullptr)//Not created
+				return true;
+
+			auto d0 = utility::helper::get_rgn_dimension(outer_handle);
+			auto d1 = utility::helper::get_rgn_dimension(handle_);
+			auto d2 = utility::helper::get_rgn_dimension(handle);
+
+			utility::helper::move_rgn(outer_handle, non_window_sibling->get_current_position_());
+			d0 = utility::helper::get_rgn_dimension(outer_handle);
+			utility::helper::exclude_rgn_alt(handle, outer_handle);
+
+			d2 = utility::helper::get_rgn_dimension(handle);
+			d2 = utility::helper::get_rgn_dimension(handle);
+		}
+		else//No handle
+			utility::helper::exclude_rgn_alt(handle, sibling.get_current_dimension_());
+
+		return true;
+	});
+
+	return true;
+}
+
+bool winp::ui::non_window_surface::exclude_children_(HRGN handle) const{
+	auto offset = get_client_start_offset_();
+	traverse_children_of_<visible_surface>([&](visible_surface &child){
+		if (!child.is_visible_() || child.get_current_background_color_().a == 0.0f)
+			return true;
+
+		if (auto non_window_child = dynamic_cast<non_window_surface *>(&child); non_window_child != nullptr){
+			auto outer_handle = non_window_child->get_outer_handle_();
+			if (outer_handle == nullptr)//Not created
+				return true;
+
+			utility::helper::move_rgn(outer_handle, non_window_child->get_current_position_());
+			utility::helper::offset_rgn(outer_handle, offset);
+			utility::helper::exclude_rgn_alt(handle, outer_handle);
+		}
+		else{//No handle
+			auto dimension = child.get_current_dimension_();
+			OffsetRect(&dimension, offset.x, offset.y);
+			utility::helper::exclude_rgn_alt(handle, dimension);
+		}
+
+		return true;
+	});
+
+	return true;
+}
+
+bool winp::ui::non_window_surface::exclude_from_clip_(HDC device, const POINT &offset) const{
+	if (!is_visible_() || get_current_background_color_().a == 0.0f)
+		return true;
+
+	auto outer_handle = get_outer_handle_();
+	if (outer_handle == nullptr)//Not created
+		return true;
+
+	auto &position = get_current_position_();
+	utility::helper::move_rgn(outer_handle, (position.x + offset.x), (position.y + offset.y));
+	ExtSelectClipRgn(device, outer_handle, RGN_DIFF);
+
+	return true;
 }

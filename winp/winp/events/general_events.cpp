@@ -229,6 +229,10 @@ winp::utility::error_code winp::events::draw::begin(){
 	if (render_target_ != nullptr)
 		return utility::error_code::nil;
 
+	auto visible_context = dynamic_cast<ui::visible_surface *>(&context_);
+	if (visible_context == nullptr || !visible_context->is_visible())
+		return utility::error_code::not_supported;
+
 	if (auto error_code = begin_(); error_code != utility::error_code::nil)
 		return error_code;
 
@@ -241,96 +245,52 @@ winp::utility::error_code winp::events::draw::begin(){
 	color_brush_ = thread.get_color_brush();
 	SaveDC(info_.hdc);
 
-	auto visible_context = dynamic_cast<ui::visible_surface *>(&context_);
 	if (auto non_window_context = dynamic_cast<ui::non_window_surface *>(&context_); non_window_context != nullptr){
-		auto non_window_handle = non_window_context->get_handle();
-
-		auto context_position = non_window_context->get_current_position_();
-		auto context_position_offset = visible_context->get_client_offset_();
-
-		context_position.x += context_position_offset.x;
-		context_position.y += context_position_offset.y;
-
-		RECT non_window_handle_dimension{};
-		GetRgnBox(non_window_handle, &non_window_handle_dimension);
-
-		OffsetRgn(non_window_handle, (context_position.x - non_window_handle_dimension.left), (context_position.y - non_window_handle_dimension.top));//Move to current position
-		SelectClipRgn(info_.hdc, non_window_handle);
-
-		if (auto context_visible_ancestor = non_window_context->get_first_ancestor_of<ui::visible_surface>(); context_visible_ancestor != nullptr){//Clip
-			if (auto non_window_ancestor = dynamic_cast<ui::non_window_surface *>(context_visible_ancestor); non_window_ancestor != nullptr){
-				auto ancestor_handle = non_window_ancestor->get_handle();
-				GetRgnBox(ancestor_handle, &non_window_handle_dimension);
-
-				OffsetRgn(ancestor_handle, -non_window_handle_dimension.left, -non_window_handle_dimension.top);//Move to (0, 0)
-				ExtSelectClipRgn(info_.hdc, ancestor_handle, RGN_AND);//Intersect
+		HRGN handle;
+		if (message_info_.message == WM_NCPAINT){
+			auto hk = non_window_context->find_hook<ui::non_window_non_client_hook>();
+			if (hk == nullptr || hk->handle_ == nullptr){//Hook required
+				end();
+				info_ = PAINTSTRUCT{};
+				return utility::error_code::action_could_not_be_completed;
 			}
-			else{//Window
-				auto ancestor_size = context_visible_ancestor->get_current_client_size_();
-				IntersectClipRect(info_.hdc, 0, 0, ancestor_size.cx, ancestor_size.cy);
-			}
+
+			handle = non_window_context->prepare_handle_(hk->handle_, non_window_context->get_current_position_());
 		}
+		else//Client paint
+			handle = non_window_context->prepare_handle_();
 
-		if (auto object_context = dynamic_cast<ui::object *>(&context_); object_context != nullptr){//Clip siblings
-			if (auto context_tree = object_context->get_parent(); context_tree != nullptr){
-				auto is_after = false;
-				context_tree->traverse_all_children_of<ui::non_window_surface>([&](ui::non_window_surface &sibling){
-					if (&sibling == non_window_context){
-						is_after = true;
-						return true;
-					}
+		if (handle != nullptr){//Select
+			auto offset = non_window_context->convert_position_relative_to_ancestor_<ui::window_surface>(0, 0);
+			utility::helper::offset_rgn(handle, offset);
 
-					if (!is_after)
-						return true;
+			offset = utility::helper::get_rgn_offset(handle);
+			auto size = ((message_info_.message == WM_NCPAINT) ? non_window_context->get_current_size_() : non_window_context->get_current_client_size_());
 
-					auto sibling_handle = sibling.get_outer_handle();
-					RECT sibling_handle_dimension{};
-					auto &sibling_position = sibling.get_current_position_();
+			RECT dimension{
+				offset.x,
+				offset.y,
+				(offset.x + size.cx),
+				(offset.y + size.cy)
+			};
 
-					GetRgnBox(sibling_handle, &sibling_handle_dimension);
-					OffsetRgn(sibling_handle, (sibling_position.x - sibling_handle_dimension.left), (sibling_position.y - sibling_handle_dimension.top));//Move to relative position
+			ExtSelectClipRgn(info_.hdc, handle, RGN_AND);
+			//IntersectClipRect(info_.hdc, info_.rcPaint.left, info_.rcPaint.top, info_.rcPaint.right, info_.rcPaint.bottom);
+			SetViewportOrgEx(info_.hdc, dimension.left, dimension.top, nullptr);
 
-					ExtSelectClipRgn(info_.hdc, sibling_handle, RGN_DIFF);//Exclude sibling region and select
-					OffsetRgn(sibling_handle, -sibling_position.x, -sibling_position.y);//Move to (0, 0)
-
-					return true;
-				}, true);
-			}
+			IntersectRect(&info_.rcPaint, &info_.rcPaint, &dimension);
+			OffsetRect(&info_.rcPaint, -dimension.left, -dimension.top);
+			DeleteObject(handle);
 		}
-
-		auto context_client_size = visible_context->get_current_client_size_();
-		auto offset = visible_context->convert_position_relative_to_ancestor_<ui::window_surface>(0, 0);
-
-		RECT context_client_rect{
-			(context_position.x + offset.x),
-			(context_position.y + offset.y),
-			(context_position.x + offset.x + context_client_size.cx),
-			(context_position.y + offset.y + context_client_size.cy)
-		};
-
-		OffsetClipRgn(info_.hdc, (context_client_rect.left - context_position.x), (context_client_rect.top - context_position.y));
-		IntersectClipRect(info_.hdc, info_.rcPaint.left, info_.rcPaint.top, info_.rcPaint.right, info_.rcPaint.bottom);
-		SetViewportOrgEx(info_.hdc, context_client_rect.left, context_client_rect.top, nullptr);
-
-		IntersectRect(&info_.rcPaint, &info_.rcPaint, &context_client_rect);
-		OffsetRect(&info_.rcPaint, -context_client_rect.left, -context_client_rect.top);
 	}
-
-	if (auto tree_context = ((visible_context == nullptr) ? nullptr : dynamic_cast<ui::tree *>(visible_context)); tree_context != nullptr){
-		tree_context->traverse_all_children_of<ui::non_window_surface>([&](ui::non_window_surface &child){
-			auto child_handle = child.get_outer_handle();
-			RECT child_handle_dimension{};
-			auto &child_position = child.get_current_position_();
-
-			GetRgnBox(child_handle, &child_handle_dimension);
-			OffsetRgn(child_handle, (child_position.x - child_handle_dimension.left), (child_position.y - child_handle_dimension.top));//Move to 'child position'
-
-			ExtSelectClipRgn(info_.hdc, child_handle, RGN_DIFF);//Exclude child region and select
-			OffsetRgn(child_handle, -child_position.x, -child_position.y);//Move to (0, 0)
+	else if (auto window_context = dynamic_cast<ui::window_surface *>(&context_); window_context != nullptr){
+		auto client_start_offset = visible_context->get_client_start_offset_();
+		window_context->traverse_all_children_of<ui::non_window_surface>([&](ui::non_window_surface &child){
+			child.exclude_from_clip_(info_.hdc, client_start_offset);
 		}, true);
 	}
 
-	if (message_info_.hwnd != nullptr && visible_context != nullptr){
+	if (message_info_.hwnd != nullptr){
 		RECT window_client_rect{};
 		GetClientRect(message_info_.hwnd, &window_client_rect);
 		render_target_->BindDC(info_.hdc, &window_client_rect);
@@ -340,6 +300,7 @@ winp::utility::error_code winp::events::draw::begin(){
 
 	render_target_->SetTransform(D2D1::IdentityMatrix());
 	thread.begin_draw_();
+	began_draw_ = true;
 
 	return utility::error_code::nil;
 }
@@ -351,7 +312,11 @@ winp::utility::error_code winp::events::draw::end(){
 	if (render_target_ == nullptr)
 		return utility::error_code::nil;
 
-	target_.get_thread().end_draw_();
+	if (began_draw_){
+		target_.get_thread().end_draw_();
+		began_draw_ = false;
+	}
+
 	if (info_.hdc != nullptr)
 		RestoreDC(info_.hdc, -1);
 
@@ -703,183 +668,77 @@ winp::events::non_client_paint::~non_client_paint(){
 	end();
 }
 
-winp::utility::error_code winp::events::non_client_paint::begin(){
-	if (!target_.get_thread().is_thread_context())
-		throw utility::error_code::outside_thread_context;
-	return begin_();
-}
-
 bool winp::events::non_client_paint::should_call_default_() const{
 	return (dynamic_cast<ui::non_window_surface *>(&context_) != nullptr || draw::should_call_default_());
 }
 
 LRESULT winp::events::non_client_paint::get_called_default_value_(){
-	if (auto non_window_context = dynamic_cast<ui::non_window_surface *>(&context_); non_window_context != nullptr && begin() == utility::error_code::nil){
-		auto &size = non_window_context->get_current_size();
-		auto hk = non_window_context->find_hook<ui::non_window_non_client_hook>();
-		if (hk == nullptr)
-			return 0;
+	auto non_window_context = dynamic_cast<ui::non_window_surface *>(&context_);
+	if (non_window_context == nullptr || begin() != utility::error_code::nil)
+		return draw::get_called_default_value_();
 
-		auto rgn = CreateRectRgn(0, 0, 1, 1);
-		auto previous_dc = info_.hdc, dc = GetDC(dc_owner_);
-
-		SaveDC(info_.hdc);
-		GetClipRgn(previous_dc, rgn);
-
-		SelectClipRgn(dc, rgn);
-		SetViewportOrgEx(dc, viewport_.left, viewport_.top, nullptr);
-
-		end();
-		info_.hdc = dc;
-
-		draw_themed_background(WP_SMALLCAPTION, CS_ACTIVE, RECT{ 0, 0, size.cx, hk->padding_.top });
-		draw_themed_background(WP_SMALLFRAMEBOTTOM, 0, RECT{ 0, (size.cy - hk->padding_.bottom), size.cx, size.cy });
-
-		draw_themed_background(WP_SMALLFRAMELEFT, 0, RECT{ 0, hk->padding_.top, hk->padding_.left, (size.cy - hk->padding_.bottom) });
-		draw_themed_background(WP_SMALLFRAMERIGHT, 0, RECT{ (size.cx - hk->padding_.right), hk->padding_.top, size.cx, (size.cy - hk->padding_.bottom) });
-
-		if (!hk->caption_.empty()){
-			NONCLIENTMETRICSW metrics_info{ sizeof(NONCLIENTMETRICSW) };
-			SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, 0u, &metrics_info, 0u);
-			auto font = CreateFontIndirectW(&metrics_info.lfSmCaptionFont);
-
-			SelectObject(info_.hdc, font);
-			draw_themed_text(WP_CAPTION, CS_INACTIVE, hk->caption_, (DT_END_ELLIPSIS | DT_VCENTER), RECT{ 5, 3, (size.cx - 5), hk->padding_.top });
-			DeleteObject(font);
-		}
-
-		RestoreDC(info_.hdc, -1);
-		ReleaseDC(dc_owner_, info_.hdc);
-		DeleteObject(rgn);
-
-		info_.hdc = previous_dc;
-		end();
-
+	auto &size = non_window_context->get_current_size();
+	auto hk = non_window_context->find_hook<ui::non_window_non_client_hook>();
+	if (hk == nullptr)
 		return 0;
+
+	if (began_draw_){
+		target_.get_thread().end_draw_();
+		began_draw_ = false;
 	}
 
-	return draw::get_called_default_value_();
+	draw_themed_background(WP_SMALLCAPTION, CS_ACTIVE, RECT{ 0, 0, size.cx, hk->padding_.top });
+	draw_themed_background(WP_SMALLFRAMEBOTTOM, 0, RECT{ 0, (size.cy - hk->padding_.bottom), size.cx, size.cy });
+
+	draw_themed_background(WP_SMALLFRAMELEFT, 0, RECT{ 0, hk->padding_.top, hk->padding_.left, (size.cy - hk->padding_.bottom) });
+	draw_themed_background(WP_SMALLFRAMERIGHT, 0, RECT{ (size.cx - hk->padding_.right), hk->padding_.top, size.cx, (size.cy - hk->padding_.bottom) });
+
+	if (!hk->caption_.empty()){
+		NONCLIENTMETRICSW metrics_info{ sizeof(NONCLIENTMETRICSW) };
+		SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, 0u, &metrics_info, 0u);
+		auto font = CreateFontIndirectW(&metrics_info.lfSmCaptionFont);
+
+		SelectObject(info_.hdc, font);
+		draw_themed_text(WP_CAPTION, CS_INACTIVE, hk->caption_, (DT_END_ELLIPSIS | DT_VCENTER), RECT{ 5, 3, (size.cx - 5), hk->padding_.top });
+		DeleteObject(font);
+	}
+
+	return 0;
 }
 
 winp::utility::error_code winp::events::non_client_paint::begin_(){
-	if (render_target_ != nullptr)
-		return utility::error_code::nil;
-
-	auto &thread = target_.get_thread();
-	if ((render_target_ = thread.get_device_render_target()) == nullptr)
-		return utility::error_code::action_could_not_be_completed;
-
-	color_brush_ = thread.get_color_brush();
 	if (auto non_window_context = dynamic_cast<ui::non_window_surface *>(&context_); non_window_context != nullptr){
-		auto hk = non_window_context->find_hook<ui::non_window_non_client_hook>();
-		if (hk == nullptr || hk->handle_ == nullptr){//Hook required
-			end();
-			return utility::error_code::action_could_not_be_completed;
-		}
+		info_.hdc = reinterpret_cast<HDC>(message_info_.wParam);
+		GetClipBox(info_.hdc, &info_.rcPaint);
 
-		auto window_ancestor_and_offset = non_window_context->get_first_ancestor_and_relative_offset<ui::window_surface>();
-		if (window_ancestor_and_offset.first == nullptr || (dc_owner_ = window_ancestor_and_offset.first->get_handle()) == nullptr){//Window ancestor required
-			end();
-			return utility::error_code::action_could_not_be_completed;
-		}
-
-		info_.hdc = GetDC(dc_owner_);
-		SaveDC(info_.hdc);
-
-		auto context_handle = non_window_context->get_handle();
-		RECT non_window_non_client_handle_dimension{}, non_window_handle_dimension{};
-
+		/*auto &context_size = non_window_context->get_current_size();
 		auto &context_position = non_window_context->get_current_position();
-		auto context_position_offset = non_window_context->get_client_offset();
-
-		GetRgnBox(hk->handle_, &non_window_non_client_handle_dimension);
-		GetRgnBox(context_handle, &non_window_handle_dimension);
-
-		OffsetRgn(hk->handle_, (context_position.x - non_window_non_client_handle_dimension.left), (context_position.y - non_window_non_client_handle_dimension.top));//Move to current position
-		OffsetRgn(context_handle, ((context_position.x + context_position_offset.x) - non_window_handle_dimension.left), ((context_position.y + context_position_offset.y) - non_window_handle_dimension.top));//Move to current position
-
-		SelectClipRgn(info_.hdc, hk->handle_);
-		ExtSelectClipRgn(info_.hdc, context_handle, RGN_DIFF);//Exclude inner region
-
-		if (auto context_visible_ancestor = non_window_context->get_first_ancestor_of<ui::visible_surface>(); context_visible_ancestor != nullptr){//Clip
-			if (auto non_window_ancestor = dynamic_cast<ui::non_window_surface *>(context_visible_ancestor); non_window_ancestor != nullptr){
-				auto ancestor_handle = non_window_ancestor->get_handle();
-				GetRgnBox(ancestor_handle, &non_window_handle_dimension);
-
-				OffsetRgn(ancestor_handle, -non_window_handle_dimension.left, -non_window_handle_dimension.top);//Move to (0, 0)
-				ExtSelectClipRgn(info_.hdc, ancestor_handle, RGN_AND);//Intersect
-			}
-			else{//Window
-				auto ancestor_size = context_visible_ancestor->get_current_client_size();
-				IntersectClipRect(info_.hdc, 0, 0, ancestor_size.cx, ancestor_size.cy);
-			}
-		}
-		
-		if (auto object_context = dynamic_cast<ui::object *>(&context_); object_context != nullptr){//Clip siblings
-			if (auto context_tree = object_context->get_parent(); context_tree != nullptr){
-				auto is_after = false;
-				context_tree->traverse_all_children_of<ui::non_window_surface>([&](ui::non_window_surface &sibling){
-					if (&sibling == non_window_context){
-						is_after = true;
-						return true;
-					}
-
-					if (!is_after)
-						return true;
-
-					auto sibling_handle = sibling.get_outer_handle();
-					RECT sibling_handle_dimension{};
-					auto &sibling_position = sibling.get_current_position();
-
-					GetRgnBox(sibling_handle, &sibling_handle_dimension);
-					OffsetRgn(sibling_handle, (sibling_position.x - sibling_handle_dimension.left), (sibling_position.y - sibling_handle_dimension.top));//Move to relative position
-
-					ExtSelectClipRgn(info_.hdc, sibling_handle, RGN_DIFF);//Exclude sibling region and select
-					OffsetRgn(sibling_handle, -sibling_position.x, -sibling_position.y);//Move to (0, 0)
-
-					return true;
-				}, true);
-			}
-		}
-
-		auto context_size = non_window_context->get_current_size();
 		auto offset_info = non_window_context->get_first_ancestor_and_relative_offset<ui::window_surface>();
 
-		auto window_ancestor_client_size = offset_info.first->get_current_client_size();
-		RECT window_ancestor_client_rect{ 0, 0, window_ancestor_client_size.cx, window_ancestor_client_size.cy };
+		dc_owner_ = offset_info.first->get_handle();
+		info_.hdc = GetDC(dc_owner_);
 
 		viewport_ = info_.rcPaint = RECT{
 			(context_position.x + offset_info.second.x),
 			(context_position.y + offset_info.second.y),
 			(context_position.x + offset_info.second.x + context_size.cx),
 			(context_position.y + offset_info.second.y + context_size.cy)
-		};
-
-		OffsetClipRgn(info_.hdc, (info_.rcPaint.left - context_position.x), (info_.rcPaint.top - context_position.y));
-		SetViewportOrgEx(info_.hdc, info_.rcPaint.left, info_.rcPaint.top, nullptr);
-
-		render_target_->BindDC(info_.hdc, &window_ancestor_client_rect);
-		OffsetRect(&info_.rcPaint, -info_.rcPaint.left, -info_.rcPaint.top);//Move to (0, 0)
+		};*/
 	}
 	else if (auto window_context = dynamic_cast<ui::window_surface *>(&context_); window_context != nullptr){//Window surface
-		dc_owner_ = message_info_.hwnd;
+		//dc_owner_ = message_info_.hwnd;
 		info_.hdc = GetDCEx(message_info_.hwnd, reinterpret_cast<HRGN>(message_info_.wParam), (DCX_WINDOW | DCX_INTERSECTRGN));
-		SaveDC(info_.hdc);
 
 		info_.rcPaint = window_context->get_current_dimension();
 		OffsetRect(&info_.rcPaint, -info_.rcPaint.left, -info_.rcPaint.top);//Move to (0, 0)
-		render_target_->BindDC(info_.hdc, &info_.rcPaint);
 	}
-
-	render_target_->SetTransform(D2D1::IdentityMatrix());
-	thread.begin_draw_();
 
 	return utility::error_code::nil;
 }
 
 void winp::events::non_client_paint::end_(){
-	if (info_.hdc != nullptr)
-		ReleaseDC(dc_owner_, info_.hdc);
+	if (info_.hdc != nullptr && dynamic_cast<ui::window_surface *>(&context_) != nullptr)
+		ReleaseDC(message_info_.hwnd, info_.hdc);
 }
 
 winp::events::draw_item::~draw_item(){

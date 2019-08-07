@@ -75,7 +75,7 @@ winp::utility::error_code winp::ui::round_rectangular_non_window_hook::set_borde
 	border_curve_size_.cy = height;
 
 	typed_target_->update_handle();
-	typed_target_->redraw();
+	typed_target_->redraw(true);
 
 	return utility::error_code::nil;
 }
@@ -85,7 +85,7 @@ winp::ui::elliptical_non_window_hook::elliptical_non_window_hook(object &target)
 	if (typed_target_ != nullptr){
 		target_.events().bind([this](events::create_non_window_handle &e){
 			auto &current_size = e.get_current_size();
-			return CreateEllipticRgn(0, 0, current_size.cx, current_size.cy);
+			return CreateEllipticRgn(0, 0, (current_size.cx + 1), (current_size.cy + 1));
 		}, this);
 	}
 }
@@ -226,7 +226,7 @@ winp::utility::error_code winp::ui::round_rectangular_non_window_non_client_hook
 	border_curve_size_.cy = height;
 
 	typed_target_->update_handle();
-	typed_target_->redraw();
+	typed_target_->redraw(true);
 
 	return utility::error_code::nil;
 }

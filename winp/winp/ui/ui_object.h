@@ -67,9 +67,9 @@ namespace winp::ui{
 
 		virtual void traverse_all_ancestors(const std::function<void(tree &)> &callback, bool block) const;
 
-		virtual void traverse_siblings(const std::function<bool(object &)> &callback, bool block) const;
+		virtual void traverse_siblings(const std::function<bool(object &, bool)> &callback, bool block) const;
 
-		virtual void traverse_all_siblings(const std::function<void(object &)> &callback, bool block) const;
+		virtual void traverse_all_siblings(const std::function<void(object &, bool)> &callback, bool block) const;
 
 		template <typename target_type>
 		void traverse_ancestors_of(const std::function<bool(target_type &)> &callback, bool block) const{
@@ -89,19 +89,19 @@ namespace winp::ui{
 		}
 
 		template <typename target_type>
-		void traverse_siblings_of(const std::function<bool(target_type &)> &callback, bool block) const{
-			traverse_siblings([=](object &sibling){
+		void traverse_siblings_of(const std::function<bool(target_type &, bool)> &callback, bool block) const{
+			traverse_siblings([=](object &sibling, bool is_before){
 				if (auto target_sibling = dynamic_cast<target_type *>(&sibling); target_sibling != nullptr)
-					return callback(*target_sibling);
+					return callback(*target_sibling, is_before);
 				return true;
 			}, block);
 		}
 
 		template <typename target_type>
-		void traverse_all_siblings_of(const std::function<void(target_type &)> &callback, bool block) const{
-			traverse_all_siblings([=](object &sibling){
+		void traverse_all_siblings_of(const std::function<void(target_type &, bool)> &callback, bool block) const{
+			traverse_all_siblings([=](object &sibling, bool is_before){
 				if (auto target_sibling = dynamic_cast<target_type *>(&sibling); target_sibling != nullptr)
-					callback(*target_sibling);
+					callback(*target_sibling, is_before);
 			}, block);
 		}
 
@@ -202,7 +202,7 @@ namespace winp::ui{
 
 		virtual void traverse_ancestors_(const std::function<bool(tree &)> &callback) const;
 
-		virtual void traverse_siblings_(const std::function<bool(object &)> &callback) const;
+		virtual void traverse_siblings_(const std::function<bool(object &, bool)> &callback) const;
 
 		template <typename target_type>
 		void traverse_ancestors_of_(const std::function<bool(target_type &)> &callback) const{
@@ -214,10 +214,10 @@ namespace winp::ui{
 		}
 
 		template <typename target_type>
-		void traverse_siblings_of_(const std::function<bool(target_type &)> &callback) const{
-			traverse_siblings_([=](object &sibling){
+		void traverse_siblings_of_(const std::function<bool(target_type &, bool)> &callback) const{
+			traverse_siblings_([=](object &sibling, bool is_before){
 				if (auto target_sibling = dynamic_cast<target_type *>(&sibling); target_sibling != nullptr)
-					return callback(*target_sibling);
+					return callback(*target_sibling, is_before);
 				return true;
 			});
 		}

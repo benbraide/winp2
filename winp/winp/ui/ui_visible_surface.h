@@ -9,9 +9,11 @@ namespace winp::ui{
 
 		virtual ~visible_surface();
 
-		virtual utility::error_code redraw(const std::function<void(visible_surface, utility::error_code)> &callback = nullptr) const;
+		virtual utility::error_code redraw(bool non_client, const std::function<void(visible_surface, utility::error_code)> &callback = nullptr) const;
 
 		virtual utility::error_code redraw(const RECT &region, const std::function<void(visible_surface, utility::error_code)> &callback = nullptr) const;
+
+		virtual utility::error_code redraw(HRGN rgn, const std::function<void(visible_surface, utility::error_code)> &callback = nullptr) const;
 
 		virtual utility::error_code show(const std::function<void(visible_surface, utility::error_code)> &callback = nullptr);
 
@@ -46,11 +48,15 @@ namespace winp::ui{
 		static bool compare_colors(const D2D1::ColorF &first, const D2D1::ColorF &second);
 
 	protected:
+		friend class thread::item_manager;
 		friend class events::background_color;
+		friend class non_window_surface;
 
-		virtual utility::error_code redraw_() const;
+		virtual utility::error_code redraw_(bool non_client) const;
 
 		virtual utility::error_code redraw_(const RECT &region) const;
+
+		virtual utility::error_code redraw_(HRGN rgn) const;
 
 		virtual utility::error_code set_visibility_(bool is_visible, bool redraw);
 

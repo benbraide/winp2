@@ -67,6 +67,8 @@ namespace winp::ui{
 
 	protected:
 		friend class non_window_surface;
+
+		friend class events::draw;
 		friend class events::non_client_paint;
 
 		virtual utility::error_code set_caption_(const std::wstring &value);

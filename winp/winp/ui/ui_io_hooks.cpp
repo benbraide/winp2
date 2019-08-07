@@ -130,7 +130,7 @@ winp::ui::drag_resize_hook::drag_resize_hook(object &target)
 			auto offset = e.get_offset();
 			switch (e.get_edge()){
 			case events::mouse_edge_drag::edge_type::top_left:
-				typed_target_->redraw();
+				typed_target_->redraw(true);
 
 				typed_target_->position_.x += offset.x;
 				typed_target_->position_.y += offset.y;
@@ -139,28 +139,28 @@ winp::ui::drag_resize_hook::drag_resize_hook(object &target)
 				typed_target_->size_.cy -= offset.y;
 
 				typed_target_->update_handle();
-				typed_target_->redraw();
+				typed_target_->redraw(true);
 
 				break;
 			case events::mouse_edge_drag::edge_type::top:
-				typed_target_->redraw();
+				typed_target_->redraw(true);
 
 				typed_target_->position_.y += offset.y;
 				typed_target_->size_.cy -= offset.y;
 
 				typed_target_->update_handle();
-				typed_target_->redraw();
+				typed_target_->redraw(true);
 
 				break;
 			case events::mouse_edge_drag::edge_type::top_right:
-				typed_target_->redraw();
+				typed_target_->redraw(true);
 				typed_target_->position_.y += offset.y;
 
 				typed_target_->size_.cx += offset.x;
 				typed_target_->size_.cy -= offset.y;
 
 				typed_target_->update_handle();
-				typed_target_->redraw();
+				typed_target_->redraw(true);
 
 				break;
 			case events::mouse_edge_drag::edge_type::right:
@@ -173,24 +173,24 @@ winp::ui::drag_resize_hook::drag_resize_hook(object &target)
 				typed_target_->offset_height(offset.y);
 				break;
 			case events::mouse_edge_drag::edge_type::bottom_left:
-				typed_target_->redraw();
+				typed_target_->redraw(true);
 				typed_target_->position_.x += offset.x;
 
 				typed_target_->size_.cx -= offset.x;
 				typed_target_->size_.cy += offset.y;
 
 				typed_target_->update_handle();
-				typed_target_->redraw();
+				typed_target_->redraw(true);
 
 				break;
 			case events::mouse_edge_drag::edge_type::left:
-				typed_target_->redraw();
+				typed_target_->redraw(true);
 
 				typed_target_->position_.x += offset.x;
 				typed_target_->size_.cx -= offset.x;
 
 				typed_target_->update_handle();
-				typed_target_->redraw();
+				typed_target_->redraw(true);
 
 				break;
 			default:

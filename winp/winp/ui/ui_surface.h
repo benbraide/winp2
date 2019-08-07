@@ -10,6 +10,7 @@ namespace winp::grid{
 
 namespace winp::ui{
 	class tree;
+	class non_window_surface;
 
 	class placement_hook;
 	class parent_fill_hook;
@@ -168,6 +169,8 @@ namespace winp::ui{
 		virtual bool has_grid(const std::function<void(bool)> &callback = nullptr) const;
 
 	protected:
+		friend class non_window_surface;
+
 		friend class ui::placement_hook;
 		friend class ui::parent_fill_hook;
 
@@ -184,6 +187,7 @@ namespace winp::ui{
 		friend class events::draw;
 		friend class events::erase_background;
 		friend class events::paint;
+		friend class events::non_client_paint;
 
 		virtual utility::error_code set_size_(int width, int height, bool allow_animation);
 

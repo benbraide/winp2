@@ -121,15 +121,15 @@ void winp::ui::object::traverse_all_ancestors(const std::function<void(tree &)> 
 	}, block);
 }
 
-void winp::ui::object::traverse_siblings(const std::function<bool(object &)> &callback, bool block) const{
+void winp::ui::object::traverse_siblings(const std::function<bool(object &, bool)> &callback, bool block) const{
 	execute_or_post_task_inside_thread_context([&]{
 		traverse_siblings_(callback);
 	}, !block);
 }
 
-void winp::ui::object::traverse_all_siblings(const std::function<void(object &)> &callback, bool block) const{
-	traverse_siblings([callback](object &value){
-		callback(value);
+void winp::ui::object::traverse_all_siblings(const std::function<void(object &, bool)> &callback, bool block) const{
+	traverse_siblings([callback](object &value, bool is_before){
+		callback(value, is_before);
 		return true;
 	}, block);
 }
@@ -268,12 +268,15 @@ void winp::ui::object::traverse_ancestors_(const std::function<bool(tree &)> &ca
 	}
 }
 
-void winp::ui::object::traverse_siblings_(const std::function<bool(object &)> &callback) const{
-	if (parent_ == nullptr || parent_->children_.empty())
+void winp::ui::object::traverse_siblings_(const std::function<bool(object &, bool)> &callback) const{
+	if (callback == nullptr || parent_ == nullptr || parent_->children_.empty())
 		return;//No siblings
 
+	auto is_before = true;
 	for (auto sibling : parent_->children_){
-		if (sibling != this && !callback(*sibling))
+		if (sibling == this)
+			is_before = false;
+		else if (!callback(*sibling, is_before))
 			break;
 	}
 }
