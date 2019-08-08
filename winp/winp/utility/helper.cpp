@@ -1,5 +1,6 @@
 #include "helper.h"
 
+/*
 bool winp::utility::helper::rgn_is_empty(HRGN target){
 	auto dimension = get_rgn_dimension(target);
 	return (IsRectEmpty(&dimension) != FALSE);
@@ -161,4 +162,4 @@ bool winp::utility::helper::union_rgn_alt(HRGN value, const RECT &dimension){
 	DeleteObject(rgn);
 
 	return result;
-}
+}*/

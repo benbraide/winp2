@@ -49,7 +49,7 @@ namespace winp::ui{
 
 		virtual utility::error_code redraw_(const RECT &region) const override;
 
-		virtual utility::error_code redraw_(HRGN rgn) const override;
+		virtual utility::error_code redraw_(HRGN handle) const override;
 
 		virtual utility::error_code set_visibility_(bool is_visible, bool redraw) override;
 
@@ -61,11 +61,11 @@ namespace winp::ui{
 
 		virtual utility::error_code redraw_non_client_() const;
 
-		virtual utility::error_code redraw_client_(HRGN rgn) const;
+		virtual utility::error_code redraw_client_(utility::rgn &handle) const;
 
 		virtual HRGN get_handle_() const;
 
-		virtual HRGN get_outer_handle_() const;
+		virtual utility::rgn get_outer_handle_() const;
 
 		virtual HRGN create_handle_() const;
 
@@ -73,19 +73,19 @@ namespace winp::ui{
 
 		virtual utility::error_code destroy_handle_();
 
-		virtual HRGN prepare_handle_() const;
+		virtual utility::rgn prepare_handle_() const;
 
-		virtual HRGN prepare_handle_(HRGN handle, const POINT &offset) const;
+		virtual utility::rgn prepare_handle_(utility::rgn &handle, const POINT &offset) const;
 
-		virtual bool intersect_ancestors_(HRGN handle) const;
+		virtual bool intersect_ancestors_(utility::rgn &handle) const;
 
-		virtual bool exclude_siblings_(HRGN handle) const;
+		virtual bool exclude_siblings_(utility::rgn &handle) const;
 
-		virtual bool exclude_children_(HRGN handle) const;
+		virtual bool exclude_children_(utility::rgn &handle) const;
 
 		virtual bool exclude_from_clip_(HDC device, const POINT &offset) const;
 
-		HRGN handle_ = nullptr;
+		mutable utility::rgn handle_;
 		bool visible_ = true;
 	};
 }

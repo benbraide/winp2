@@ -18,7 +18,14 @@ winp::thread::item_manager::item_manager(object &thread, DWORD thread_id)
 	mouse_.drag_threshold.cx = GetSystemMetrics(SM_CXDRAG);
 	mouse_.drag_threshold.cy = GetSystemMetrics(SM_CYDRAG);
 
-	update_rgn_ = CreateRectRgn(0, 0, 1, 1);
+	update_rgn_.reset(CreateRectRgn(0, 0, 1, 1), true);
+}
+
+winp::thread::item_manager::~item_manager(){
+	if (hook_handle_ != nullptr){
+		UnhookWindowsHookEx(hook_handle_);
+		hook_handle_ = nullptr;
+	}
 }
 
 const winp::thread::object &winp::thread::item_manager::get_thread() const{
@@ -33,14 +40,14 @@ bool winp::thread::item_manager::is_thread_context() const{
 	return thread_.is_thread_context();
 }
 
-HRGN winp::thread::item_manager::get_update_rgn() const{
+winp::utility::rgn winp::thread::item_manager::get_update_rgn() const{
 	return update_rgn_;
 }
 
 RECT winp::thread::item_manager::get_update_rect() const{
 	if (!is_thread_context())
 		throw utility::error_code::outside_thread_context;
-	return utility::helper::get_rgn_dimension(update_rgn_);
+	return update_rgn_.get_dimension();
 }
 
 const winp::thread::item_manager::mouse_info &winp::thread::item_manager::get_mouse_state() const{
@@ -410,23 +417,19 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 
 		auto outer_handle = non_window_context->get_outer_handle_();
 		if (outer_handle != nullptr){//Check non-client
-			utility::helper::move_rgn(outer_handle, (position.x + offset.x), (position.y + offset.y));
+			outer_handle.move((position.x + offset.x), (position.y + offset.y));
 
-			auto intersection = utility::helper::intersect_rgn(update_rgn_, outer_handle);
+			auto intersection = update_rgn_.get_intersection(outer_handle);
 			if (intersection == nullptr)
 				return 0;//Do nothing
 
-			if (utility::helper::rgn_is_empty(intersection)){
-				DeleteObject(intersection);
+			if (intersection.is_empty())
 				return 0;
-			}
 
 			if (outer_handle != non_window_context->handle_){
 				MSG paint_msg{ msg.hwnd, WM_NCPAINT, reinterpret_cast<WPARAM>(paint_device_) };
 				trigger_event_with_target_<events::non_client_paint>(context, target, paint_msg, nullptr);
 			}
-
-			DeleteObject(intersection);
 		}
 
 		MSG paint_msg{ msg.hwnd, WM_ERASEBKGND, reinterpret_cast<WPARAM>(paint_device_) };
@@ -439,7 +442,6 @@ LRESULT winp::thread::item_manager::paint_(item &context, item &target, MSG &msg
 		if (msg.hwnd != nullptr){//Store update region
 			if (msg.message == WM_PAINT){
 				GetUpdateRgn(msg.hwnd, update_rgn_, FALSE);
-				auto d = utility::helper::get_rgn_dimension(update_rgn_);
 				if ((paint_device_ = GetDC(msg.hwnd)) != nullptr){
 					paint_device_store_id = SaveDC(paint_device_);
 					SelectClipRgn(paint_device_, update_rgn_);

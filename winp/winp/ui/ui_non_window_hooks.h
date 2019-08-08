@@ -75,7 +75,7 @@ namespace winp::ui{
 
 		virtual const std::wstring &get_caption_() const;
 
-		HRGN handle_ = nullptr;
+		utility::rgn handle_;
 		RECT padding_{};
 		std::wstring caption_;
 	};

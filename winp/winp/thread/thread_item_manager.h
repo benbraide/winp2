@@ -70,13 +70,15 @@ namespace winp::thread{
 
 		explicit item_manager(object &thread);
 
+		~item_manager();
+
 		const object &get_thread() const;
 
 		object &get_thread();
 
 		bool is_thread_context() const;
 
-		HRGN get_update_rgn() const;
+		utility::rgn get_update_rgn() const;
 
 		RECT get_update_rect() const;
 
@@ -294,7 +296,7 @@ namespace winp::thread{
 		mouse_info mouse_{};
 
 		HDC paint_device_ = nullptr;
-		HRGN update_rgn_ = nullptr;
+		utility::rgn update_rgn_;
 
 		ui::object *focused_object_ = nullptr;
 		std::unordered_map<unsigned __int64, std::function<void()>> timers_;

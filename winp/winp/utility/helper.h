@@ -3,7 +3,7 @@
 #include "windows.h"
 
 namespace winp::utility{
-	class helper{
+	/*class helper{
 	public:
 		static bool rgn_is_empty(HRGN target);
 
@@ -52,5 +52,5 @@ namespace winp::utility{
 		static bool union_rgn_alt(HRGN first, HRGN second);
 
 		static bool union_rgn_alt(HRGN value, const RECT &dimension);
-	};
+	};*/
 }

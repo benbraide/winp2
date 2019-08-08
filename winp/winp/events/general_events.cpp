@@ -246,7 +246,7 @@ winp::utility::error_code winp::events::draw::begin(){
 	SaveDC(info_.hdc);
 
 	if (auto non_window_context = dynamic_cast<ui::non_window_surface *>(&context_); non_window_context != nullptr){
-		HRGN handle;
+		utility::rgn handle;
 		if (message_info_.message == WM_NCPAINT){
 			auto hk = non_window_context->find_hook<ui::non_window_non_client_hook>();
 			if (hk == nullptr || hk->handle_ == nullptr){//Hook required
@@ -262,9 +262,9 @@ winp::utility::error_code winp::events::draw::begin(){
 
 		if (handle != nullptr){//Select
 			auto offset = non_window_context->convert_position_relative_to_ancestor_<ui::window_surface>(0, 0);
-			utility::helper::offset_rgn(handle, offset);
+			handle.offset(offset);
 
-			offset = utility::helper::get_rgn_offset(handle);
+			offset = handle.get_offset();
 			auto size = ((message_info_.message == WM_NCPAINT) ? non_window_context->get_current_size_() : non_window_context->get_current_client_size_());
 
 			RECT dimension{
@@ -280,7 +280,6 @@ winp::utility::error_code winp::events::draw::begin(){
 
 			IntersectRect(&info_.rcPaint, &info_.rcPaint, &dimension);
 			OffsetRect(&info_.rcPaint, -dimension.left, -dimension.top);
-			DeleteObject(handle);
 		}
 	}
 	else if (auto window_context = dynamic_cast<ui::window_surface *>(&context_); window_context != nullptr){
